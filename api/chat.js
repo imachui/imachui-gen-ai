@@ -1,6 +1,6 @@
 // Imachui Gen AI by Imachui — Vercel serverless chat API
-// Set DEEPSEEK_API_KEY in Vercel Environment Variables.
-// Never expose the API key in frontend code.
+// Add DEEPSEEK_API_KEY in Vercel Environment Variables.
+// Never expose your API key in frontend code.
 
 const ALLOWED_ORIGINS = new Set([
   "https://imachui.github.io",
@@ -20,16 +20,13 @@ function setCors(req, res) {
 }
 
 function normalizeMessages(body) {
-  const incoming = Array.isArray(body.messages)
-    ? body.messages
-    : [];
+  const incoming = Array.isArray(body.messages) ? body.messages : [];
 
   const messages = incoming
-    .filter(
-      m =>
-        m &&
-        ["user", "assistant"].includes(m.role) &&
-        typeof m.content === "string"
+    .filter(m =>
+      m &&
+      ["user", "assistant"].includes(m.role) &&
+      typeof m.content === "string"
     )
     .slice(-16)
     .map(m => ({
@@ -38,9 +35,7 @@ function normalizeMessages(body) {
     }));
 
   const message =
-    typeof body.message === "string"
-      ? body.message.trim()
-      : "";
+    typeof body.message === "string" ? body.message.trim() : "";
 
   if (message) {
     const last = messages[messages.length - 1];
@@ -84,10 +79,7 @@ module.exports = async function handler(req, res) {
 
   const messages = normalizeMessages(req.body || {});
 
-  if (
-    !messages.length ||
-    !messages.some(m => m.role === "user")
-  ) {
+  if (!messages.length || !messages.some(m => m.role === "user")) {
     return res.status(400).json({
       error: "Please enter a message first."
     });
