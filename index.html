@@ -1,1156 +1,783 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#090b12">
-  <title>Imachui Gen AI by Imachui</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #090b12;
-      --panel: #10131d;
-      --panel2: #171b28;
-      --border: #272d3c;
-      --text: #f3f5fb;
-      --muted: #98a2b7;
-      --accent: #8b7cff;
-      --accent2: #42d9c8;
-      --danger: #ff8d9a;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: radial-gradient(ellipse at top, #171a31 0%, var(--bg) 55%);
-      color: var(--text);
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      min-height: 100vh;
-    }
-    button, textarea { font: inherit; }
-    button { cursor: pointer; }
-    .app {
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 250px minmax(0, 1fr);
-    }
-    .sidebar {
-      background: rgba(10, 12, 20, .92);
-      border-right: 1px solid var(--border);
-      padding: 22px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 11px;
-      padding: 4px 5px 16px;
-    }
-    .brand-icon {
-      width: 43px;
-      height: 43px;
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      font-size: 23px;
-      font-weight: 800;
-      color: white;
-      background: linear-gradient(135deg, #8b7cff, #42d9c8);
-      box-shadow: 0 0 25px #8b7cff35;
-    }
-    .brand-name { font-size: 16px; font-weight: 800; letter-spacing: .4px; }
-    .brand-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
-    .new-chat, .nav-button {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 13px;
-      color: var(--text);
-      text-align: left;
-      background: var(--panel);
-    }
-    .new-chat:hover, .nav-button:hover {
-      background: var(--panel2);
-      border-color: #555078;
-    }
-    .side-label {
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      padding: 0 8px;
-    }
-    .history { display: flex; flex-direction: column; gap: 7px; overflow: auto; }
-    .history-item {
-      width: 100%;
-      border: 0;
-      background: transparent;
-      color: var(--muted);
-      border-radius: 9px;
-      text-align: left;
-      padding: 10px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-    .history-item:hover { background: var(--panel2); color: var(--text); }
-    .side-footer {
-      margin-top: auto;
-      padding: 12px 8px 0;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.6;
-    }
-    .main {
-      min-width: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .topbar {
-      height: 70px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 26px;
-      border-bottom: 1px solid var(--border);
-      background: #0b0d15b8;
-      backdrop-filter: blur(12px);
-      position: sticky;
-      top: 0;
-      z-index: 5;
-    }
-    .top-title { font-weight: 750; letter-spacing: .3px; }
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      background: var(--accent2);
-      border-radius: 50%;
-      box-shadow: 0 0 12px #42d9c8a0;
-    }
-    .mobile-menu {
-      display: none;
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 9px;
-      padding: 7px 10px;
-    }
-    .chat {
-      width: 100%;
-      max-width: 900px;
-      padding: 32px 24px 190px;
-      margin: 0 auto;
-      flex: 1;
-    }
-    .welcome { text-align: center; padding: 65px 12px 35px; }
-    .welcome-mark {
-      width: 76px;
-      height: 76px;
-      margin: 0 auto 22px;
-      border-radius: 24px;
-      display: grid;
-      place-items: center;
-      font-size: 37px;
-      background: linear-gradient(135deg, #8b7cff, #42d9c8);
-      box-shadow: 0 0 60px #8b7cff26;
-    }
-    .welcome h1 {
-      margin: 0 0 12px;
-      font-size: clamp(28px, 4vw, 42px);
-      letter-spacing: -1px;
-    }
-    .gradient-text {
-      background: linear-gradient(90deg, #a69aff, #42d9c8);
-      color: transparent;
-      background-clip: text;
-      -webkit-background-clip: text;
-    }
-    .welcome p {
-      color: var(--muted);
-      line-height: 1.7;
-      max-width: 550px;
-      margin: 0 auto;
-    }
-    .suggestions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      max-width: 640px;
-      margin: 25px auto 0;
-    }
-    .suggestion {
-      background: #121622;
-      border: 1px solid var(--border);
-      color: #d9deed;
-      padding: 14px;
-      text-align: left;
-      border-radius: 13px;
-      line-height: 1.5;
-    }
-    .suggestion:hover { border-color: var(--accent); background: #181a2b; }
-    .message {
-      display: flex;
-      gap: 12px;
-      margin: 25px 0;
-      align-items: flex-start;
-    }
-    .avatar {
-      width: 34px;
-      height: 34px;
-      flex: 0 0 34px;
-      border-radius: 11px;
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-      font-size: 13px;
-      background: var(--panel2);
-      border: 1px solid var(--border);
-    }
-    .message.user .avatar { background: #282347; border-color: #4d447d; }
-    .message-content {
-      min-width: 0;
-      flex: 1;
-      padding-top: 5px;
-      line-height: 1.75;
-      overflow-wrap: anywhere;
-    }
-    .message-role {
-      font-weight: 750;
-      font-size: 13px;
-      margin-bottom: 6px;
-      color: #c9c4ff;
-    }
-    .message.user .message-role { color: #8fe9dd; }
-    .message-text { white-space: pre-wrap; }
-    .generated-image {
-      display: block;
-      width: 100%;
-      max-width: 620px;
-      height: auto;
-      margin-top: 13px;
-      border-radius: 15px;
-      border: 1px solid var(--border);
-      background: #0b0d15;
-    }
-    .image-actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 11px; }
-    .small-button {
-      display: inline-block;
-      text-decoration: none;
-      border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--text);
-      border-radius: 9px;
-      padding: 9px 12px;
-      font-size: 12px;
-    }
-    .small-button:hover { border-color: var(--accent); }
-    .loading { color: var(--muted); display: flex; align-items: center; gap: 9px; }
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid #41465b;
-      border-top-color: var(--accent2);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .composer-wrap {
-      position: fixed;
-      bottom: 0;
-      left: 250px;
-      right: 0;
-      padding: 18px 22px 16px;
-      background: linear-gradient(0deg, var(--bg) 75%, transparent);
-      z-index: 4;
-    }
-    .composer {
-      max-width: 850px;
-      margin: 0 auto;
-      border: 1px solid #353b50;
-      background: #121521;
-      border-radius: 18px;
-      padding: 12px;
-      box-shadow: 0 12px 55px #0007;
-    }
-    .composer:focus-within {
-      border-color: #7770ba;
-      box-shadow: 0 0 0 3px #8b7cff14, 0 12px 55px #0007;
-    }
-    #prompt {
-      width: 100%;
-      min-height: 52px;
-      max-height: 180px;
-      resize: vertical;
-      border: 0;
-      outline: none;
-      color: var(--text);
-      background: transparent;
-      padding: 7px 8px;
-      line-height: 1.6;
-    }
-    #prompt::placeholder { color: #788197; }
-    .composer-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      padding: 7px 3px 0;
-    }
-    .composer-hint { color: var(--muted); font-size: 11px; }
-    .composer-tools, .composer-actions {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      flex-wrap: wrap;
-    }
-    .tool-button {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 9px 12px;
-      background: var(--panel2);
-      color: var(--text);
-    }
-    .tool-button.listening {
-      border-color: var(--accent2);
-      color: var(--accent2);
-      box-shadow: 0 0 0 3px #42d9c81c;
-    }
-    .voice-status { color: var(--muted); font-size: 10px; }
-    .read-aloud {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      margin: 8px 0 0;
-      padding: 7px 10px;
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      background: var(--panel2);
-      color: var(--text);
-      font-size: 12px;
-    }
-    .read-aloud:hover { border-color: var(--accent); }
-    .send-button {
-      border: 0;
-      border-radius: 11px;
-      padding: 11px 17px;
-      color: #0b0d15;
-      background: linear-gradient(135deg, #b0a5ff, #55e2d2);
-      font-weight: 800;
-    }
-    .send-button:disabled { opacity: .5; cursor: not-allowed; }
-    .error-text { color: var(--danger); }
-    .notice {
-      text-align: center;
-      max-width: 850px;
-      margin: 8px auto 0;
-      color: #778097;
-      font-size: 10px;
-      line-height: 1.5;
-    }
-    @media (max-width: 760px) {
-      .app { grid-template-columns: 1fr; }
-      .sidebar {
-        display: none;
-        position: fixed;
-        z-index: 10;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        width: 270px;
-        box-shadow: 20px 0 60px #0008;
-      }
-      .sidebar.open { display: flex; }
-      .mobile-menu { display: block; }
-      .topbar { height: 62px; padding: 0 14px; gap: 10px; }
-      .chat { padding: 16px 14px 190px; }
-      .welcome { padding-top: 48px; }
-      .suggestions { grid-template-columns: 1fr; }
-      .composer-wrap { left: 0; padding: 12px 10px 10px; }
-      .composer { border-radius: 15px; }
-      .composer-hint { font-size: 10px; }
-      .composer-bottom { align-items: flex-start; flex-direction: column; }
-      .composer-actions { width: 100%; justify-content: space-between; }
-    }
-  </style>
-</head><body>
-  <div class="app">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <div class="brand-icon">G</div>
-        <div>
-          <div class="brand-name">Imachui Gen AI</div>
-          <div class="brand-sub">by Imachui · DeepSeek</div>
-        </div>
-      </div>
-
-      <button class="new-chat" id="newChat">＋ New conversation</button>
-
-      <div class="side-label">Workspace</div>
-      <button class="nav-button" id="chatNav">✦ Ask Imachui Gen AI</button>
-      <button class="nav-button" id="imageNav">▧ Image generation</button>
-
-      <div class="side-label">Recent conversations</div>
-      <div class="history" id="history"></div>
-
-      <div class="side-footer">
-        Imachui Gen AI by Imachui<br>
-        One conversation. Text and images.
-      </div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <button class="mobile-menu" id="menuButton" aria-label="Open menu">☰</button>
-        <div class="top-title">IMACHUI GEN AI <span class="gradient-text">/ CHAT</span></div>
-        <div class="status"><span class="dot"></span><span>AI workspace</span></div>
-      </header>
-
-      <section class="chat" id="chat">
-        <div class="welcome" id="welcome">
-          <div class="welcome-mark">✦</div>
-          <h1>Welcome to <span class="gradient-text">IMACHUI GEN AI</span></h1>
-          <p>Ask questions, explore ideas, or create images. Your text and generated images appear together in one conversation.</p>
-
-          <div class="suggestions">
-            <button class="suggestion" data-prompt="Explain cybersecurity in simple Tagalog.">✦ Explain a topic<br><small>Learn something new</small></button>
-            <button class="suggestion" data-prompt="Bigyan mo ako ng image ng futuristic dark AI workspace, cinematic lighting.">▧ Create an image<br><small>Describe what you want to see</small></button>
-            <button class="suggestion" data-prompt="Give me five creative website ideas for a modern AI brand.">⌘ Brainstorm ideas<br><small>Plan your next project</small></button>
-            <button class="suggestion" data-prompt="Gumawa ng image ng paddle ng pickleball na futuristic at professional ang design.">◈ Pickleball image<br><small>Generate a custom design</small></button>
-          </div>
-        </div>
-
-        <div id="messages"></div>
-      </section>
-
-      <div class="composer-wrap">
-        <form class="composer" id="composer">
-          <textarea id="prompt" rows="2" placeholder="Message Imachui Gen AI or describe an image..." aria-label="Your message"></textarea>
-          <div class="composer-bottom">
-            <div class="composer-tools">
-              <button class="tool-button" id="micButton" type="button" title="Speak in Tagalog / Filipino">🎙 Mic</button>
-              <span id="voiceStatus" class="voice-status" role="status">Voice ready</span>
-            </div>
-            <div class="composer-actions">
-              <div class="composer-hint">Enter to send · Shift + Enter for a new line</div>
-              <button class="send-button" id="sendButton" type="submit">Send ↑</button>
-            </div>
-          </div>
-        </form>
-        <div class="notice">Provider: Imachui Gen AI · Image generation requires a working /api/image backend. Do not enter passwords, API keys, or confidential information.</div>
-      </div>
-    </main>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090b12">
+<title>Imachui Gen AI by Imachui</title>
+<style>
+:root{color-scheme:dark;--bg:#090b12;--panel:#10131d;--panel2:#171b28;--border:#292f42;--text:#f3f5fb;--muted:#98a2b7;--a:#8b7cff;--b:#42d9c8;--danger:#ff8d9a}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#171a31 0%,var(--bg) 55%);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,textarea,input{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+.app{min-height:100vh;display:grid;grid-template-columns:270px minmax(0,1fr)}
+.sidebar{background:#0a0c14f2;border-right:1px solid var(--border);padding:20px 15px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.brand{display:flex;align-items:center;gap:11px;padding:3px 6px 12px}
+.brand-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(135deg,var(--a),var(--b));font-weight:900;font-size:23px}
+.brand-name{font-weight:850}
+.brand-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.new-chat,.nav-button{width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--panel);color:var(--text);text-align:left}
+.new-chat:hover,.nav-button:hover{border-color:#69618f;background:var(--panel2)}
+.side-label{font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
+.history-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.clear-all{border:1px solid #4b3544;border-radius:8px;padding:6px 8px;background:#211620;color:#ffb0bd;font-size:11px}
+.history{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto}
+.history-row{display:flex;align-items:center;gap:4px;border-radius:9px}
+.history-row.active{background:#2a2543}
+.history-open{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;border:0;background:transparent;color:#cbd2e4;padding:10px 8px;font-size:12px}
+.delete-chat{border:0;background:transparent;color:#a4abc0;border-radius:7px;padding:7px;font-size:11px}
+.delete-chat:hover{background:#3a1c28;color:#ff9bac}
+.sidebar-foot{margin-top:auto;padding:12px 7px 0;border-top:1px solid var(--border);font-size:11px;line-height:1.7;color:var(--muted)}
+.main{min-width:0;min-height:100vh;display:flex;flex-direction:column}
+.topbar{height:70px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 24px;border-bottom:1px solid var(--border);background:#0b0d15b8;position:sticky;top:0;z-index:3}
+.top-title{font-size:14px;font-weight:850}
+.gradient{background:linear-gradient(90deg,#b0a5ff,var(--b));background-clip:text;color:transparent}
+.status{font-size:11px;color:var(--muted);white-space:nowrap}
+.dot{display:inline-block;width:7px;height:7px;background:var(--b);border-radius:50%;margin-right:6px}
+.menu{display:none;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px}
+.chat{width:100%;max-width:950px;margin:0 auto;flex:1;padding:30px 24px 230px}
+.welcome{text-align:center;padding:55px 12px 32px}
+.hero{width:74px;height:74px;margin:0 auto 20px;border-radius:24px;display:grid;place-items:center;font-size:37px;background:linear-gradient(135deg,var(--a),var(--b))}
+.welcome h1{font-size:clamp(28px,4vw,42px);margin:0 0 12px}
+.welcome p{max-width:560px;margin:0 auto;color:var(--muted);line-height:1.7}
+.cards{max-width:650px;margin:25px auto 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card{padding:14px;text-align:left;color:var(--text);background:var(--panel);border:1px solid var(--border);border-radius:12px;line-height:1.5}
+.card:hover{border-color:var(--a)}
+.card small{display:block;color:var(--muted);margin-top:4px}
+.message{display:flex;gap:12px;margin:24px 0;align-items:flex-start}
+.avatar{width:34px;height:34px;flex:0 0 34px;border-radius:11px;background:var(--panel2);border:1px solid var(--border);display:grid;place-items:center;font-size:11px;font-weight:850}
+.message.user .avatar{background:#292346;border-color:#4d447d}
+.message-content{flex:1;min-width:0;padding-top:4px;line-height:1.75;overflow-wrap:anywhere}
+.message-role{font-size:12px;font-weight:800;margin-bottom:6px;color:#c9c4ff}
+.message.user .message-role{color:#8fe9dd}
+.message-text{white-space:pre-wrap;overflow-wrap:anywhere}
+.read-button{margin-top:9px;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:9px;padding:7px 10px;font-size:12px}
+.read-button:hover{border-color:var(--a)}
+.attachment-list{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.attachment-chip{font-size:11px;color:#c9d1e6;border:1px solid var(--border);border-radius:8px;padding:6px 8px}
+.loading{display:flex;align-items:center;gap:9px;color:var(--muted)}
+.spinner{width:15px;height:15px;border:2px solid #454b61;border-top-color:var(--b);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.composer-wrap{position:fixed;bottom:0;left:270px;right:0;padding:15px 20px 12px;background:linear-gradient(0deg,var(--bg) 80%,transparent);z-index:2}
+.composer{max-width:850px;margin:0 auto;padding:12px;border:1px solid #383d54;background:#121521;border-radius:18px;box-shadow:0 12px 55px #0007}
+.composer:focus-within{border-color:#7770ba}
+#prompt{width:100%;min-height:55px;max-height:180px;resize:vertical;border:0;outline:0;color:var(--text);background:transparent;padding:7px 9px;line-height:1.6}
+#prompt::placeholder{color:#788197}
+.composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:5px 3px 0}
+.tools,.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tool{border:1px solid var(--border);border-radius:9px;padding:8px 10px;background:var(--panel2);color:var(--text);font-size:12px}
+.tool.active{border-color:var(--b);color:var(--b)}
+.voice-status{font-size:10px;color:var(--muted)}
+.hint{font-size:10px;color:var(--muted)}
+.send{border:0;border-radius:11px;padding:11px 17px;color:#080b12;background:linear-gradient(135deg,#b0a5ff,#55e2d2);font-weight:850}
+.file-input{display:none}
+.notice{text-align:center;color:#788197;font-size:10px;margin:8px auto 0;max-width:850px}
+.empty{color:var(--muted);font-size:12px;padding:8px}
+@media(max-width:760px){
+.app{grid-template-columns:1fr}
+.sidebar{display:none;position:fixed;z-index:10;inset:0 auto 0 0;width:280px;box-shadow:20px 0 60px #0009}
+.sidebar.open{display:flex}
+.menu{display:block}
+.topbar{height:62px;padding:0 12px;justify-content:flex-start}
+.status{margin-left:auto}
+.chat{padding:18px 14px 245px}
+.welcome{padding-top:35px}
+.cards{grid-template-columns:1fr}
+.composer-wrap{left:0;padding:10px}
+.composer-bottom{align-items:flex-start}
+.actions{width:100%;justify-content:space-between}
+.hint{max-width:60%}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="brand-icon">✦</div>
+    <div>
+      <div class="brand-name">IMACHUI GEN AI</div>
+      <div class="brand-sub">by Imachui · DeepSeek</div>
+    </div>
   </div>
+  <button class="new-chat" id="newChat" type="button">＋ New conversation</button>
+  <div class="side-label">Workspace</div>
+  <button class="nav-button" id="chatNav" type="button">✦ Ask Imachui Gen AI</button>
+  <div class="history-head">
+    <div class="side-label">Recent conversations</div>
+    <button class="clear-all" id="clearAll" type="button">Clear all</button>
+  </div>
+  <div class="history" id="history"></div>
+  <div class="sidebar-foot">Imachui Gen AI by Imachui<br>One workspace for conversations and attachments.</div>
+</aside>
+<main class="main">
+<header class="topbar">
+  <button class="menu" id="menuButton" type="button" aria-label="Open menu">☰</button>
+  <div class="top-title">IMACHUI GEN AI <span class="gradient">/ CHAT</span></div>
+  <div class="status"><span class="dot"></span>AI workspace</div>
+</header>
+<section class="chat" id="chat">
+  <div class="welcome" id="welcome">
+    <div class="hero">✦</div>
+    <h1>Welcome to <span class="gradient">Imachui Gen AI</span></h1>
+    <p>Ask questions, speak your message, attach text documents, and listen to the AI's answers.</p>
+    <div class="cards">
+      <button class="card" data-prompt="Explain cybersecurity in simple Tagalog." type="button">✦ Explain a topic<small>Learn something new</small></button>
+      <button class="card" data-prompt="Help me write a professional email." type="button">✎ Create content<small>Write and improve text</small></button>
+      <button class="card" data-prompt="Explain this step by step in Filipino." type="button">◈ Learn step by step<small>Clear practical explanations</small></button>
+      <button class="card" data-prompt="Give me ideas for a modern AI website." type="button">⌘ Brainstorm ideas<small>Plan a project</small></button>
+    </div>
+  </div>
+  <div id="messages" aria-live="polite"></div>
+</section>
+<div class="composer-wrap">
+  <form class="composer" id="composer">
+    <textarea id="prompt" rows="2" placeholder="Message Imachui Gen AI..." aria-label="Message" maxlength="12000"></textarea>
+    <div id="attachments" class="attachment-list"></div>
+    <div class="composer-bottom">
+      <div class="tools">
+        <button class="tool" id="attachButton" type="button">＋ Attach files</button>
+        <input class="file-input" id="fileInput" type="file" multiple accept=".txt,.md,.csv,.json,.html,.xml,.log,.pdf,.docx,image/*">
+        <button class="tool" id="micButton" type="button">🎙 Mic</button>
+        <span id="voiceStatus" class="voice-status" role="status">Voice ready</span>
+      </div>
+      <div class="actions">
+        <span class="hint">Enter to send · Shift + Enter for new line</span>
+        <button class="send" id="sendButton" type="submit">Send ↑</button>
+      </div>
+    </div>
+  </form>
+  <div class="notice">Provider: Imachui Gen AI · Check important answers before relying on them.</div>
+</div>
+</main>
+</div>
+<script>
+'use strict';
 
-  <script>
-    const API_URL =
-      location.hostname === "imachui.github.io"
-        ? "https://imachui-gen-ai.vercel.app/api/chat"
-        : "/api/chat";
+const API_URL = location.hostname === 'imachui.github.io'
+  ? 'https://imachui-gen-ai.vercel.app/api/chat'
+  : '/api/chat';
 
-    const IMAGE_API_URL =
-      location.hostname === "imachui.github.io"
-        ? "https://imachui-gen-ai.vercel.app/api/image"
-        : "/api/image";
+const STORAGE_KEY = 'imachui_gen_ai_chats_v3';
+const $ = id => document.getElementById(id);
 
-    const STORAGE_KEY = "global_ai_imachui_chats_v2";
+const promptInput = $('prompt');
+const messagesElement = $('messages');
+const welcomeElement = $('welcome');
+const historyElement = $('history');
+const sidebar = $('sidebar');
+const composer = $('composer');
+const sendButton = $('sendButton');
+const fileInput = $('fileInput');
+const attachmentsElement = $('attachments');
+const micButton = $('micButton');
+const voiceStatus = $('voiceStatus');
 
-    const messagesElement = document.getElementById("messages");
-    const welcomeElement = document.getElementById("welcome");
-    const composer = document.getElementById("composer");
-    const promptInput = document.getElementById("prompt");
-    const sendButton = document.getElementById("sendButton");
-    const historyElement = document.getElementById("history");
-    const sidebar = document.getElementById("sidebar");
-    const micButton = document.getElementById("micButton");
-    const voiceStatus = document.getElementById("voiceStatus");
+let chats = loadChats();
+let activeChatId = null;
+let currentMessages = [];
+let busy = false;
+let selectedFiles = [];
+let recognition = null;
+let listening = false;
 
-    let recognition = null;
-    let isListening = false;
+function makeId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
 
-    function setVoiceStatus(text) {
-      if (voiceStatus) voiceStatus.textContent = text;
-    }
+function activeChat() {
+  return chats.find(chat => chat.id === activeChatId);
+}
 
-    function stopListening() {
-      if (recognition) {
-        try { recognition.stop(); } catch (_) {}
-      }
-      isListening = false;
-      micButton.classList.remove("listening");
-      micButton.textContent = "🎙 Mic";
-    }
+function loadChats() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
 
-    function startListening() {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
+function saveChats() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+  } catch (error) {
+    console.warn('Could not save history.', error);
+  }
+}
 
-      if (!SpeechRecognition) {
-        setVoiceStatus("Voice input not supported here. Try Chrome or Edge.");
-        return;
-      }
+function renderHistory() {
+  historyElement.replaceChildren();
 
-      if (isListening) {
-        stopListening();
-        setVoiceStatus("Microphone stopped.");
-        return;
-      }
+  if (!chats.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No conversations yet.';
+    historyElement.append(empty);
+    return;
+  }
 
-      try {
-        recognition = new SpeechRecognition();
-        recognition.lang = "fil-PH";
-        recognition.continuous = false;
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
+  chats.slice(0, 30).forEach(chat => {
+    const row = document.createElement('div');
+    row.className = 'history-row' + (chat.id === activeChatId ? ' active' : '');
 
-        recognition.onstart = () => {
-          isListening = true;
-          micButton.classList.add("listening");
-          micButton.textContent = "■ Stop";
-          setVoiceStatus("Listening… speak now.");
-        };
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'history-open';
+    open.textContent = chat.title || 'New conversation';
+    open.title = open.textContent;
+    open.addEventListener('click', () => openChat(chat.id));
 
-        recognition.onresult = event => {
-          let finalText = "";
-          let interimText = "";
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'delete-chat';
+    del.textContent = '×';
+    del.title = 'Delete this conversation';
+    del.setAttribute('aria-label', 'Delete ' + (chat.title || 'conversation'));
+    del.addEventListener('click', () => deleteChat(chat.id));
 
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0]?.transcript || "";
-            if (event.results[i].isFinal) {
-              finalText += transcript;
-            } else {
-              interimText += transcript;
-            }
-          }
+    row.append(open, del);
+    historyElement.append(row);
+  });
+}
 
-          if (finalText.trim()) {
-            const previousText = promptInput.value.trim();
-            promptInput.value =
-              (previousText ? previousText + " " : "") + finalText.trim();
-            promptInput.focus();
-            setVoiceStatus("Text added. Review it, then press Send.");
-          } else if (interimText) {
-            setVoiceStatus("Hearing: " + interimText);
-          }
-        };
+function createChat() {
+  const chat = {
+    id: makeId(),
+    title: 'New conversation',
+    updated: Date.now(),
+    messages: []
+  };
 
-        recognition.onerror = event => {
-          const messages = {
-            "not-allowed": "Microphone permission denied.",
-            "audio-capture": "No microphone found.",
-            "no-speech": "No speech detected. Try again."
-          };
+  chats.unshift(chat);
+  activeChatId = chat.id;
+  currentMessages = [];
+  messagesElement.replaceChildren();
+  welcomeElement.hidden = false;
+  saveChats();
+  renderHistory();
+  sidebar.classList.remove('open');
+  promptInput.focus();
+}
 
-          setVoiceStatus(
-            messages[event.error] || ("Voice input error: " + event.error)
-          );
-        };
+function openChat(chatId) {
+  const chat = chats.find(item => item.id === chatId);
+  if (!chat) return;
 
-        recognition.onend = () => {
-          isListening = false;
-          micButton.classList.remove("listening");
-          micButton.textContent = "🎙 Mic";
+  activeChatId = chat.id;
+  currentMessages = (chat.messages || []).map(message => ({
+    role: message.role,
+    content: message.content
+  }));
 
-          if (voiceStatus.textContent === "Listening… speak now.") {
-            setVoiceStatus("Voice input stopped.");
-          }
-        };
+  messagesElement.replaceChildren();
+  welcomeElement.hidden = currentMessages.length > 0;
 
-        recognition.start();
-      } catch (_) {
-        setVoiceStatus("Could not start microphone. Check site permission.");
-      }
-    }
+  currentMessages.forEach(message => addMessage(message.role, message.content));
+  renderHistory();
+  sidebar.classList.remove('open');
+  scrollBottom();
+}
 
-    function stopSpeaking() {
-      if (window.speechSynthesis) {
+function deleteChat(chatId) {
+  const chat = chats.find(item => item.id === chatId);
+  if (!chat || !confirm('Delete this conversation?')) return;
+
+  chats = chats.filter(item => item.id !== chatId);
+
+  if (activeChatId === chatId) {
+    activeChatId = null;
+    currentMessages = [];
+    messagesElement.replaceChildren();
+    welcomeElement.hidden = false;
+  }
+
+  saveChats();
+  renderHistory();
+
+  if (!activeChatId && !chats.length) createChat();
+}
+
+$('clearAll').addEventListener('click', () => {
+  if (!chats.length) {
+    alert('No conversations to clear.');
+    return;
+  }
+
+  if (!confirm('Delete ALL conversations? This cannot be undone.')) return;
+
+  chats = [];
+  activeChatId = null;
+  currentMessages = [];
+  messagesElement.replaceChildren();
+  welcomeElement.hidden = false;
+  saveChats();
+  renderHistory();
+  createChat();
+});
+
+function scrollBottom() {
+  requestAnimationFrame(() => {
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: 'smooth'
+    });
+  });
+}
+
+function addMessage(role, content, options = {}) {
+  welcomeElement.hidden = true;
+
+  const article = document.createElement('article');
+  article.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
+
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = role === 'user' ? 'YOU' : 'G';
+
+  const body = document.createElement('div');
+  body.className = 'message-content';
+
+  const label = document.createElement('div');
+  label.className = 'message-role';
+  label.textContent = role === 'user' ? 'You' : 'Imachui Gen AI';
+  body.append(label);
+
+  if (content) {
+    const text = document.createElement('div');
+    text.className = 'message-text';
+    text.textContent = content;
+    body.append(text);
+  }
+
+  if (options.files?.length) {
+    options.files.forEach(file => {
+      const chip = document.createElement('div');
+      chip.className = 'attachment-chip';
+      chip.textContent = '📎 ' + file.name;
+      body.append(chip);
+    });
+  }
+
+  if (role === 'assistant' && content) {
+    const read = document.createElement('button');
+    read.className = 'read-button';
+    read.type = 'button';
+    read.textContent = '🔊 Read aloud';
+
+    read.addEventListener('click', () => {
+      if (window.speechSynthesis?.speaking) {
         window.speechSynthesis.cancel();
+        read.textContent = '🔊 Read aloud';
+        setVoice('Reading stopped.');
+      } else {
+        speakText(content, read);
       }
-    }
+    });
 
-    function chooseFemaleVoice() {
-      const voices = window.speechSynthesis
-        ? window.speechSynthesis.getVoices()
-        : [];
+    body.append(read);
+  }
 
-      const filipinoVoices = voices.filter(v =>
-        /^(fil|tl)/i.test(v.lang || "")
-      );
-      const englishVoices = voices.filter(v =>
-        /^en/i.test(v.lang || "")
-      );
+  article.append(avatar, body);
+  messagesElement.append(article);
+  scrollBottom();
+  return article;
+}
 
-      const pool = filipinoVoices.length
-        ? filipinoVoices
-        : englishVoices.length
-          ? englishVoices
-          : voices;
+function addLoading() {
+  const article = document.createElement('article');
+  article.className = 'message assistant';
+  article.innerHTML =
+    '<div class="avatar">G</div>' +
+    '<div class="message-content">' +
+    '<div class="message-role">Imachui Gen AI</div>' +
+    '<div class="loading"><span class="spinner"></span><span>Thinking...</span></div>' +
+    '</div>';
 
-      return pool.find(v =>
-        /female|woman|zira|samantha|aria|jenny|ava|susan|karen|tessa/i.test(v.name || "")
-      ) || pool[0] || null;
-    }
+  messagesElement.append(article);
+  scrollBottom();
+  return article;
+}
 
-    function speakText(text, button) {
-      if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
-        setVoiceStatus("Read aloud not supported in this browser.");
-        return;
+function setVoice(message) {
+  voiceStatus.textContent = message;
+}
+
+function stopListening() {
+  try {
+    recognition?.stop();
+  } catch {}
+
+  listening = false;
+  micButton.classList.remove('active');
+  micButton.textContent = '🎙 Mic';
+}
+
+function startListening() {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    setVoice('Voice recognition unavailable. Try Chrome or Edge.');
+    return;
+  }
+
+  if (listening) {
+    stopListening();
+    setVoice('Microphone stopped.');
+    return;
+  }
+
+  try {
+    recognition = new SpeechRecognition();
+    recognition.lang = 'fil-PH';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      listening = true;
+      micButton.classList.add('active');
+      micButton.textContent = '■ Stop';
+      setVoice('Listening… speak now.');
+    };
+
+    recognition.onresult = event => {
+      let finalText = '';
+      let interimText = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0]?.transcript || '';
+        if (event.results[i].isFinal) finalText += transcript;
+        else interimText += transcript;
       }
 
-      stopSpeaking();
-
-      const utterance = new SpeechSynthesisUtterance(
-        String(text || "").slice(0, 12000)
-      );
-
-      utterance.lang = "fil-PH";
-      utterance.rate = 0.96;
-      utterance.pitch = 1.12;
-
-      const voice = chooseFemaleVoice();
-
-      if (voice) {
-        utterance.voice = voice;
-        utterance.lang = voice.lang || "fil-PH";
+      if (finalText.trim()) {
+        promptInput.value += (promptInput.value.trim() ? ' ' : '') + finalText.trim();
+        promptInput.focus();
+        setVoice('Speech added. Review it, then press Send.');
+      } else if (interimText) {
+        setVoice('Hearing: ' + interimText);
       }
+    };
 
-      utterance.onstart = () => {
-        if (button) button.textContent = "■ Stop reading";
-        setVoiceStatus("Reading answer aloud…");
+    recognition.onerror = event => {
+      const messages = {
+        'not-allowed': 'Microphone permission denied. Allow microphone access.',
+        'audio-capture': 'No microphone detected.',
+        'no-speech': 'No speech detected. Try again.',
+        'network': 'Browser speech service network error. Try Chrome or Edge.'
       };
 
-      utterance.onend = () => {
-        if (button) button.textContent = "🔊 Read aloud";
-        setVoiceStatus("Voice ready.");
-      };
+      setVoice(messages[event.error] || ('Voice error: ' + event.error));
+    };
 
-      utterance.onerror = () => {
-        if (button) button.textContent = "🔊 Read aloud";
-        setVoiceStatus("Could not play this voice.");
-      };
+    recognition.onend = () => {
+      listening = false;
+      micButton.classList.remove('active');
+      micButton.textContent = '🎙 Mic';
 
-      if (button) {
-        button.textContent = "■ Stop reading";
-        button.onclick = () => {
-          stopSpeaking();
-          button.textContent = "🔊 Read aloud";
-          setVoiceStatus("Reading stopped.");
-        };
+      if (voiceStatus.textContent === 'Listening… speak now.') {
+        setVoice('Voice stopped.');
       }
+    };
 
-      window.speechSynthesis.speak(utterance);
+    recognition.start();
+  } catch {
+    setVoice('Could not start microphone. Check browser permissions.');
+  }
+}
+
+micButton.addEventListener('click', startListening);
+
+function stripForSpeech(text) {
+  return String(text || '')
+    .replace(/```[\s\S]*?```/g, ' Code block omitted. ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/https?:\/\/\S+/g, ' link ')
+    .replace(/[*_#>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function selectVoice() {
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  const filipino = voices.filter(voice => /^(fil|tl)(-|$)/i.test(voice.lang || ''));
+  const english = voices.filter(voice => /^en(-|$)/i.test(voice.lang || ''));
+  const list = filipino.length ? filipino : english.length ? english : voices;
+
+  return list.find(voice =>
+    /female|woman|zira|samantha|aria|jenny|ava|susan|karen|tessa/i.test(voice.name || '')
+  ) || list[0] || null;
+}
+
+function speakText(text, button) {
+  if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+    setVoice('Read aloud is not supported in this browser.');
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+
+  document.querySelectorAll('.read-button').forEach(item => {
+    item.textContent = '🔊 Read aloud';
+  });
+
+  const utterance = new SpeechSynthesisUtterance(stripForSpeech(text).slice(0, 12000));
+  utterance.lang = 'fil-PH';
+  utterance.rate = 0.92;
+  utterance.pitch = 1.08;
+
+  const voice = selectVoice();
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang || 'fil-PH';
+  }
+
+  if (button) button.textContent = '■ Stop reading';
+
+  utterance.onend = () => {
+    if (button) {
+      button.textContent = button.id === 'readConversation'
+        ? '🔊 Read conversation'
+        : '🔊 Read aloud';
+    }
+    setVoice('Voice ready.');
+  };
+
+  utterance.onerror = () => {
+    if (button) {
+      button.textContent = button.id === 'readConversation'
+        ? '🔊 Read conversation'
+        : '🔊 Read aloud';
+    }
+    setVoice('Could not play voice. Check device speech settings.');
+  };
+
+  utterance.onstart = () => setVoice('Reading aloud…');
+  window.speechSynthesis.speak(utterance);
+}
+
+function readConversation() {
+  const text = currentMessages
+    .map(message =>
+      (message.role === 'user' ? 'You said: ' : 'Imachui Gen AI said: ') +
+      message.content
+    )
+    .join('. Next message. ');
+
+  if (!text.trim()) {
+    setVoice('There is no conversation to read yet.');
+    return;
+  }
+
+  const button = $('readConversation');
+
+  if (window.speechSynthesis?.speaking) {
+    window.speechSynthesis.cancel();
+    button.textContent = '🔊 Read conversation';
+    setVoice('Reading stopped.');
+  } else {
+    speakText(text, button);
+  }
+}
+
+function renderAttachments() {
+  attachmentsElement.replaceChildren();
+
+  selectedFiles.forEach((file, index) => {
+    const chip = document.createElement('span');
+    chip.className = 'attachment-chip';
+    chip.append(document.createTextNode('📎 ' + file.name + ' '));
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '×';
+    remove.title = 'Remove ' + file.name;
+    remove.style.cssText = 'border:0;background:transparent;color:#ffb0bd;margin-left:5px';
+
+    remove.addEventListener('click', () => {
+      selectedFiles.splice(index, 1);
+      renderAttachments();
+    });
+
+    chip.append(remove);
+    attachmentsElement.append(chip);
+  });
+}
+
+$('attachButton').addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', () => {
+  selectedFiles.push(...Array.from(fileInput.files || []));
+  if (selectedFiles.length > 5) selectedFiles = selectedFiles.slice(0, 5);
+  renderAttachments();
+  fileInput.value = '';
+});
+
+async function extractFile(file) {
+  const name = file.name.toLowerCase();
+
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error(file.name + ' is over 2 MB.');
+  }
+
+  if (file.type.startsWith('image/')) {
+    return '[Image attached: ' + file.name +
+      '. The current text-chat backend cannot analyze image pixels.]';
+  }
+
+  if (name.endsWith('.pdf') || name.endsWith('.docx')) {
+    return '[' + file.name +
+      ' attached. PDF/DOCX text extraction is not enabled in this version.]';
+  }
+
+  return file.text();
+}
+
+async function sendMessage(rawText) {
+  const text = rawText.trim();
+  if ((!text && !selectedFiles.length) || busy) return;
+
+  if (!activeChat()) createChat();
+
+  busy = true;
+  sendButton.disabled = true;
+  promptInput.disabled = true;
+
+  const fileSnapshot = [...selectedFiles];
+  let combined = text;
+
+  try {
+    for (const file of fileSnapshot) {
+      const extracted = await extractFile(file);
+      combined += '\n\n[Attachment: ' + file.name + ']\n' + extracted;
+    }
+  } catch (error) {
+    addMessage('assistant', error.message);
+    busy = false;
+    sendButton.disabled = false;
+    promptInput.disabled = false;
+    return;
+  }
+
+  addMessage('user', text || 'Please review my attachment(s).', {
+    files: fileSnapshot.map(file => ({name: file.name}))
+  });
+
+  currentMessages.push({role: 'user', content: combined});
+
+  const chat = activeChat();
+  if (chat) {
+    chat.messages.push({
+      role: 'user',
+      content: combined,
+      files: fileSnapshot.map(file => ({name: file.name}))
+    });
+
+    if (chat.title === 'New conversation') {
+      chat.title = (text || fileSnapshot[0]?.name || 'Attachment').slice(0, 40);
     }
 
-    micButton.addEventListener("click", startListening);
+    chat.updated = Date.now();
+    saveChats();
+    renderHistory();
+  }
 
-    let chats = loadChats();
-    let activeChatId = null;
-    let busy = false;
-    let currentMessages = [];
+  promptInput.value = '';
+  selectedFiles = [];
+  renderAttachments();
 
-    function loadChats() {
-      try {
-        const parsed = JSON.parse(
-          localStorage.getItem(STORAGE_KEY) || "[]"
-        );
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (_) {
-        return [];
-      }
+  const loading = addLoading();
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        message: combined,
+        messages: currentMessages.slice(-16)
+      })
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Chat API error (' + response.status + ').');
     }
 
-    function saveChats() {
-      const safeChats = chats.map(chat => ({
-        id: chat.id,
-        title: chat.title,
-        updated: chat.updated,
-        messages: (chat.messages || []).map(message => ({
-          role: message.role,
-          content: message.content,
-          imageWasGenerated: Boolean(message.image),
-          isImage: Boolean(message.isImage)
-        }))
-      }));
+    const answer = data.answer || data.response || data.message ||
+      data.choices?.[0]?.message?.content;
 
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(safeChats));
-      } catch (error) {
-        console.warn("Could not save conversation history.", error);
-      }
+    if (typeof answer !== 'string' || !answer.trim()) {
+      throw new Error('The AI returned an empty answer.');
     }
 
-    function makeId() {
-      return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-    }
+    loading.remove();
+    addMessage('assistant', answer);
+    currentMessages.push({role: 'assistant', content: answer});
 
-    function createChat() {
-      const chat = {
-        id: makeId(),
-        title: "New conversation",
-        updated: Date.now(),
-        messages: []
-      };
-
-      chats.unshift(chat);
-      activeChatId = chat.id;
-      currentMessages = [];
-      messagesElement.replaceChildren();
-      welcomeElement.style.display = "";
+    const current = activeChat();
+    if (current) {
+      current.messages.push({role: 'assistant', content: answer});
+      current.updated = Date.now();
       saveChats();
-      renderHistory();
-      sidebar.classList.remove("open");
     }
-
-    function getActiveChat() {
-      return chats.find(chat => chat.id === activeChatId);
-    }
-
-    function renderHistory() {
-      historyElement.replaceChildren();
-
-      chats.slice(0, 15).forEach(chat => {
-        const button = document.createElement("button");
-        button.className = "history-item";
-        button.textContent = chat.title || "New conversation";
-        button.title = button.textContent;
-        button.addEventListener("click", () => openChat(chat.id));
-        historyElement.appendChild(button);
-      });
-    }
-
-    function openChat(id) {
-      const chat = chats.find(item => item.id === id);
-      if (!chat) return;
-
-      activeChatId = id;
-      currentMessages = [];
-      messagesElement.replaceChildren();
-      welcomeElement.style.display = chat.messages.length ? "none" : "";
-
-      chat.messages.forEach(message => {
-        currentMessages.push({
-          role: message.role,
-          content: message.content
-        });
-
-        addMessage(
-          message.role,
-          message.content,
-          null,
-          message.imageWasGenerated
-            ? "Image preview is not stored after refreshing the page. Generate it again to view or download it."
-            : ""
-        );
-      });
-
-      renderHistory();
-      sidebar.classList.remove("open");
-      scrollToBottom();
-    }    function addMessage(role, content, imageData = null, note = "") {
-      welcomeElement.style.display = "none";
-
-      const wrapper = document.createElement("article");
-      wrapper.className =
-        "message " + (role === "user" ? "user" : "assistant");
-
-      const avatar = document.createElement("div");
-      avatar.className = "avatar";
-      avatar.textContent = role === "user" ? "YOU" : "G";
-
-      const body = document.createElement("div");
-      body.className = "message-content";
-
-      const name = document.createElement("div");
-      name.className = "message-role";
-      name.textContent = role === "user" ? "You" : "Imachui Gen AI";
-
-      const text = document.createElement("div");
-      text.className = "message-text";
-      text.textContent = content || "";
-
-      body.appendChild(name);
-      if (content) body.appendChild(text);
-
-      if (role !== "user" && content && !imageData) {
-        const speakButton = document.createElement("button");
-        speakButton.type = "button";
-        speakButton.className = "read-aloud";
-        speakButton.textContent = "🔊 Read aloud";
-        speakButton.setAttribute("aria-label", "Read this AI answer aloud");
-
-        speakButton.addEventListener("click", () => {
-          if (
-            window.speechSynthesis &&
-            window.speechSynthesis.speaking
-          ) {
-            stopSpeaking();
-            speakButton.textContent = "🔊 Read aloud";
-            setVoiceStatus("Reading stopped.");
-          } else {
-            speakText(content, speakButton);
-          }
-        });
-
-        body.appendChild(speakButton);
-      }
-
-      if (imageData) {
-        const image = document.createElement("img");
-        image.className = "generated-image";
-        image.src = imageData;
-        image.alt = content || "AI-generated image";
-        image.loading = "lazy";
-        body.appendChild(image);
-
-        const actions = document.createElement("div");
-        actions.className = "image-actions";
-
-        const download = document.createElement("a");
-        download.className = "small-button";
-        download.href = imageData;
-        download.download = "imachui-gen-ai-image.png";
-        download.textContent = "↓ Download Image";
-        actions.appendChild(download);
-
-        const open = document.createElement("a");
-        open.className = "small-button";
-        open.href = imageData;
-        open.target = "_blank";
-        open.rel = "noopener";
-        open.textContent = "↗ Open image";
-        actions.appendChild(open);
-
-        body.appendChild(actions);
-      }
-
-      if (note) {
-        const noteElement = document.createElement("div");
-        noteElement.className = "message-text";
-        noteElement.style.marginTop = "10px";
-        noteElement.style.color = "#98a2b7";
-        noteElement.textContent = note;
-        body.appendChild(noteElement);
-      }
-
-      wrapper.appendChild(avatar);
-      wrapper.appendChild(body);
-      messagesElement.appendChild(wrapper);
-      scrollToBottom();
-
-      return wrapper;
-    }
-
-    function addLoading(label) {
-      const wrapper = document.createElement("article");
-      wrapper.className = "message assistant";
-
-      const avatar = document.createElement("div");
-      avatar.className = "avatar";
-      avatar.textContent = "G";
-
-      const body = document.createElement("div");
-      body.className = "message-content";
-
-      const role = document.createElement("div");
-      role.className = "message-role";
-      role.textContent = "Imachui Gen AI";
-
-      const loading = document.createElement("div");
-      loading.className = "loading";
-
-      const spinner = document.createElement("span");
-      spinner.className = "spinner";
-
-      const labelElement = document.createElement("span");
-      labelElement.textContent = label;
-
-      loading.append(spinner, labelElement);
-      body.append(role, loading);
-      wrapper.append(avatar, body);
-      messagesElement.appendChild(wrapper);
-      scrollToBottom();
-
-      return wrapper;
-    }
-
-    function scrollToBottom() {
-      requestAnimationFrame(() => {
-        window.scrollTo({
-          top: document.body.scrollHeight,
-          behavior: "smooth"
-        });
-      });
-    }
-
-    function looksLikeImageRequest(text) {
-      const value = text.toLowerCase().trim();
-
-      if (value.startsWith("/image ") || value === "/image") {
-        return true;
-      }
-
-      const imageWords = [
-        "generate an image",
-        "generate image",
-        "create an image",
-        "create image",
-        "make an image",
-        "make image",
-        "draw me",
-        "draw an",
-        "draw a ",
-        "image of",
-        "picture of",
-        "create a picture",
-        "make a picture",
-        "bigyan mo ako ng image",
-        "bigyan mo ako nang image",
-        "gawan mo ako ng image",
-        "gumawa ng image",
-        "gawa ka ng image",
-        "gumawa ka ng larawan",
-        "bigyan mo ako ng larawan",
-        "gawan mo ako ng larawan",
-        "larawan ng",
-        "iguhit mo",
-        "generate ng image",
-        "gumawa ng larawan",
-        "create an illustration",
-        "generate a picture"
-      ];
-
-      return imageWords.some(word => value.includes(word));
-    }
-
-    function cleanImagePrompt(text) {
-      return text.replace(/^\/image\s*/i, "").trim();
-    }
-
-    async function generateImage(userText) {
-      const imagePrompt = cleanImagePrompt(userText);
-      const loading = addLoading(
-        "Generating your image. This may take a little while..."
-      );
-
-      try {
-        const response = await fetch(IMAGE_API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: imagePrompt })
-        });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || !data.image) {
-          throw new Error(data.error || "Image generation failed.");
-        }
-
-        loading.remove();
-
-        addMessage(
-          "assistant",
-          "Here's your generated image.",
-          data.image
-        );
-
-        currentMessages.push({
-          role: "assistant",
-          content: "Generated an image: " + imagePrompt
-        });
-
-        const active = getActiveChat();
-
-        if (active) {
-          active.messages.push({
-            role: "assistant",
-            content: "Generated an image: " + imagePrompt,
-            image: data.image,
-            isImage: true
-          });
-
-          active.updated = Date.now();
-          saveChats();
-        }
-      } catch (error) {
-        loading.remove();
-        addMessage(
-          "assistant",
-          "Image generation error: " +
-            (error.message || "Please try again.")
-        );
-      }
-    }
-
-    async function askTextAI(userText) {
-      const loading = addLoading("Thinking...");
-
-      try {
-        const history = currentMessages
-          .slice(-16)
-          .map(message => ({
-            role: message.role,
-            content: message.content
-          }));
-
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: userText,
-            messages: history
-          })
-        });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          throw new Error(
-            data.error || "The chat API returned an error."
-          );
-        }
-
-        const answer =
-          data.answer ||
-          data.response ||
-          data.message ||
-          data.choices?.[0]?.message?.content;
-
-        if (typeof answer !== "string" || !answer.trim()) {
-          throw new Error("The AI returned an empty response.");
-        }
-
-        loading.remove();
-        addMessage("assistant", answer);
-
-        currentMessages.push({
-          role: "assistant",
-          content: answer
-        });
-
-        const active = getActiveChat();
-
-        if (active) {
-          active.messages.push({
-            role: "assistant",
-            content: answer
-          });
-          active.updated = Date.now();
-          saveChats();
-        }
-      } catch (error) {
-        loading.remove();
-        addMessage(
-          "assistant",
-          "Chat error: " + (error.message || "Please try again.")
-        );
-      }
-    }    async function sendMessage(rawText) {
-      const userText = rawText.trim();
-
-      if (!userText || busy) return;
-
-      if (!activeChatId || !getActiveChat()) {
-        createChat();
-      }
-
-      busy = true;
-      sendButton.disabled = true;
-      promptInput.disabled = true;
-
-      addMessage("user", userText);
-      currentMessages.push({
-        role: "user",
-        content: userText
-      });
-
-      const active = getActiveChat();
-
-      if (active) {
-        active.messages.push({
-          role: "user",
-          content: userText
-        });
-
-        if (
-          active.messages.filter(m => m.role === "user").length === 1
-        ) {
-          active.title = userText.length > 32
-            ? userText.slice(0, 32) + "…"
-            : userText;
-        }
-
-        active.updated = Date.now();
-        saveChats();
-        renderHistory();
-      }
-
-      promptInput.value = "";
-
-      try {
-        if (looksLikeImageRequest(userText)) {
-          await generateImage(userText);
-        } else {
-          await askTextAI(userText);
-        }
-      } finally {
-        busy = false;
-        sendButton.disabled = false;
-        promptInput.disabled = false;
-        promptInput.focus();
-      }
-    }
-
-    composer.addEventListener("submit", event => {
-      event.preventDefault();
-      sendMessage(promptInput.value);
-    });
-
-    promptInput.addEventListener("keydown", event => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        composer.requestSubmit();
-      }
-    });
-
-    document.querySelectorAll("[data-prompt]").forEach(button => {
-      button.addEventListener("click", () => {
-        promptInput.value = button.dataset.prompt || "";
-        promptInput.focus();
-      });
-    });
-
-    document.getElementById("newChat").addEventListener("click", createChat);
-
-    document.getElementById("chatNav").addEventListener("click", () => {
-      promptInput.focus();
-      sidebar.classList.remove("open");
-    });
-
-    document.getElementById("imageNav").addEventListener("click", () => {
-      promptInput.value = "Bigyan mo ako ng image ng ";
-      promptInput.focus();
-      sidebar.classList.remove("open");
-    });
-
-    document.getElementById("menuButton").addEventListener("click", () => {
-      sidebar.classList.toggle("open");
-    });
-
-    if (chats.length) {
-      chats.sort((a, b) => (b.updated || 0) - (a.updated || 0));
-      renderHistory();
-      openChat(chats[0].id);
-    } else {
-      createChat();
-    }
-  </script>
+  } catch (error) {
+    loading.remove();
+    addMessage('assistant', 'Chat error: ' + (error.message || 'Please try again.'));
+  } finally {
+    busy = false;
+    sendButton.disabled = false;
+    promptInput.disabled = false;
+    promptInput.focus();
+  }
+}
+
+composer.addEventListener('submit', event => {
+  event.preventDefault();
+  sendMessage(promptInput.value);
+});
+
+promptInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    composer.requestSubmit();
+  }
+});
+
+document.querySelectorAll('[data-prompt]').forEach(button => {
+  button.addEventListener('click', () => {
+    promptInput.value = button.dataset.prompt || '';
+    promptInput.focus();
+  });
+});
+
+$('newChat').addEventListener('click', createChat);
+$('chatNav').addEventListener('click', () => {
+  promptInput.focus();
+  sidebar.classList.remove('open');
+});
+$('menuButton').addEventListener('click', () => {
+  sidebar.classList.toggle('open');
+});
+
+const readAll = document.createElement('button');
+readAll.type = 'button';
+readAll.className = 'tool';
+readAll.id = 'readConversation';
+readAll.textContent = '🔊 Read conversation';
+readAll.addEventListener('click', readConversation);
+micButton.parentElement.append(readAll);
+
+if (chats.length) {
+  chats.sort((a, b) => (b.updated || 0) - (a.updated || 0));
+  openChat(chats[0].id);
+} else {
+  createChat();
+}
+</script>
 </body>
 </html>
