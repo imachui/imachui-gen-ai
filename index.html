@@ -57,6 +57,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .read-button:hover{border-color:var(--a)}
 .attachment-list{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
 .attachment-chip{font-size:11px;color:#c9d1e6;border:1px solid var(--border);border-radius:8px;padding:6px 8px}
+.attachment-preview{max-width:180px;max-height:160px;object-fit:contain;display:block;margin-top:8px;border:1px solid var(--border);border-radius:9px}
 .loading{display:flex;align-items:center;gap:9px;color:var(--muted)}
 .spinner{width:15px;height:15px;border:2px solid #454b61;border-top-color:var(--b);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -73,6 +74,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .hint{font-size:10px;color:var(--muted)}
 .send{border:0;border-radius:11px;padding:11px 17px;color:#080b12;background:linear-gradient(135deg,#b0a5ff,#55e2d2);font-weight:850}
 .file-input{display:none}
+.error{color:var(--danger)}
 .notice{text-align:center;color:#788197;font-size:10px;margin:8px auto 0;max-width:850px}
 .empty{color:var(--muted);font-size:12px;padding:8px}
 @media(max-width:760px){
@@ -133,27 +135,26 @@ button:disabled{opacity:.55;cursor:not-allowed}
   <div id="messages" aria-live="polite"></div>
 </section>
 <div class="composer-wrap">
-  <form class="composer" id="composer">
-    <textarea id="prompt" rows="2" placeholder="Message Imachui Gen AI..." aria-label="Message" maxlength="12000"></textarea>
-    <div id="attachments" class="attachment-list"></div>
-    <div class="composer-bottom">
-      <div class="tools">
-        <button class="tool" id="attachButton" type="button">＋ Attach files</button>
-        <input class="file-input" id="fileInput" type="file" multiple accept=".txt,.md,.csv,.json,.html,.xml,.log,.pdf,.docx,image/*">
-        <button class="tool" id="micButton" type="button">🎙 Mic</button>
-        <span id="voiceStatus" class="voice-status" role="status">Voice ready</span>
-      </div>
-      <div class="actions">
-        <span class="hint">Enter to send · Shift + Enter for new line</span>
-        <button class="send" id="sendButton" type="submit">Send ↑</button>
-      </div>
-    </div>
-  </form>
-  <div class="notice">Provider: Imachui Gen AI · Check important answers before relying on them.</div>
+<form class="composer" id="composer">
+<textarea id="prompt" rows="2" placeholder="Message Imachui Gen AI..." aria-label="Message" maxlength="12000"></textarea>
+<div id="attachments" class="attachment-list"></div>
+<div class="composer-bottom">
+  <div class="tools">
+    <button class="tool" id="attachButton" type="button">＋ Attach files</button>
+    <input class="file-input" id="fileInput" type="file" multiple accept=".txt,.md,.csv,.json,.html,.xml,.log,.pdf,.docx,image/*">
+    <button class="tool" id="micButton" type="button">🎙 Mic</button>
+    <span id="voiceStatus" class="voice-status" role="status">Voice ready</span>
+  </div>
+  <div class="actions">
+    <span class="hint">Enter to send · Shift + Enter for new line</span>
+    <button class="send" id="sendButton" type="submit">Send ↑</button>
+  </div>
+</div>
+</form>
+<div class="notice">Provider: Imachui Gen AI · Check important answers before relying on them.</div>
 </div>
 </main>
-</div>
-<script>
+</div><script>
 'use strict';
 
 const API_URL = location.hostname === 'imachui.github.io'
@@ -221,7 +222,8 @@ function renderHistory() {
 
   chats.slice(0, 30).forEach(chat => {
     const row = document.createElement('div');
-    row.className = 'history-row' + (chat.id === activeChatId ? ' active' : '');
+    row.className = 'history-row' +
+      (chat.id === activeChatId ? ' active' : '');
 
     const open = document.createElement('button');
     open.type = 'button';
@@ -235,7 +237,7 @@ function renderHistory() {
     del.className = 'delete-chat';
     del.textContent = '×';
     del.title = 'Delete this conversation';
-    del.setAttribute('aria-label', 'Delete ' + (chat.title || 'conversation'));
+    del.setAttribute('aria-label', 'Delete conversation');
     del.addEventListener('click', () => deleteChat(chat.id));
 
     row.append(open, del);
@@ -275,7 +277,10 @@ function openChat(chatId) {
   messagesElement.replaceChildren();
   welcomeElement.hidden = currentMessages.length > 0;
 
-  currentMessages.forEach(message => addMessage(message.role, message.content));
+  currentMessages.forEach(message => {
+    addMessage(message.role, message.content);
+  });
+
   renderHistory();
   sidebar.classList.remove('open');
   scrollBottom();
@@ -297,7 +302,11 @@ function deleteChat(chatId) {
   saveChats();
   renderHistory();
 
-  if (!activeChatId && !chats.length) createChat();
+  if (!activeChatId && !chats.length) {
+    createChat();
+  } else if (!activeChatId && chats.length) {
+    openChat(chats[0].id);
+  }
 }
 
 $('clearAll').addEventListener('click', () => {
@@ -331,7 +340,8 @@ function addMessage(role, content, options = {}) {
   welcomeElement.hidden = true;
 
   const article = document.createElement('article');
-  article.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
+  article.className = 'message ' +
+    (role === 'user' ? 'user' : 'assistant');
 
   const avatar = document.createElement('div');
   avatar.className = 'avatar';
@@ -389,30 +399,38 @@ function addMessage(role, content, options = {}) {
 function addLoading() {
   const article = document.createElement('article');
   article.className = 'message assistant';
-  article.innerHTML =
-    '<div class="avatar">G</div>' +
-    '<div class="message-content">' +
-    '<div class="message-role">Imachui Gen AI</div>' +
-    '<div class="loading"><span class="spinner"></span><span>Thinking...</span></div>' +
-    '</div>';
 
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = 'G';
+
+  const body = document.createElement('div');
+  body.className = 'message-content';
+
+  const label = document.createElement('div');
+  label.className = 'message-role';
+  label.textContent = 'Imachui Gen AI';
+
+  const loading = document.createElement('div');
+  loading.className = 'loading';
+
+  const spinner = document.createElement('span');
+  spinner.className = 'spinner';
+
+  const text = document.createElement('span');
+  text.textContent = 'Thinking...';
+
+  loading.append(spinner, text);
+  body.append(label, loading);
+  article.append(avatar, body);
   messagesElement.append(article);
   scrollBottom();
+
   return article;
 }
 
-function setVoice(message) {
-  voiceStatus.textContent = message;
-}
-
-function stopListening() {
-  try {
-    recognition?.stop();
-  } catch {}
-
-  listening = false;
-  micButton.classList.remove('active');
-  micButton.textContent = '🎙 Mic';
+function setVoice(text) {
+  voiceStatus.textContent = text;
 }
 
 function startListening() {
@@ -425,7 +443,13 @@ function startListening() {
   }
 
   if (listening) {
-    stopListening();
+    try {
+      recognition.stop();
+    } catch {}
+
+    listening = false;
+    micButton.classList.remove('active');
+    micButton.textContent = '🎙 Mic';
     setVoice('Microphone stopped.');
     return;
   }
@@ -450,12 +474,18 @@ function startListening() {
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0]?.transcript || '';
-        if (event.results[i].isFinal) finalText += transcript;
-        else interimText += transcript;
+
+        if (event.results[i].isFinal) {
+          finalText += transcript;
+        } else {
+          interimText += transcript;
+        }
       }
 
       if (finalText.trim()) {
-        promptInput.value += (promptInput.value.trim() ? ' ' : '') + finalText.trim();
+        promptInput.value +=
+          (promptInput.value.trim() ? ' ' : '') + finalText.trim();
+
         promptInput.focus();
         setVoice('Speech added. Review it, then press Send.');
       } else if (interimText) {
@@ -464,14 +494,14 @@ function startListening() {
     };
 
     recognition.onerror = event => {
-      const messages = {
-        'not-allowed': 'Microphone permission denied. Allow microphone access.',
+      const errors = {
+        'not-allowed': 'Microphone permission denied.',
         'audio-capture': 'No microphone detected.',
         'no-speech': 'No speech detected. Try again.',
         'network': 'Browser speech service network error. Try Chrome or Edge.'
       };
 
-      setVoice(messages[event.error] || ('Voice error: ' + event.error));
+      setVoice(errors[event.error] || ('Voice error: ' + event.error));
     };
 
     recognition.onend = () => {
@@ -504,17 +534,20 @@ function stripForSpeech(text) {
 
 function selectVoice() {
   const voices = window.speechSynthesis?.getVoices?.() || [];
-  const filipino = voices.filter(voice => /^(fil|tl)(-|$)/i.test(voice.lang || ''));
-  const english = voices.filter(voice => /^en(-|$)/i.test(voice.lang || ''));
+  const filipino = voices.filter(v =>
+    /^(fil|tl)(-|$)/i.test(v.lang || '')
+  );
+  const english = voices.filter(v => /^en(-|$)/i.test(v.lang || ''));
   const list = filipino.length ? filipino : english.length ? english : voices;
 
-  return list.find(voice =>
-    /female|woman|zira|samantha|aria|jenny|ava|susan|karen|tessa/i.test(voice.name || '')
+  return list.find(v =>
+    /female|woman|zira|samantha|aria|jenny|ava|susan|karen|tessa/i.test(v.name || '')
   ) || list[0] || null;
 }
 
 function speakText(text, button) {
-  if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+  if (!('speechSynthesis' in window) ||
+      !('SpeechSynthesisUtterance' in window)) {
     setVoice('Read aloud is not supported in this browser.');
     return;
   }
@@ -525,12 +558,16 @@ function speakText(text, button) {
     item.textContent = '🔊 Read aloud';
   });
 
-  const utterance = new SpeechSynthesisUtterance(stripForSpeech(text).slice(0, 12000));
+  const utterance = new SpeechSynthesisUtterance(
+    stripForSpeech(text).slice(0, 12000)
+  );
+
   utterance.lang = 'fil-PH';
   utterance.rate = 0.92;
   utterance.pitch = 1.08;
 
   const voice = selectVoice();
+
   if (voice) {
     utterance.voice = voice;
     utterance.lang = voice.lang || 'fil-PH';
@@ -544,6 +581,7 @@ function speakText(text, button) {
         ? '🔊 Read conversation'
         : '🔊 Read aloud';
     }
+
     setVoice('Voice ready.');
   };
 
@@ -553,6 +591,7 @@ function speakText(text, button) {
         ? '🔊 Read conversation'
         : '🔊 Read aloud';
     }
+
     setVoice('Could not play voice. Check device speech settings.');
   };
 
@@ -561,12 +600,10 @@ function speakText(text, button) {
 }
 
 function readConversation() {
-  const text = currentMessages
-    .map(message =>
-      (message.role === 'user' ? 'You said: ' : 'Imachui Gen AI said: ') +
-      message.content
-    )
-    .join('. Next message. ');
+  const text = currentMessages.map(message =>
+    (message.role === 'user' ? 'You said: ' : 'Imachui Gen AI said: ') +
+    message.content
+  ).join('. Next message. ');
 
   if (!text.trim()) {
     setVoice('There is no conversation to read yet.');
@@ -596,7 +633,8 @@ function renderAttachments() {
     remove.type = 'button';
     remove.textContent = '×';
     remove.title = 'Remove ' + file.name;
-    remove.style.cssText = 'border:0;background:transparent;color:#ffb0bd;margin-left:5px';
+    remove.style.cssText =
+      'border:0;background:transparent;color:#ffb0bd;margin-left:5px';
 
     remove.addEventListener('click', () => {
       selectedFiles.splice(index, 1);
@@ -612,7 +650,11 @@ $('attachButton').addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', () => {
   selectedFiles.push(...Array.from(fileInput.files || []));
-  if (selectedFiles.length > 5) selectedFiles = selectedFiles.slice(0, 5);
+
+  if (selectedFiles.length > 5) {
+    selectedFiles = selectedFiles.slice(0, 5);
+  }
+
   renderAttachments();
   fileInput.value = '';
 });
@@ -626,21 +668,21 @@ async function extractFile(file) {
 
   if (file.type.startsWith('image/')) {
     return '[Image attached: ' + file.name +
-      '. The current text-chat backend cannot analyze image pixels.]';
+      '. Image analysis is not enabled in this text-chat backend.]';
   }
 
   if (name.endsWith('.pdf') || name.endsWith('.docx')) {
     return '[' + file.name +
-      ' attached. PDF/DOCX text extraction is not enabled in this version.]';
+      ' attached. Automatic PDF/DOCX extraction is not enabled here.]';
   }
 
-  return file.text();
+  return await file.text();
 }
 
-async function sendMessage(rawText) {
-  const text = rawText.trim();
-  if ((!text && !selectedFiles.length) || busy) return;
+async function sendMessage(raw) {
+  const text = raw.trim();
 
+  if ((!text && !selectedFiles.length) || busy) return;
   if (!activeChat()) createChat();
 
   busy = true;
@@ -670,6 +712,7 @@ async function sendMessage(rawText) {
   currentMessages.push({role: 'user', content: combined});
 
   const chat = activeChat();
+
   if (chat) {
     chat.messages.push({
       role: 'user',
@@ -719,10 +762,11 @@ async function sendMessage(rawText) {
     addMessage('assistant', answer);
     currentMessages.push({role: 'assistant', content: answer});
 
-    const current = activeChat();
-    if (current) {
-      current.messages.push({role: 'assistant', content: answer});
-      current.updated = Date.now();
+    const live = activeChat();
+
+    if (live) {
+      live.messages.push({role: 'assistant', content: answer});
+      live.updated = Date.now();
       saveChats();
     }
   } catch (error) {
@@ -756,10 +800,12 @@ document.querySelectorAll('[data-prompt]').forEach(button => {
 });
 
 $('newChat').addEventListener('click', createChat);
+
 $('chatNav').addEventListener('click', () => {
   promptInput.focus();
   sidebar.classList.remove('open');
 });
+
 $('menuButton').addEventListener('click', () => {
   sidebar.classList.toggle('open');
 });
