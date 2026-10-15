@@ -1,8 +1,11 @@
-
 {
-  "name": "global-ai-by-imachui",
-  "version": "1.0.0",
+  "name": "imachui-gen-ai",
+  "version": "2.0.0",
   "private": true,
+  "description": "Imachui Gen AI by Imachui",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@huggingface/inference": "^4.12.0"
   }
