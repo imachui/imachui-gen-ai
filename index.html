@@ -2,239 +2,208 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#080b16">
-  <meta name="description" content="Imachui Gen AI — Your unified AI workspace for research, coding, writing, and problem-solving.">
-  <title>Imachui Gen AI — Multi-AI Workspace</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #080b16;
-      --panel: #0d1222;
-      --panel2: #121a2e;
-      --border: rgba(123, 157, 220, .17);
-      --text: #eef4ff;
-      --muted: #93a2c0;
-      --blue: #397bff;
-      --cyan: #55d9ff;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#070b16">
+<meta name="description" content="GLOBAL AI by Imachui — One unified AI workspace for research, coding, writing and problem-solving.">
+<title>GLOBAL AI | Imachui</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#070b16;
+  --panel:#0d1425;
+  --panel2:#111c31;
+  --border:#233452;
+  --text:#eff5ff;
+  --muted:#91a3c3;
+  --blue:#397bff;
+  --cyan:#56dcff;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; min-height:100vh; color:var(--text);
+  font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;
+  background:radial-gradient(ellipse at 70% 0%,#173c8038,transparent 40%),var(--bg);
+}
+button,textarea { font:inherit; }
+button { cursor:pointer; }
+button:focus-visible,textarea:focus-visible {
+  outline:2px solid var(--cyan); outline-offset:3px;
+}
+.app { display:flex; min-height:100vh; }
+.sidebar {
+  width:255px; flex-shrink:0; display:flex; flex-direction:column;
+  gap:22px; padding:22px 15px;
+  border-right:1px solid var(--border); background:#090e1b;
+}
+.brand { display:flex; align-items:center; gap:11px; padding:3px 7px; }
+.logo {
+  width:43px;height:43px;display:grid;place-items:center;
+  border-radius:14px;background:linear-gradient(135deg,#58e4ff,#2464ff);
+  box-shadow:0 0 26px #2877ff50;font-size:25px;font-weight:900;
+}
+.brand-name { font-weight:850;letter-spacing:.8px; }
+.brand-sub { margin-top:4px;font-size:10px;color:var(--cyan);letter-spacing:.6px; }
+.nav-title { padding:0 10px;color:#7185aa;font-size:10px;letter-spacing:1.5px; }
+.nav-button,.new-chat,.history-button {
+  width:100%;padding:12px;border:1px solid transparent;border-radius:10px;
+  background:transparent;color:var(--text);text-align:left;
+}
+.new-chat { background:#18366b70;border-color:#397bff55; }
+.nav-button:hover,.history-button:hover { background:#ffffff0a; }
+.history-button { color:#aab9d3;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.sidebar-bottom { margin-top:auto; }
+.note { border:1px solid var(--border);border-radius:12px;padding:13px;color:var(--muted);font-size:11px;line-height:1.7; }
+.note strong { color:#75dfff; }
 
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        radial-gradient(ellipse at 70% 0%, rgba(27, 75, 174, .16), transparent 38%),
-        var(--bg);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
-    }
-    button, input, textarea { font: inherit; }
-    button { cursor: pointer; }
-    button:focus-visible, input:focus-visible, textarea:focus-visible {
-      outline: 2px solid var(--cyan);
-      outline-offset: 3px;
-    }
+.main { flex:1;min-width:0;display:flex;flex-direction:column; }
+.topbar {
+  height:65px;padding:0 26px;display:flex;align-items:center;
+  justify-content:space-between;border-bottom:1px solid var(--border);
+}
+.top-label { font-size:12px;color:#b8c7e1; }
+.status { display:flex;align-items:center;gap:7px;color:#a0b0ca;font-size:11px; }
+.dot { width:7px;height:7px;border-radius:50%;background:#52dca0; }
+.menu {
+  display:none;padding:8px 11px;color:white;background:var(--panel);
+  border:1px solid var(--border);border-radius:9px;
+}
+.workspace {
+  width:100%;max-width:1000px;margin:auto;padding:38px 28px 25px;
+  display:flex;flex:1;flex-direction:column;
+}
+.welcome { text-align:center;margin:auto 0 30px;padding-top:18px; }
+.hero {
+  width:76px;height:76px;margin:0 auto 23px;display:grid;place-items:center;
+  border:1px solid #3987ff77;border-radius:25px;
+  background:linear-gradient(145deg,#142e57,#102044);
+  box-shadow:0 0 45px #236bff2a;font-size:39px;color:var(--cyan);
+}
+h1 { margin:0;font-size:clamp(29px,4vw,44px);letter-spacing:-1.5px; }
+.gradient {
+  background:linear-gradient(90deg,#8beaff,#4380ff);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.subtitle { max-width:550px;margin:13px auto 0;color:var(--muted);font-size:14px;line-height:1.8; }
+.cards { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:30px;text-align:left; }
+.card {
+  min-height:125px;padding:16px;border:1px solid var(--border);border-radius:14px;
+  background:linear-gradient(145deg,#111b30,#0b1221);color:var(--text);text-align:left;
+  transition:.2s;
+}
+.card:hover { border-color:#438bff;transform:translateY(-2px); }
+.card-icon { font-size:23px;color:var(--cyan); }
+.card strong { display:block;margin-top:12px;font-size:13px; }
+.card small { display:block;margin-top:7px;color:var(--muted);font-size:11px;line-height:1.6; }
 
-    .app { min-height: 100vh; display: flex; }
-    .sidebar {
-      width: 255px;
-      flex-shrink: 0;
-      padding: 22px 15px;
-      border-right: 1px solid var(--border);
-      background: rgba(9, 13, 26, .94);
-      display: flex;
-      flex-direction: column;
-      gap: 22px;
-    }
-    .brand { display: flex; align-items: center; gap: 11px; padding: 3px 7px; }
-    .brand-icon {
-      width: 42px; height: 42px; border-radius: 14px;
-      display: grid; place-items: center;
-      background: linear-gradient(140deg, #55dcff, #2465ff 70%);
-      box-shadow: 0 0 28px #216aff55;
-      font-size: 23px; font-weight: 900; color: white;
-    }
-    .brand-name { font-weight: 750; letter-spacing: -.4px; }
-    .brand-sub { font-size: 11px; color: var(--cyan); margin-top: 3px; }
-    .new-chat, .nav-button, .history-button {
-      width: 100%; border: 1px solid transparent; color: var(--text);
-      background: transparent; border-radius: 11px; padding: 12px;
-      text-align: left; display: flex; align-items: center; gap: 10px;
-    }
-    .new-chat {
-      background: linear-gradient(100deg, #1d3e8a66, #15233d66);
-      border-color: #477bff55;
-    }
-    .nav-button:hover, .history-button:hover { background: #ffffff0a; }
-    .section-label {
-      padding: 0 10px; font-size: 10px; letter-spacing: 1.5px;
-      color: #7183a6; text-transform: uppercase;
-    }
-    .history { display: flex; flex-direction: column; gap: 4px; }
-    .history-button { font-size: 12px; color: #aab7d1; overflow: hidden; }
-    .history-button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sidebar-bottom { margin-top: auto; }
-    .plan-note {
-      border: 1px solid var(--border); border-radius: 12px;
-      padding: 12px; color: var(--muted); font-size: 11px; line-height: 1.6;
-    }
-    .plan-note strong { color: #77d8ff; }
+.global-panel {
+  padding:17px;border:1px solid #3269c588;border-radius:16px;
+  background:radial-gradient(ellipse at 0 0,#174ca633,transparent 65%),#0c1426;
+  box-shadow:inset 0 0 25px #236aff0c;
+}
+.global-head { display:flex;align-items:center;gap:12px; }
+.global-icon {
+  width:47px;height:47px;display:grid;place-items:center;flex-shrink:0;
+  border-radius:15px;background:linear-gradient(135deg,#58e4ff,#2866ff);
+  box-shadow:0 0 24px #2877ff44;font-size:26px;font-weight:900;
+}
+.global-title { font-weight:900;letter-spacing:1.8px;font-size:16px; }
+.global-sub { margin-top:4px;color:#9eb4d8;font-size:11px; }
+.ready { margin-left:auto;color:#8ce9ba;font-size:10px;white-space:nowrap; }
+.global-description { margin:13px 0 0;color:#a7b9d7;font-size:12px;line-height:1.7; }
 
-    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-    .topbar {
-      height: 68px; padding: 0 28px; display: flex;
-      align-items: center; justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-    }
-    .top-title { font-size: 13px; color: #b8c6e1; }
-    .status {
-      display: flex; align-items: center; gap: 7px;
-      font-size: 11px; color: #9eabc5;
-    }
-    .dot { width: 7px; height: 7px; background: #50d6a0; border-radius: 50%; }
-    .menu-button {
-      display: none; border: 1px solid var(--border); background: var(--panel);
-      color: white; border-radius: 9px; padding: 8px 11px;
-    }
+.conversation { display:none;flex-direction:column;gap:17px;margin-bottom:22px; }
+.message { max-width:92%;padding:15px 17px;border:1px solid var(--border);border-radius:15px;font-size:14px;line-height:1.75;overflow-wrap:anywhere; }
+.message.user { align-self:flex-end;background:#15366b;border-color:#3768c0; }
+.message.ai { align-self:flex-start;background:var(--panel);white-space:pre-wrap; }
+.message-label { margin-bottom:7px;color:var(--cyan);font-size:10px;letter-spacing:1px; }
 
-    .workspace {
-      width: 100%; max-width: 1000px; margin: 0 auto; padding: 44px 28px 30px;
-      display: flex; flex: 1; flex-direction: column;
-    }
-    .welcome { text-align: center; margin: auto 0 30px; padding-top: 25px; }
-    .hero-icon {
-      width: 76px; height: 76px; margin: 0 auto 22px;
-      display: grid; place-items: center; border-radius: 25px;
-      background: linear-gradient(145deg, #13284d, #102044);
-      border: 1px solid #3987ff66;
-      box-shadow: 0 0 50px #236bff26, inset 0 0 25px #2a72ff14;
-      font-size: 36px;
-    }
-    h1 { font-size: clamp(28px, 4vw, 43px); letter-spacing: -1.5px; margin: 0; }
-    h1 span {
-      background: linear-gradient(90deg, #7ee7ff, #4c82ff);
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-    }
-    .subtitle { color: var(--muted); font-size: 14px; line-height: 1.7; margin: 13px auto 0; max-width: 510px; }
-    .cards {
-      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px; margin-top: 30px; text-align: left;
-    }
-    .feature {
-      min-height: 125px; padding: 16px; border: 1px solid var(--border);
-      background: linear-gradient(145deg, #111a2eaa, #0d1323aa);
-      border-radius: 14px; color: var(--text); text-align: left;
-      transition: border-color .2s, transform .2s;
-    }
-    .feature:hover { border-color: #438bff99; transform: translateY(-2px); }
-    .feature-icon { font-size: 22px; color: var(--cyan); }
-    .feature strong { display: block; margin-top: 12px; font-size: 13px; }
-    .feature small { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.composer-wrap { margin-top:25px; }
+.composer {
+  padding:12px;border:1px solid #326fffaa;border-radius:19px;
+  background:#0c1426;box-shadow:0 0 28px #1c5dff1c;
+}
+textarea {
+  display:block;width:100%;min-height:75px;max-height:220px;resize:vertical;
+  border:0;outline:0;background:transparent;color:var(--text);
+  padding:8px;font-size:14px;line-height:1.6;
+}
+textarea::placeholder { color:#778bad; }
+.composer-bottom { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px; }
+.hint { color:#8294b3;font-size:10px; }
+.send {
+  padding:12px 18px;border:0;border-radius:12px;background:linear-gradient(120deg,#367dff,#2560ed);
+  color:white;font-weight:750;box-shadow:0 4px 16px #2560ed35;
+}
+.send:disabled { opacity:.6; }
+.disclaimer { margin:12px 8px 0;text-align:center;color:#7283a2;font-size:10px;line-height:1.7; }
+.footer { padding-top:22px;text-align:center;color:#657795;font-size:10px; }
+.hidden { display:none!important; }
 
-    .conversation { display: none; flex-direction: column; gap: 18px; margin: 0 0 24px; }
-    .message { max-width: 90%; border-radius: 15px; padding: 15px 17px; line-height: 1.7; font-size: 14px; overflow-wrap: anywhere; }
-    .message.user { align-self: flex-end; background: #173b79; border: 1px solid #477bff55; }
-    .message.assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); white-space: pre-wrap; }
-    .message-label { font-size: 10px; color: var(--cyan); margin-bottom: 7px; letter-spacing: .8px; text-transform: uppercase; }
-    .composer-wrap { margin-top: 28px; }
-    .model-panel {
-      border: 1px solid var(--border); background: #0d1324;
-      border-radius: 15px; padding: 14px; margin-bottom: 10px;
-    }
-    .model-heading { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; font-size: 12px; }
-    .model-heading span:last-child { color: var(--muted); }
-    .model-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .model-chip {
-      border: 1px solid #33415d; color: #aebbd3; background: #111a2b;
-      padding: 8px 11px; border-radius: 20px; font-size: 11px;
-    }
-    .model-chip.active { color: #c6f2ff; border-color: #3995ff; background: #16315a; }
-    .composer {
-      border: 1px solid #326fff99; border-radius: 19px;
-      background: #0c1426; padding: 12px;
-      box-shadow: 0 0 28px #1c5dff20;
-    }
-    .composer textarea {
-      display: block; width: 100%; min-height: 65px; max-height: 200px;
-      resize: vertical; border: 0; outline: 0; background: transparent;
-      color: var(--text); padding: 7px 8px; font-size: 14px; line-height: 1.6;
-    }
-    .composer textarea::placeholder { color: #7284a6; }
-    .composer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 3px 0; }
-    .composer-hint { font-size: 10px; color: #8191ad; }
-    .send {
-      border: 0; border-radius: 12px; color: white; font-weight: 700;
-      padding: 11px 18px; background: linear-gradient(120deg, #367dff, #2560ed);
-      box-shadow: 0 4px 16px #2560ed44;
-    }
-    .send:hover { filter: brightness(1.12); }
-    .send:disabled { opacity: .5; cursor: wait; }
-    .disclaimer { text-align: center; color: #6e7e9a; font-size: 10px; line-height: 1.6; margin: 12px 10px 0; }
-    .footer { text-align: center; font-size: 10px; color: #65748f; padding-top: 23px; }
-    .hidden { display: none !important; }
-
-    @media (max-width: 850px) {
-      .sidebar { width: 220px; }
-      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .workspace { padding: 32px 20px 24px; }
-    }
-    @media (max-width: 620px) {
-      .sidebar {
-        position: fixed; z-index: 10; inset: 0 auto 0 0; width: 270px;
-        transform: translateX(-105%); transition: transform .22s ease;
-        box-shadow: 20px 0 50px #0008;
-      }
-      .sidebar.open { transform: translateX(0); }
-      .menu-button { display: inline-block; }
-      .topbar { height: 60px; padding: 0 14px; }
-      .workspace { padding: 22px 13px 20px; }
-      .welcome { margin-top: auto; }
-      .hero-icon { width: 64px; height: 64px; border-radius: 20px; font-size: 30px; margin-bottom: 18px; }
-      h1 { letter-spacing: -1px; }
-      .subtitle { font-size: 12px; }
-      .cards { gap: 9px; margin-top: 22px; }
-      .feature { padding: 12px; min-height: 112px; }
-      .feature strong { font-size: 12px; }
-      .feature small { font-size: 10px; }
-      .model-chip { padding: 7px 9px; }
-      .composer textarea { min-height: 75px; }
-      .message { max-width: 96%; }
-    }
-  </style>
+@media(max-width:850px) {
+  .sidebar { width:220px; }
+  .cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:620px) {
+  .sidebar {
+    position:fixed;z-index:10;inset:0 auto 0 0;width:275px;
+    transform:translateX(-105%);transition:transform .22s ease;
+    box-shadow:20px 0 50px #0009;
+  }
+  .sidebar.open { transform:translateX(0); }
+  .menu { display:inline-block; }
+  .topbar { height:59px;padding:0 13px; }
+  .workspace { padding:23px 13px 18px; }
+  .hero { width:63px;height:63px;border-radius:20px;font-size:32px; }
+  h1 { letter-spacing:-1px; }
+  .subtitle { font-size:12px; }
+  .cards { gap:9px;margin-top:23px; }
+  .card { padding:12px;min-height:115px; }
+  .card strong { font-size:12px; }
+  .card small { font-size:10px; }
+  .ready { font-size:9px; }
+  .global-title { font-size:14px; }
+  .message { max-width:97%; }
+}
+@media(max-width:370px) {
+  .cards { grid-template-columns:1fr; }
+  .ready { display:none; }
+}
+</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-icon">I</div>
+      <div class="logo">G</div>
       <div>
-        <div class="brand-name">Imachui Gen AI</div>
-        <div class="brand-sub">YOUR MULTI-AI WORKSPACE</div>
+        <div class="brand-name">GLOBAL AI</div>
+        <div class="brand-sub">BY IMACHUI</div>
       </div>
     </div>
 
     <button class="new-chat" id="newChat">＋ &nbsp; New chat</button>
 
     <div>
-      <div class="section-label">Workspace</div>
-      <button class="nav-button" id="focusInput">⌕ &nbsp; Ask AI</button>
-      <button class="nav-button" id="showModels">◇ &nbsp; AI models</button>
-      <button class="nav-button" id="showAbout">ⓘ &nbsp; About this project</button>
+      <div class="nav-title">WORKSPACE</div>
+      <button class="nav-button" id="askNav">⌕ &nbsp; Ask Global AI</button>
+      <button class="nav-button" id="globalNav">✧ &nbsp; Global Intelligence</button>
+      <button class="nav-button" id="aboutNav">ⓘ &nbsp; About this project</button>
     </div>
 
     <div>
-      <div class="section-label">Recent chats</div>
-      <div class="history" id="history">
-        <div class="history-button" style="color:#7485a2;font-size:11px">Your conversations appear here.</div>
+      <div class="nav-title">RECENT CHATS</div>
+      <div id="history">
+        <div class="history-button" style="font-size:11px;color:#7485a2">
+          Your conversations appear here.
+        </div>
       </div>
     </div>
 
     <div class="sidebar-bottom">
-      <div class="plan-note">
+      <div class="note">
         <strong>FREE-FIRST PROJECT</strong><br>
-        No paid API is configured in this demo. AI access will be added through supported free services.
+        One unified interface for available AI services. Live AI connections are not yet configured.
       </div>
     </div>
   </aside>
@@ -242,38 +211,41 @@
   <main class="main">
     <header class="topbar">
       <div style="display:flex;align-items:center;gap:12px">
-        <button class="menu-button" id="menuButton" aria-label="Open navigation">☰</button>
-        <div class="top-title">AI Workspace <span style="color:#64799d">/</span> New conversation</div>
+        <button class="menu" id="menuButton" aria-label="Open navigation">☰</button>
+        <div class="top-label">GLOBAL AI <span style="color:#64799d">/</span> Intelligence Workspace</div>
       </div>
-      <div class="status"><span class="dot"></span> Interface ready</div>
+      <div class="status"><span class="dot"></span> Interface Ready</div>
     </header>
 
     <section class="workspace">
       <div class="welcome" id="welcome">
-        <div class="hero-icon">✧</div>
-        <h1>How can I help you <span>today?</span></h1>
-        <p class="subtitle">Ask, reason, explore, and create — all in one workspace.</p>
+        <div class="hero">✧</div>
+        <h1>One question. <span class="gradient">Global intelligence.</span></h1>
+        <p class="subtitle">
+          Research, reason, code, write, and explore ideas in one unified workspace.
+          Ask your question and let Global AI help you find the next step.
+        </p>
 
         <div class="cards">
-          <button class="feature" data-prompt="Help me solve this problem step by step: ">
-            <span class="feature-icon">◈</span>
-            <strong>Solve a problem</strong>
-            <small>Break down complex questions into clear steps.</small>
+          <button class="card" data-prompt="Help me solve this problem step by step: ">
+            <span class="card-icon">◈</span>
+            <strong>Solve a Problem</strong>
+            <small>Break complex questions into clear, practical steps.</small>
           </button>
-          <button class="feature" data-prompt="Analyze the following information and explain the key findings: ">
-            <span class="feature-icon">▤</span>
-            <strong>Analyze information</strong>
-            <small>Explore ideas, documents, and data.</small>
+          <button class="card" data-prompt="Analyze the following information and explain the key findings: ">
+            <span class="card-icon">▤</span>
+            <strong>Analyze Information</strong>
+            <small>Understand ideas, documents, and data.</small>
           </button>
-          <button class="feature" data-prompt="Help me write and improve this content: ">
-            <span class="feature-icon">✎</span>
-            <strong>Write something</strong>
+          <button class="card" data-prompt="Help me write and improve this content: ">
+            <span class="card-icon">✎</span>
+            <strong>Create Content</strong>
             <small>Draft, edit, and improve your writing.</small>
           </button>
-          <button class="feature" data-prompt="Help me explore this idea, including benefits, risks, and practical steps: ">
-            <span class="feature-icon">✧</span>
-            <strong>Explore an idea</strong>
-            <small>Discover approaches and new possibilities.</small>
+          <button class="card" data-prompt="Help me explore this idea, its benefits, risks, and practical steps: ">
+            <span class="card-icon">✧</span>
+            <strong>Explore Ideas</strong>
+            <small>Discover new approaches and possibilities.</small>
           </button>
         </div>
       </div>
@@ -281,190 +253,163 @@
       <div class="conversation" id="conversation" aria-live="polite"></div>
 
       <div class="composer-wrap">
-        <div class="model-panel" id="modelPanel">
-          <div class="model-heading">
-            <span>Choose AI providers</span>
-            <span id="modelCount">1 selected</span>
+        <div class="global-panel" id="globalPanel">
+          <div class="global-head">
+            <div class="global-icon">G</div>
+            <div>
+              <div class="global-title">GLOBAL AI</div>
+              <div class="global-sub">Unified Intelligence System</div>
+            </div>
+            <div class="ready"><span class="dot" style="display:inline-block;margin-right:5px"></span>Workspace Ready</div>
           </div>
-          <div class="model-list" id="modelList">
-            <button class="model-chip active" data-model="Imachui Demo">Imachui Demo</button>
-            <button class="model-chip" data-model="OpenAI">OpenAI</button>
-            <button class="model-chip" data-model="DeepSeek">DeepSeek</button>
-            <button class="model-chip" data-model="Google Gemini">Gemini</button>
-            <button class="model-chip" data-model="Grok">Grok</button>
-            <button class="model-chip" data-model="Microsoft Copilot">Copilot</button>
-          </div>
+          <p class="global-description">
+            One search. One unified answer. Built for research, coding, writing,
+            and problem-solving.
+          </p>
         </div>
 
         <form class="composer" id="chatForm">
-          <textarea id="prompt" aria-label="Your question" placeholder="Ask Imachui anything..." required></textarea>
+          <textarea id="prompt" aria-label="Your question"
+            placeholder="Ask Global AI anything..." required></textarea>
           <div class="composer-bottom">
-            <span class="composer-hint">Enter to send · Shift + Enter for a new line</span>
+            <span class="hint">Enter to send · Shift + Enter for a new line</span>
             <button class="send" id="sendButton" type="submit">Send ↗</button>
           </div>
         </form>
-        <p class="disclaimer">Demo mode: responses are generated locally by this page, not by connected AI services. Do not enter passwords or sensitive information.</p>
+        <p class="disclaimer">
+          Preview mode: live AI services are not connected yet. Do not enter passwords
+          or sensitive information.
+        </p>
       </div>
-      <div class="footer">Imachui Gen AI · Independent project · Built for learning and exploration</div>
+      <div class="footer">GLOBAL AI by Imachui · Independent AI workspace project</div>
     </section>
   </main>
 </div>
 
 <script>
-  const $ = (id) => document.getElementById(id);
-  const promptBox = $("prompt");
-  const welcome = $("welcome");
-  const conversation = $("conversation");
-  const modelPanel = $("modelPanel");
-  const selectedModels = new Set(["Imachui Demo"]);
-  const chats = [];
+const $ = id => document.getElementById(id);
+const promptBox = $("prompt");
+const welcome = $("welcome");
+const conversation = $("conversation");
 
-  function updateModelCount() {
-    $("modelCount").textContent =
-      selectedModels.size + (selectedModels.size === 1 ? " selected" : " selected");
-  }
+function addMessage(type, label, text) {
+  const article = document.createElement("article");
+  article.className = "message " + type;
 
-  $("modelList").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-model]");
-    if (!button) return;
+  const heading = document.createElement("div");
+  heading.className = "message-label";
+  heading.textContent = label;
 
-    const model = button.dataset.model;
-    if (selectedModels.has(model)) {
-      if (selectedModels.size === 1) {
-        alert("Select at least one model.");
-        return;
-      }
-      selectedModels.delete(model);
-      button.classList.remove("active");
-    } else {
-      selectedModels.add(model);
-      button.classList.add("active");
-    }
-    updateModelCount();
+  const body = document.createElement("div");
+  body.textContent = text;
+
+  article.append(heading, body);
+  conversation.appendChild(article);
+}
+
+function makePreviewAnswer(question) {
+  return [
+    "Welcome to GLOBAL AI.",
+    "",
+    "Your question:",
+    question,
+    "",
+    "The Global AI interface is working, but its live AI backend has not yet been connected.",
+    "",
+    "Planned intelligence workflow:",
+    "1. Route your question to available, authorized AI models.",
+    "2. Compare their answers and identify disagreements.",
+    "3. Synthesize one clear final response.",
+    "4. Verify factual claims with reliable sources when possible.",
+    "",
+    "Current status: Preview mode. No external AI model was contacted."
+  ].join("\n");
+}
+
+function addHistory(question) {
+  const button = document.createElement("button");
+  button.className = "history-button";
+  button.type = "button";
+  button.textContent = "◦ " + question;
+  button.title = question;
+  button.addEventListener("click", () => {
+    promptBox.value = question;
+    promptBox.focus();
+    if (window.innerWidth <= 620) $("sidebar").classList.remove("open");
   });
+  $("history").prepend(button);
+}
 
-  function addMessage(role, text, label) {
-    const article = document.createElement("article");
-    article.className = "message " + role;
+$("chatForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const question = promptBox.value.trim();
+  if (!question) return;
 
-    const heading = document.createElement("div");
-    heading.className = "message-label";
-    heading.textContent = label;
+  welcome.classList.add("hidden");
+  conversation.style.display = "flex";
 
-    const content = document.createElement("div");
-    content.textContent = text;
+  addMessage("user", "YOU", question);
+  addMessage("ai", "GLOBAL AI · PREVIEW MODE", makePreviewAnswer(question));
+  addHistory(question);
 
-    article.append(heading, content);
-    conversation.appendChild(article);
-    return article;
-  }
+  promptBox.value = "";
+  conversation.scrollIntoView({behavior:"smooth",block:"end"});
+});
 
-  function makeDemoAnswer(question) {
-    return [
-      "This is a preview of the Imachui Gen AI interface.",
-      "",
-      "Your question:",
-      question,
-      "",
-      "To generate a real AI answer, this website needs to be connected to an authorized AI provider or a free online AI backend.",
-      "",
-      "Planned multi-AI workflow:",
-      "1. Send your question to the selected, available AI models.",
-      "2. Compare their responses and identify disagreements.",
-      "3. Ask a synthesis model to create one clear final answer.",
-      "4. Flag uncertain claims and provide sources when available.",
-      "",
-      "Current status: Demo only. No external AI model has been contacted."
-    ].join("\n");
-  }
-
-  function addHistory(question) {
-    const button = document.createElement("button");
-    button.className = "history-button";
-    button.type = "button";
-    const label = document.createElement("span");
-    label.textContent = "◦ " + question;
-    button.appendChild(label);
-    button.title = question;
-    button.addEventListener("click", () => {
-      promptBox.value = question;
-      promptBox.focus();
-      if (window.innerWidth <= 620) $("sidebar").classList.remove("open");
-    });
-    $("history").prepend(button);
-  }
-
-  $("chatForm").addEventListener("submit", (event) => {
+promptBox.addEventListener("keydown", event => {
+  if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
-    const question = promptBox.value.trim();
-    if (!question) return;
+    $("chatForm").requestSubmit();
+  }
+});
 
-    welcome.classList.add("hidden");
-    conversation.style.display = "flex";
-    addMessage("user", question, "You");
-    addMessage("assistant", makeDemoAnswer(question),
-      "IMACHUI GEN AI · DEMO MODE");
-
-    chats.push(question);
-    addHistory(question);
-    promptBox.value = "";
-    conversation.scrollIntoView({ behavior: "smooth", block: "end" });
-  });
-
-  promptBox.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      $("chatForm").requestSubmit();
-    }
-  });
-
-  document.querySelectorAll("[data-prompt]").forEach((button) => {
-    button.addEventListener("click", () => {
-      promptBox.value = button.dataset.prompt;
-      promptBox.focus();
-    });
-  });
-
-  $("newChat").addEventListener("click", () => {
-    conversation.replaceChildren();
-    conversation.style.display = "none";
-    welcome.classList.remove("hidden");
-    promptBox.value = "";
+document.querySelectorAll("[data-prompt]").forEach(button => {
+  button.addEventListener("click", () => {
+    promptBox.value = button.dataset.prompt;
     promptBox.focus();
-    if (window.innerWidth <= 620) $("sidebar").classList.remove("open");
   });
+});
 
-  $("focusInput").addEventListener("click", () => {
-    promptBox.focus();
-    if (window.innerWidth <= 620) $("sidebar").classList.remove("open");
-  });
+$("newChat").addEventListener("click", () => {
+  conversation.replaceChildren();
+  conversation.style.display = "none";
+  welcome.classList.remove("hidden");
+  promptBox.value = "";
+  promptBox.focus();
+  if (window.innerWidth <= 620) $("sidebar").classList.remove("open");
+});
 
-  $("showModels").addEventListener("click", () => {
-    modelPanel.scrollIntoView({ behavior: "smooth", block: "center" });
-    if (window.innerWidth <= 620) $("sidebar").classList.remove("open");
-  });
+$("askNav").addEventListener("click", () => {
+  promptBox.focus();
+  if (window.innerWidth <= 620) $("sidebar").classList.remove("open");
+});
 
-  $("showAbout").addEventListener("click", () => {
-    alert(
-      "Imachui Gen AI\n\nA free-first multi-AI workspace project.\n\n" +
-      "Current version: Frontend demo only.\n" +
-      "AI provider connections: Not configured.\n\n" +
-      "The model buttons are selection controls, not live API connections."
-    );
-  });
+$("globalNav").addEventListener("click", () => {
+  $("globalPanel").scrollIntoView({behavior:"smooth",block:"center"});
+  if (window.innerWidth <= 620) $("sidebar").classList.remove("open");
+});
 
-  $("menuButton").addEventListener("click", () => {
-    $("sidebar").classList.toggle("open");
-  });
+$("aboutNav").addEventListener("click", () => {
+  alert(
+    "GLOBAL AI by Imachui\n\n" +
+    "An independent, free-first AI workspace project.\n\n" +
+    "Current version: Website preview.\n" +
+    "Live AI backend: Not connected yet.\n\n" +
+    "Provider access will only be added through supported and authorized integrations."
+  );
+});
 
-  document.querySelector(".main").addEventListener("click", (event) => {
-    if (window.innerWidth <= 620 &&
-        $("sidebar").classList.contains("open") &&
-        !event.target.closest("#menuButton")) {
-      $("sidebar").classList.remove("open");
-    }
-  });
+$("menuButton").addEventListener("click", () => {
+  $("sidebar").classList.toggle("open");
+});
+
+document.querySelector(".main").addEventListener("click", event => {
+  if (window.innerWidth <= 620 &&
+      $("sidebar").classList.contains("open") &&
+      !event.target.closest("#menuButton")) {
+    $("sidebar").classList.remove("open");
+  }
+});
 </script>
 </body>
 </html>
-
