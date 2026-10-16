@@ -40,10 +40,6 @@ button,textarea,input{font:inherit}button{cursor:pointer}button:disabled{opacity
 .hero{width:74px;height:74px;margin:0 auto 20px;border-radius:24px;display:grid;place-items:center;font-size:37px;background:linear-gradient(135deg,var(--a),var(--b));box-shadow:0 0 30px #42d9c855}
 .welcome h1{font-size:clamp(28px,4vw,42px);margin:0 0 12px}
 .welcome p{max-width:560px;margin:0 auto;color:var(--muted);line-height:1.7}
-.cards{max-width:650px;margin:25px auto 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.card{padding:14px;text-align:left;color:var(--text);background:rgba(16,19,29,.72);backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:12px;line-height:1.5}
-.card:hover{border-color:var(--a);box-shadow:0 0 14px #8174ff30}
-.card small{display:block;color:var(--muted);margin-top:4px}
 .message{display:flex;gap:12px;margin:24px 0;align-items:flex-start}
 .avatar{width:34px;height:34px;flex:0 0 34px;border-radius:11px;background:var(--panel2);border:1px solid var(--border);display:grid;place-items:center;font-size:11px;font-weight:850}
 .message.user .avatar{background:#292346;border-color:#4d447d}
@@ -51,8 +47,7 @@ button,textarea,input{font:inherit}button{cursor:pointer}button:disabled{opacity
 .message-role{font-size:12px;font-weight:800;margin-bottom:4px;color:#c9c4ff}
 .message.user .message-role{color:#8fe9dd}
 .message-text{white-space:pre-wrap;overflow-wrap:anywhere}
-.message.assistant .message-content{position:relative;border:1px solid transparent;border-radius:14px;background:linear-gradient(rgba(13,17,27,.88),rgba(13,17,27,.88)) padding-box,linear-gradient(120deg,#8174ff,#39dccc,#8174ff) border-box;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 0 10px #8174ff20,0 0 18px #39dccc12;animation:edgeGlow 4s ease-in-out infinite alternate}
-@keyframes edgeGlow{0%{box-shadow:0 0 7px #8174ff20,0 0 12px #39dccc10}100%{box-shadow:0 0 13px #8174ff45,0 0 22px #39dccc25}}
+.message.assistant .message-content{position:relative;border:1px solid transparent;border-radius:14px;background:linear-gradient(rgba(13,17,27,.88),rgba(13,17,27,.88)) padding-box,linear-gradient(120deg,#8174ff,#39dccc,#8174ff) border-box;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 0 10px #8174ff20,0 0 18px #39dccc12}
 .provider-line{display:block;margin:5px 0 9px;font-size:10px;line-height:1.4;color:#8f9bb5;letter-spacing:.15px}
 .provider-line:before{content:"●";color:var(--b);font-size:8px;margin-right:6px}
 .read-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:8px}
@@ -62,14 +57,11 @@ button,textarea,input{font:inherit}button{cursor:pointer}button:disabled{opacity
 .attachment-list{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
 .attachment-chip{font-size:11px;color:#c9d1e6;border:1px solid var(--border);border-radius:8px;padding:6px 8px}
 .attachment-img{max-width:100%;max-height:250px;border-radius:8px;margin-top:8px;border:1px solid var(--border)}
-.loading{display:flex;align-items:center;gap:9px;color:var(--muted)}
 .typing-label{display:flex;align-items:center;gap:4px;color:#c9c4ff;font-size:12px;font-weight:700}
 .typing-dots{display:inline-flex;gap:4px;align-items:center;margin-left:3px}
 .typing-dots span{width:5px;height:5px;border-radius:50%;background:var(--b);box-shadow:0 0 6px var(--b);animation:typingPulse 1s infinite ease-in-out}
 .typing-dots span:nth-child(2){animation-delay:.15s}.typing-dots span:nth-child(3){animation-delay:.3s}
 @keyframes typingPulse{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
-.spinner{width:15px;height:15px;border:2px solid #454b61;border-top-color:var(--b);border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
 .composer-wrap{position:relative;flex:0 0 auto;padding:12px 20px 10px;background:linear-gradient(0deg,rgba(9,11,18,.97),rgba(9,11,18,.68));z-index:2}
 .composer{max-width:850px;margin:0 auto;padding:12px;border:1px solid #383d54;border-radius:18px;background:rgba(18,21,33,.76);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 12px 55px #0007}
 .composer:focus-within{border-color:#7770ba;box-shadow:0 0 18px #8174ff20}
@@ -79,46 +71,23 @@ button,textarea,input{font:inherit}button{cursor:pointer}button:disabled{opacity
 .tools,.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tool{border:1px solid var(--border);border-radius:9px;padding:8px 10px;background:rgba(23,27,40,.8);backdrop-filter:blur(18px);color:var(--text);font-size:12px}
 .tool.active{border-color:var(--b);color:var(--b);box-shadow:0 0 12px #42d9c833}
-.voice-status{font-size:10px;color:var(--muted)}
-.hint{font-size:10px;color:var(--muted)}
 .send{border:0;border-radius:11px;padding:11px 17px;color:#080b12;background:linear-gradient(135deg,#b0a5ff,#55e2d2);font-weight:850}
 .send:hover{box-shadow:0 0 18px #42d9c855}
-.file-input{display:none}
-.notice{text-align:center;color:#788197;font-size:10px;margin:8px auto 0;max-width:850px}
-.empty{color:var(--muted);font-size:12px;padding:8px}
-body{overflow:hidden}
+/* MODEL SELECTOR STYLES */
+.model-selector{display:flex;gap:8px;margin-top:10px;margin-bottom:5px;justify-content:center}
+.model-btn{flex:1;max-width:200px;padding:10px;border-radius:12px;border:1px solid var(--border);background:rgba(16,19,29,.7);color:var(--muted);font-size:12px;text-align:center;transition:all .3s}
+.model-btn.active{border-color:var(--b);color:var(--b);background:rgba(66,217,200,.05);box-shadow:0 0 15px rgba(66,217,200,.15)}
+.model-btn strong{display:block;font-size:13px;margin-bottom:2px}
 body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;white-space:nowrap;font-size:clamp(48px,10vw,150px);font-weight:950;letter-spacing:.08em;color:rgba(165,175,220,.035);transform:rotate(-18deg)}
 @media(max-width:760px){
-.app{grid-template-columns:1fr;height:100dvh;min-height:0}
-.sidebar{display:none;position:fixed;z-index:10;inset:0 auto 0 0;width:min(86vw,300px);height:100dvh;box-shadow:20px 0 60px #0009;padding:16px 13px;gap:15px}
+.app{grid-template-columns:1fr}
+.sidebar{display:none;position:fixed;z-index:10;inset:0 auto 0 0;width:min(86vw,300px);height:100dvh;padding:16px 13px}
 .sidebar.open{display:flex}
 .menu{display:block}
-.topbar{flex-basis:58px;height:58px;padding:0 12px;gap:9px}
-.top-title{font-size:12px;letter-spacing:.15px}
-.status{font-size:10px;margin-left:auto}
-.chat{padding:18px 12px 24px}
-.welcome{padding:35px 8px 25px}
-.welcome h1{font-size:28px}.welcome p{font-size:13px}
-.cards{grid-template-columns:1fr;gap:8px}
-.card{padding:12px;font-size:13px}
-.message{gap:9px;margin:19px 0}
-.avatar{width:30px;height:30px;flex-basis:30px;border-radius:9px;font-size:10px}
-.message-content{font-size:14px;line-height:1.65;padding:11px}
-.message-role{font-size:11px}
 .composer-wrap{padding:8px 8px max(8px,env(safe-area-inset-bottom))}
-.composer{padding:9px;border-radius:15px}
-#prompt{min-height:48px;font-size:15px;padding:7px}
-.composer-bottom{gap:8px}
-.tools{width:100%;gap:6px}
-.tool{padding:8px;font-size:11px}
-.voice-status{flex:1;min-width:80px;font-size:10px}
-.actions{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.hint{font-size:9px;max-width:65%}
-.send{padding:10px 15px}
-.notice{font-size:9px;padding:0 8px}
+.model-selector{flex-direction:column;gap:5px}
+.model-btn{max-width:100%}
 }
-@media(max-width:380px){.top-title{font-size:11px}.status{font-size:9px}.hint{max-width:58%}.tool{padding:7px 8px}}
-@media(prefers-reduced-motion:reduce){.message.assistant .message-content,.typing-dots span{animation:none}}
 </style>
 </head>
 <body>
@@ -133,27 +102,21 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
   <button class="nav-button" id="chatNav" type="button">✦ Ask King AI</button>
   <div class="history-head"><div class="side-label">Recent conversations</div><button class="clear-all" id="clearAll" type="button">Clear all</button></div>
   <div class="history" id="history"></div>
-  <div class="sidebar-foot">Imachui Gen AI by Imachui<br>One workspace for conversations and attachments.</div>
+  <div class="sidebar-foot">Imachui Gen AI by Imachui<br>One workspace for conversations.</div>
 </aside>
 
 <main class="main">
 <header class="topbar">
   <button class="menu" id="menuButton" type="button" aria-label="Open menu">☰</button>
   <div class="top-title">IMACHUI GEN AI <span class="gradient">/ KING AI</span></div>
-  <div class="status"><span class="dot"></span>AI workspace</div>
+  <div class="status"><span class="dot"></span>Multi-Model Workspace</div>
 </header>
 
 <section class="chat" id="chat">
   <div class="welcome" id="welcome">
     <div class="hero">✦</div>
     <h1>Welcome to <span class="gradient">Imachui Gen AI</span></h1>
-    <p>Ask questions, speak your message, attach documents, and listen to AI answers.</p>
-    <div class="cards">
-      <button class="card" data-prompt="Explain cybersecurity in simple Tagalog." type="button">✦ Explain a topic<small>Learn something new</small></button>
-      <button class="card" data-prompt="Help me write a professional email." type="button">✎ Create content<small>Write and improve text</small></button>
-      <button class="card" data-prompt="Explain this step by step in Filipino." type="button">◈ Learn step by step<small>Clear practical explanations</small></button>
-      <button class="card" data-prompt="Give me ideas for a modern AI website." type="button">⌘ Brainstorm ideas<small>Plan a project</small></button>
-    </div>
+    <p>Ask questions, attach images, and let <b>ChatGPT</b> + <b>DeepSeek</b> work together for the best answer.</p>
   </div>
   <div id="messages" aria-live="polite"></div>
 </section>
@@ -161,22 +124,28 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
 <div class="composer-wrap">
 <form class="composer" id="composer">
   <textarea id="prompt" rows="2" placeholder="Message King AI... (Pwede mag-paste ng larawan dito)" aria-label="Message King AI" maxlength="12000"></textarea>
+  
+  <!-- MODEL SELECTOR UI -->
+  <div class="model-selector" id="modelSelector">
+    <button type="button" class="model-btn" data-mode="chatgpt"><strong>ChatGPT</strong>Fast & Creative</button>
+    <button type="button" class="model-btn active" data-mode="combine"><strong>Combine Both</strong>Best Quality</button>
+    <button type="button" class="model-btn" data-mode="deepseek"><strong>DeepSeek</strong>Logic & Code</button>
+  </div>
+
   <div id="attachments" class="attachment-list"></div>
   <div class="composer-bottom">
     <div class="tools">
       <button class="tool" id="attachButton" type="button">＋ Attach files</button>
-      <input class="file-input" id="fileInput" type="file" multiple accept=".txt,.md,.csv,.json,.html,.xml,.log,.pdf,.docx,image/*">
+      <input class="file-input" id="fileInput" type="file" multiple accept="image/*">
       <button class="tool" id="micButton" type="button">🎙 Mic</button>
-      <span id="voiceStatus" class="voice-status" role="status">Voice ready</span>
-      <button class="tool" id="readConversation" type="button">🔊 Read conversation</button>
+      <span id="voiceStatus" class="voice-status">Voice ready</span>
     </div>
     <div class="actions">
-      <span class="hint">Enter to send · Shift + Enter for new line</span>
+      <span class="hint">Enter to send</span>
       <button class="send" id="sendButton" type="submit">Send ↑</button>
     </div>
   </div>
 </form>
-<div class="notice">Provider: Imachui Gen AI · Check important answers before relying on them.</div>
 </div>
 </main>
 </div>
@@ -184,15 +153,11 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
 <script>
 'use strict';
 
-if (typeof pdfjsLib !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-}
-
 const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-const STORAGE_KEY = 'imachui_gen_ai_chats_v5';
+const STORAGE_KEY = 'imachui_gen_ai_chats_v6';
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
@@ -206,77 +171,30 @@ const fileInput = $('fileInput');
 const attachmentsElement = $('attachments');
 const micButton = $('micButton');
 const voiceStatus = $('voiceStatus');
+const modelSelector = $('modelSelector');
 
-let chats = loadChats();
+let chats = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 let activeChatId = null;
 let currentMessages = [];
 let busy = false;
 let selectedFiles = [];
 let recognition = null;
 let listening = false;
+let selectedMode = 'combine'; // Default mode
 
-function makeId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
+// MODEL SELECTOR LOGIC
+modelSelector.addEventListener('click', (e) => {
+  const btn = e.target.closest('.model-btn');
+  if (!btn) return;
+  document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedMode = btn.dataset.mode;
+});
 
-function activeChat() {
-  return chats.find(chat => chat.id === activeChatId);
-}
-
-function loadChats() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    return Array.isArray(saved) ? saved : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveChats() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
-  } catch (error) {
-    console.warn('Could not save history.', error);
-  }
-}
-
-function renderHistory() {
-  historyElement.replaceChildren();
-
-  if (!chats.length) {
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.textContent = 'No conversations yet.';
-    historyElement.append(empty);
-    return;
-  }
-
-  chats.slice(0, 30).forEach(chat => {
-    const row = document.createElement('div');
-    row.className = 'history-row' + (chat.id === activeChatId ? ' active' : '');
-
-    const open = document.createElement('button');
-    open.type = 'button';
-    open.className = 'history-open';
-    open.textContent = chat.title || 'New conversation';
-    open.title = open.textContent;
-    open.addEventListener('click', () => openChat(chat.id));
-
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'delete-chat';
-    del.textContent = '×';
-    del.title = 'Delete this conversation';
-    del.setAttribute('aria-label', 'Delete conversation');
-    del.addEventListener('click', () => deleteChat(chat.id));
-
-    row.append(open, del);
-    historyElement.append(row);
-  });
-}
+// ... (Rest of the chat logic: makeId, activeChat, loadChats, saveChats, renderHistory, createChat, openChat, deleteChat, scrollBottom, addMessage) ...
 
 function createChat() {
-  const chat = {id: makeId(), title: 'New conversation', updated: Date.now(), messages: []};
+  const chat = {id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), title: 'New conversation', updated: Date.now(), messages: []};
   chats.unshift(chat);
   activeChatId = chat.id;
   currentMessages = [];
@@ -288,94 +206,62 @@ function createChat() {
   promptInput.focus();
 }
 
+function saveChats() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); } catch (e) {}
+}
+
+function renderHistory() {
+  historyElement.replaceChildren();
+  chats.slice(0, 30).forEach(chat => {
+    const row = document.createElement('div');
+    row.className = 'history-row' + (chat.id === activeChatId ? ' active' : '');
+    const open = document.createElement('button');
+    open.className = 'history-open';
+    open.textContent = chat.title || 'New conversation';
+    open.onclick = () => openChat(chat.id);
+    const del = document.createElement('button');
+    del.className = 'delete-chat';
+    del.textContent = '×';
+    del.onclick = () => deleteChat(chat.id);
+    row.append(open, del);
+    historyElement.append(row);
+  });
+}
+
 function openChat(chatId) {
-  const chat = chats.find(item => item.id === chatId);
+  const chat = chats.find(c => c.id === chatId);
   if (!chat) return;
-
   activeChatId = chat.id;
-  currentMessages = (chat.messages || []).map(message => ({
-    role: message.role,
-    content: message.content
-  }));
-
+  currentMessages = (chat.messages || []).map(m => ({ role: m.role, content: m.content }));
   messagesElement.replaceChildren();
   welcomeElement.hidden = currentMessages.length > 0;
-  
-  currentMessages.forEach(message => {
-    let displayContent = message.content;
-    let imageUrls = [];
-    if (Array.isArray(message.content)) {
-      const textPart = message.content.find(c => c.type === 'text');
-      displayContent = textPart ? textPart.text : '';
-      imageUrls = message.content.filter(c => c.type === 'image').map(c => c.image);
-    }
-    addMessage(message.role, displayContent, { images: imageUrls });
-  });
-  
+  currentMessages.forEach(m => addMessage(m.role, Array.isArray(m.content) ? m.content.find(c => c.type === 'text')?.text || '' : m.content));
   renderHistory();
-  sidebar.classList.remove('open');
   scrollBottom();
 }
 
 function deleteChat(chatId) {
-  const chat = chats.find(item => item.id === chatId);
-  if (!chat || !confirm('Delete this conversation?')) return;
-
-  chats = chats.filter(item => item.id !== chatId);
-
-  if (activeChatId === chatId) {
-    activeChatId = null;
-    currentMessages = [];
-    messagesElement.replaceChildren();
-    welcomeElement.hidden = false;
-  }
-
-  saveChats();
-  renderHistory();
-
-  if (!activeChatId && !chats.length) {
-    createChat();
-  } else if (!activeChatId && chats.length) {
-    openChat(chats[0].id);
-  }
+  if (!confirm('Delete this conversation?')) return;
+  chats = chats.filter(c => c.id !== chatId);
+  if (activeChatId === chatId) { activeChatId = null; currentMessages = []; messagesElement.replaceChildren(); welcomeElement.hidden = false; }
+  saveChats(); renderHistory();
+  if (!activeChatId && chats.length) openChat(chats[0].id); else if (!chats.length) createChat();
 }
 
-$('clearAll').addEventListener('click', () => {
-  if (!chats.length) {
-    alert('No conversations to clear.');
-    return;
-  }
-  if (!confirm('Delete ALL conversations? This cannot be undone.')) return;
-  chats = [];
-  activeChatId = null;
-  currentMessages = [];
-  messagesElement.replaceChildren();
-  welcomeElement.hidden = false;
-  saveChats();
-  renderHistory();
-  createChat();
-});
-
 function scrollBottom() {
-  requestAnimationFrame(() => {
-    const chat = $('chat');
-    chat.scrollTop = chat.scrollHeight;
-  });
+  requestAnimationFrame(() => { const chat = $('chat'); chat.scrollTop = chat.scrollHeight; });
 }
 
 function addMessage(role, content, options = {}) {
   welcomeElement.hidden = true;
-
   const article = document.createElement('article');
   article.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
-
   const avatar = document.createElement('div');
   avatar.className = 'avatar';
   avatar.textContent = role === 'user' ? 'YOU' : 'G';
-
   const body = document.createElement('div');
   body.className = 'message-content';
-
+  
   const label = document.createElement('div');
   label.className = 'message-role';
   label.textContent = role === 'user' ? 'You' : 'King AI';
@@ -384,7 +270,7 @@ function addMessage(role, content, options = {}) {
   if (role === 'assistant') {
     const provider = document.createElement('div');
     provider.className = 'provider-line';
-    provider.textContent = 'Provider: Imachui Gen AI';
+    provider.textContent = 'Provider: Imachui Gen AI (' + (selectedMode === 'combine' ? 'ChatGPT + DeepSeek' : selectedMode === 'chatgpt' ? 'ChatGPT' : 'DeepSeek') + ')';
     body.append(provider);
   }
 
@@ -393,283 +279,33 @@ function addMessage(role, content, options = {}) {
   if (content) text.textContent = content;
   body.append(text);
 
-  if (options.images && options.images.length) {
+  if (options.images?.length) {
     options.images.forEach(url => {
       const img = document.createElement('img');
-      img.src = url;
-      img.className = 'attachment-img';
-      img.alt = 'Attached image';
+      img.src = url; img.className = 'attachment-img';
       body.append(img);
     });
   }
-
-  if (options.files?.length) {
-    options.files.forEach(file => {
-      const chip = document.createElement('div');
-      chip.className = 'attachment-chip';
-      chip.textContent = '📎 ' + file.name;
-      body.append(chip);
-    });
-  }
-
-  if (role === 'assistant' && content) {
-    const readRow = document.createElement('div');
-    readRow.className = 'read-row';
-
-    const read = document.createElement('button');
-    read.className = 'read-button';
-    read.type = 'button';
-    read.textContent = '🔊 Read aloud';
-    read.addEventListener('click', () => {
-      if (window.speechSynthesis?.speaking) {
-        window.speechSynthesis.cancel();
-        read.textContent = '🔊 Read aloud';
-        setVoice('Reading stopped.');
-      } else {
-        speakText(text.textContent, read);
-      }
-    });
-
-    const providerMini = document.createElement('span');
-    providerMini.className = 'provider-line';
-    providerMini.textContent = 'Provider: Imachui Gen AI';
-
-    readRow.append(read, providerMini);
-    body.append(readRow);
-  }
-
+  
   article.append(avatar, body);
   messagesElement.append(article);
   scrollBottom();
   return article;
 }
 
-function setVoice(text) {
-  voiceStatus.textContent = text;
-}
-
-function stopListening() {
-  try { recognition?.stop(); } catch {}
-  listening = false;
-  micButton.classList.remove('active');
-  micButton.textContent = '🎙 Mic';
-}
-
-function startListening() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    setVoice('Voice recognition unavailable. Try Chrome or Edge.');
-    return;
-  }
-  if (listening) {
-    stopListening();
-    setVoice('Microphone stopped.');
-    return;
-  }
-  try {
-    recognition = new SpeechRecognition();
-    recognition.lang = 'fil-PH';
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      listening = true;
-      micButton.classList.add('active');
-      micButton.textContent = '■ Stop';
-      setVoice('Listening… speak now.');
-    };
-
-    recognition.onresult = event => {
-      let finalText = '';
-      let interimText = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0]?.transcript || '';
-        if (event.results[i].isFinal) finalText += transcript;
-        else interimText += transcript;
-      }
-      if (finalText.trim()) {
-        promptInput.value += (promptInput.value.trim() ? ' ' : '') + finalText.trim();
-        promptInput.focus();
-        setVoice('Speech added. Review it, then press Send.');
-      } else if (interimText) {
-        setVoice('Hearing: ' + interimText);
-      }
-    };
-
-    recognition.onerror = event => {
-      const errors = {
-        'not-allowed': 'Microphone permission denied.',
-        'audio-capture': 'No microphone detected.',
-        'no-speech': 'No speech detected. Try again.',
-        'network': 'Browser speech service network error.'
-      };
-      setVoice(errors[event.error] || ('Voice error: ' + event.error));
-    };
-
-    recognition.onend = () => {
-      listening = false;
-      micButton.classList.remove('active');
-      micButton.textContent = '🎙 Mic';
-      if (voiceStatus.textContent === 'Listening… speak now.') setVoice('Voice stopped.');
-    };
-
-    recognition.start();
-  } catch {
-    setVoice('Could not start microphone.');
-  }
-}
-
-micButton.addEventListener('click', startListening);
-
-function stripForSpeech(text) {
-  return String(text || '')
-    .replace(/```[\s\S]*?```/g, ' Code block omitted. ')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/https?:\/\/\S+/g, ' link ')
-    .replace(/[*_#>|]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function selectVoice() {
-  const voices = window.speechSynthesis?.getVoices?.() || [];
-  const filipino = voices.filter(v => /^(fil|tl)(-|$)/i.test(v.lang || ''));
-  const english = voices.filter(v => /^en(-|$)/i.test(v.lang || ''));
-  const list = filipino.length ? filipino : english.length ? english : voices;
-  return list.find(v => /female|woman|zira|samantha|aria|jenny|ava|susan|karen|tessa/i.test(v.name || '')) || list[0] || null;
-}
-
-function speakText(text, button) {
-  if (!('speechSynthesis' in window)) {
-    setVoice('Read aloud not supported.');
-    return;
-  }
-  try {
-    window.speechSynthesis.cancel();
-    document.querySelectorAll('.read-button').forEach(item => {
-      item.textContent = '🔊 Read aloud';
-    });
-
-    const utterance = new SpeechSynthesisUtterance(stripForSpeech(text).slice(0, 12000));
-    utterance.lang = 'fil-PH';
-    utterance.rate = 0.92;
-    utterance.pitch = 1.08;
-    const voice = selectVoice();
-    if (voice) {
-      utterance.voice = voice;
-      utterance.lang = voice.lang || 'fil-PH';
-    }
-    if (button) button.textContent = '■ Stop reading';
-    utterance.onend = () => {
-      if (button) button.textContent = button.id === 'readConversation' ? '🔊 Read conversation' : '🔊 Read aloud';
-      setVoice('Voice ready.');
-    };
-    utterance.onerror = () => {
-      if (button) button.textContent = button.id === 'readConversation' ? '🔊 Read conversation' : '🔊 Read aloud';
-      setVoice('Could not play voice. Check device speech settings.');
-    };
-    utterance.onstart = () => setVoice('Reading aloud…');
-    window.speechSynthesis.speak(utterance);
-  } catch (e) {
-    setVoice('Could not play voice. Check device speech settings.');
-  }
-}
-
-function readConversation() {
-  const text = currentMessages.map(message => {
-    let content = message.content;
-    if (Array.isArray(content)) {
-      const textPart = content.find(c => c.type === 'text');
-      content = textPart ? textPart.text : '';
-    }
-    return (message.role === 'user' ? 'You said: ' : 'King AI said: ') + content;
-  }).join('. Next message. ');
-
-  if (!text.trim()) {
-    setVoice('There is no conversation to read yet.');
-    return;
-  }
-  const button = $('readConversation');
-  if (window.speechSynthesis?.speaking) {
-    window.speechSynthesis.cancel();
-    button.textContent = '🔊 Read conversation';
-    setVoice('Reading stopped.');
-  } else {
-    speakText(text, button);
-  }
-}
-
-$('readConversation').addEventListener('click', readConversation);
-
-function renderAttachments() {
-  attachmentsElement.replaceChildren();
-  selectedFiles.forEach((file, index) => {
-    const chip = document.createElement('span');
-    chip.className = 'attachment-chip';
-    chip.append(document.createTextNode('📎 ' + file.name + ' '));
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.textContent = '×';
-    remove.title = 'Remove ' + file.name;
-    remove.style.cssText = 'border:0;background:transparent;color:#ffb0bd;margin-left:5px';
-    remove.addEventListener('click', () => {
-      selectedFiles.splice(index, 1);
-      renderAttachments();
-    });
-    chip.append(remove);
-    attachmentsElement.append(chip);
-  });
-}
-
-$('attachButton').addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', () => {
-  selectedFiles.push(...Array.from(fileInput.files || []));
-  if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
-  renderAttachments();
-  fileInput.value = '';
-});
-
-// DIRECT PASTE FEATURE (Ctrl+V)
-promptInput.addEventListener('paste', (event) => {
-  const items = (event.clipboardData || event.originalEvent.clipboardData).items;
-  for (const item of items) {
-    if (item.type.indexOf('image') === 0) {
-      const blob = item.getAsFile();
-      if (blob) {
-        const file = new File([blob], `pasted_image_${Date.now()}.png`, { type: blob.type });
-        selectedFiles.push(file);
-        if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
-        renderAttachments();
-        event.preventDefault();
-        setVoice('Image pasted! Click Send to analyze.');
-      }
-    }
-  }
-});
-
-// IMAGE RESIZE FUNCTION (max 1024px, 0.8 JPEG quality)
+// Image resize function (kept from previous version)
 function resizeImage(file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-        if (width > height && width > maxWidth) {
-          height *= maxWidth / width;
-          width = maxWidth;
-        } else if (height > maxHeight) {
-          width *= maxHeight / height;
-          height = maxHeight;
-        }
+        let width = img.width; let height = img.height;
+        if (width > height && width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+        else if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; }
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.src = e.target.result;
@@ -679,46 +315,48 @@ function resizeImage(file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) {
 }
 
 async function extractFile(file) {
-  const name = file.name.toLowerCase();
-
-  if (file.size > 10 * 1024 * 1024) {
-    throw new Error(file.name + ' is over 10 MB. Max size is 10MB.');
-  }
-
-  if (file.type.startsWith('image/')) {
-    const resizedData = await resizeImage(file);
-    return { type: 'image', data: resizedData };
-  }
-
-  if (name.endsWith('.pdf')) {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let fullText = '';
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(' ');
-        fullText += `[Page ${i}]\n${pageText}\n\n`;
-      }
-      return { type: 'text', data: fullText.trim() };
-    } catch (err) {
-      console.error("PDF read error:", err);
-      throw new Error('Could not read PDF file: ' + file.name);
-    }
-  }
-
+  if (file.size > 10 * 1024 * 1024) throw new Error(file.name + ' is over 10 MB.');
+  if (file.type.startsWith('image/')) return { type: 'image', data: await resizeImage(file) };
   return { type: 'text', data: await file.text() };
 }
+
+// Paste functionality
+promptInput.addEventListener('paste', (event) => {
+  const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+  for (const item of items) {
+    if (item.type.indexOf('image') === 0) {
+      const blob = item.getAsFile();
+      if (blob) {
+        selectedFiles.push(new File([blob], `pasted_image_${Date.now()}.png`, { type: blob.type }));
+        if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
+        renderAttachments(); event.preventDefault();
+      }
+    }
+  }
+});
+
+function renderAttachments() {
+  attachmentsElement.replaceChildren();
+  selectedFiles.forEach((file, index) => {
+    const chip = document.createElement('span');
+    chip.className = 'attachment-chip';
+    chip.textContent = '📎 ' + file.name + ' ';
+    const remove = document.createElement('button');
+    remove.textContent = '×'; remove.style.cssText = 'border:0;background:transparent;color:#ffb0bd;margin-left:5px';
+    remove.onclick = () => { selectedFiles.splice(index, 1); renderAttachments(); };
+    chip.append(remove); attachmentsElement.append(chip);
+  });
+}
+
+$('attachButton').onclick = () => fileInput.click();
+fileInput.onchange = () => { selectedFiles.push(...Array.from(fileInput.files || [])); if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3); renderAttachments(); fileInput.value = ''; };
 
 async function sendMessage(raw) {
   const text = raw.trim();
   if ((!text && !selectedFiles.length) || busy) return;
-  if (!activeChat()) createChat();
+  if (!activeChatId) createChat();
 
-  busy = true;
-  sendButton.disabled = true;
-  promptInput.disabled = true;
+  busy = true; sendButton.disabled = true; promptInput.disabled = true;
 
   const fileSnapshot = [...selectedFiles];
   const messageContent = [];
@@ -727,58 +365,28 @@ async function sendMessage(raw) {
   for (const file of fileSnapshot) {
     try {
       const extracted = await extractFile(file);
-      if (extracted.type === 'image') {
-        messageContent.push({ 
-          type: 'image', 
-          image: extracted.data 
-        });
-      } else {
-        messageContent.push({ 
-          type: 'text', 
-          text: `\n\n[Attachment: ${file.name}]\n${extracted.data}` 
-        });
-      }
+      if (extracted.type === 'image') messageContent.push({ type: 'image', image: extracted.data });
+      else messageContent.push({ type: 'text', text: `\n\n[Attachment: ${file.name}]\n${extracted.data}` });
     } catch (error) {
-      addMessage('assistant', error.message);
-      busy = false;
-      sendButton.disabled = false;
-      promptInput.disabled = false;
-      return;
+      addMessage('assistant', error.message); busy = false; sendButton.disabled = false; promptInput.disabled = false; return;
     }
   }
 
-  const displayText = text || 'Please review my attachment(s).';
-  const imageUrls = messageContent.filter(c => c.type === 'image').map(c => c.image);
-  const fileNames = fileSnapshot.map(f => ({ name: f.name }));
-
-  addMessage('user', displayText, { images: imageUrls, files: fileNames });
-
+  addMessage('user', text || 'Please review my attachment(s).', { images: messageContent.filter(c => c.type === 'image').map(c => c.image) });
   currentMessages.push({ role: 'user', content: messageContent });
 
-  const chat = activeChat();
+  const chat = chats.find(c => c.id === activeChatId);
   if (chat) {
-    chat.messages.push({
-      role: 'user',
-      content: messageContent
-    });
-
-    if (chat.title === 'New conversation') {
-      chat.title = (text || fileSnapshot[0]?.name || 'Attachment').slice(0, 40);
-    }
-
-    chat.updated = Date.now();
-    saveChats();
-    renderHistory();
+    chat.messages.push({ role: 'user', content: messageContent });
+    if (chat.title === 'New conversation') chat.title = (text || fileSnapshot[0]?.name || 'Attachment').slice(0, 40);
+    chat.updated = Date.now(); saveChats(); renderHistory();
   }
 
-  promptInput.value = '';
-  selectedFiles = [];
-  renderAttachments();
+  promptInput.value = ''; selectedFiles = []; renderAttachments();
 
-  const assistantMessageElement = addMessage('assistant', '');
-  const textElement = assistantMessageElement.querySelector('.message-text');
-  const bodyElement = assistantMessageElement.querySelector('.message-content');
-  textElement.textContent = '';
+  const assistantMsg = addMessage('assistant', '');
+  const textElement = assistantMsg.querySelector('.message-text');
+  textElement.innerHTML = '<span class="typing-label">Thinking<span class="typing-dots"><span></span><span></span><span></span></span></span>';
 
   try {
     const response = await fetch(API_URL, {
@@ -786,18 +394,20 @@ async function sendMessage(raw) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         message: text,
-        messages: currentMessages.slice(-50)
+        messages: currentMessages.slice(-20),
+        mode: selectedMode // IPAPADALA ANG NAPILING MODE
       })
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Chat API error (' + response.status + ').');
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Chat API error (' + response.status + ').');
     }
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let fullAnswer = '';
+    textElement.textContent = ''; // Alisin ang typing indicator
 
     while (true) {
       const { done, value } = await reader.read();
@@ -808,82 +418,25 @@ async function sendMessage(raw) {
       scrollBottom();
     }
 
-    if (!fullAnswer.trim()) {
-      throw new Error('The AI returned an empty answer. All vision models may be rate-limited. Please try again in a few minutes.');
-    }
-
-    const readRow = document.createElement('div');
-    readRow.className = 'read-row';
-    const read = document.createElement('button');
-    read.className = 'read-button';
-    read.type = 'button';
-    read.textContent = '🔊 Read aloud';
-    read.addEventListener('click', () => {
-      if (window.speechSynthesis?.speaking) {
-        window.speechSynthesis.cancel();
-        read.textContent = '🔊 Read aloud';
-        setVoice('Reading stopped.');
-      } else {
-        speakText(textElement.textContent, read);
-      }
-    });
-    const providerMini = document.createElement('span');
-    providerMini.className = 'provider-line';
-    providerMini.textContent = 'Provider: Imachui Gen AI';
-    readRow.append(read, providerMini);
-    bodyElement.append(readRow);
+    if (!fullAnswer.trim()) throw new Error('The AI returned an empty answer.');
 
     currentMessages.push({role: 'assistant', content: fullAnswer});
-    const live = activeChat();
-    if (live) {
-      live.messages.push({role: 'assistant', content: fullAnswer});
-      live.updated = Date.now();
-      saveChats();
-    }
+    if (chat) { chat.messages.push({role: 'assistant', content: fullAnswer}); chat.updated = Date.now(); saveChats(); }
 
   } catch (error) {
-    assistantMessageElement.remove();
-    addMessage('assistant', 'Chat error: ' + (error.message || 'Please try again.'));
+    textElement.textContent = 'Chat error: ' + (error.message || 'Please try again.');
   } finally {
-    busy = false;
-    sendButton.disabled = false;
-    promptInput.disabled = false;
-    promptInput.focus();
+    busy = false; sendButton.disabled = false; promptInput.disabled = false; promptInput.focus();
   }
 }
 
-composer.addEventListener('submit', event => {
-  event.preventDefault();
-  sendMessage(promptInput.value);
-});
+composer.onsubmit = (e) => { e.preventDefault(); sendMessage(promptInput.value); };
+promptInput.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); composer.requestSubmit(); } };
+$('newChat').onclick = createChat;
+$('menuButton').onclick = () => sidebar.classList.toggle('open');
+$('clearAll').onclick = () => { if (confirm('Delete ALL conversations?')) { chats = []; activeChatId = null; createChat(); } };
 
-promptInput.addEventListener('keydown', event => {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    composer.requestSubmit();
-  }
-});
-
-document.querySelectorAll('[data-prompt]').forEach(button => {
-  button.addEventListener('click', () => {
-    promptInput.value = button.dataset.prompt || '';
-    promptInput.focus();
-  });
-});
-
-$('newChat').addEventListener('click', createChat);
-$('chatNav').addEventListener('click', () => {
-  promptInput.focus();
-  sidebar.classList.remove('open');
-});
-$('menuButton').addEventListener('click', () => sidebar.classList.toggle('open'));
-
-if (chats.length) {
-  chats.sort((a, b) => (b.updated || 0) - (a.updated || 0));
-  openChat(chats[0].id);
-} else {
-  createChat();
-}
+if (chats.length) { chats.sort((a, b) => (b.updated || 0) - (a.updated || 0)); openChat(chats[0].id); } else { createChat(); }
 </script>
 </body>
 </html>
