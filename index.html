@@ -23,12 +23,13 @@ body {
   color: var(--text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
 button, textarea, input { font: inherit; }
 button { cursor: pointer; transition: all 0.3s ease; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* --- GLASSMORPHISM STYLES --- */
 .glass {
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
@@ -37,7 +38,46 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-/* Use dynamic height variable */
+/* ===== GLOWING TEXT EFFECT ===== */
+.gradient {
+  background: linear-gradient(90deg, #b0a5ff, #42d9c8, #b0a5ff, #42d9c8);
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: gradientShift 4s ease infinite, textGlow 2s ease-in-out infinite alternate;
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+@keyframes textGlow {
+  0% { filter: drop-shadow(0 0 5px #8b7cff) drop-shadow(0 0 10px #42d9c8); }
+  100% { filter: drop-shadow(0 0 15px #8b7cff) drop-shadow(0 0 35px #42d9c8); }
+}
+
+/* ===== MESSENGER WARNING BANNER ===== */
+.messenger-banner {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  padding: 12px 20px;
+  background: linear-gradient(90deg, #ff8d9a, #8b7cff);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  animation: slideDown 0.5s ease;
+}
+.messenger-banner.show { display: block; }
+.messenger-banner a { color: #fff; text-decoration: underline; font-weight: 800; }
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
 .app { height: var(--app-height, 100dvh); display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
 .sidebar { height: var(--app-height, 100dvh); padding: 24px 20px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid var(--glass-border); overflow-y: auto; }
 .back-button { display: none; background: transparent; border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text); padding: 10px; text-align: left; font-size: 13px; }
@@ -67,10 +107,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .delete-chat { border: 0; background: transparent; color: #a4abc0; padding: 8px; font-size: 14px; border-radius: 8px; }
 .delete-chat:hover { background: rgba(255,0,0,0.2); color: #ff9bac; }
 .sidebar-foot { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--glass-border); font-size: 11px; color: var(--muted); line-height: 1.6; }
-.main { position: relative; display: flex; flex-direction: column; overflow: hidden; }
+.main { position: relative; display: flex; flex-direction: column; overflow: hidden; height: 100%; }
 .topbar { height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; border-bottom: 1px solid var(--glass-border); background: rgba(5,7,10,0.5); backdrop-filter: blur(10px); z-index: 10; flex-shrink: 0; }
 .top-title { font-size: 14px; font-weight: 850; letter-spacing: 0.5px; }
-.gradient { background: linear-gradient(90deg, #b0a5ff, var(--accent2)); background-clip: text; color: transparent; }
 .status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
 .dot { width: 8px; height: 8px; background: var(--accent2); border-radius: 50%; box-shadow: 0 0 10px var(--accent2); animation: pulseDot 2s infinite; }
 @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -117,22 +156,41 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .send:hover { box-shadow: 0 0 20px rgba(85,226,210,0.4); transform: translateY(-2px); }
 .toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; }
 .toggle-label input { accent-color: var(--accent2); width: 16px; height: 16px; }
+
 @media (max-width: 768px) {
   .app { grid-template-columns: 1fr; }
   .sidebar { display: none; position: fixed; z-index: 50; width: 280px; height: var(--app-height, 100dvh); background: var(--bg); }
   .sidebar.open { display: flex; }
   .back-button { display: block; }
   .menu { display: block; }
-  .composer-wrap { padding: 12px 12px max(12px, env(safe-area-inset-bottom)) 12px; }
+  
+  /* Fixed Composer on Mobile */
+  .composer-wrap { 
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    width: 100%; 
+    padding: 12px 12px max(12px, env(safe-area-inset-bottom)) 12px; 
+    z-index: 100;
+    background: linear-gradient(0deg, #05070a 70%, transparent 100%);
+  }
+  .chat { padding-bottom: 180px; }
   .composer { padding: 12px; }
   .composer-bottom { flex-direction: column; align-items: stretch; gap: 8px; }
   .tools { justify-content: space-between; }
-  .send { width: 100%; padding: 14px; font-size: 16px; } /* Larger button for mobile */
+  .send { width: 100%; padding: 14px; font-size: 16px; }
   .topbar { padding: 0 16px; }
 }
 </style>
 </head>
 <body>
+
+<!-- MESSENGER WARNING BANNER -->
+<div class="messenger-banner" id="messengerBanner">
+  ⚠️ Messenger in-app browser detected. For best experience, please <a href="#" id="openExternal">open in your browser</a>.
+</div>
+
 <div class="app">
 <aside class="sidebar glass" id="sidebar">
   <button class="back-button" id="backButton" type="button">← Back to Chat</button>
@@ -192,7 +250,75 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 <script>
 'use strict';
 
-// --- DYNAMIC HEIGHT FOR MOBILE KEYBOARD ---
+// ===== 1. BULLETPROOF STORAGE (Falls back to sessionStorage or memory) =====
+const Storage = (function() {
+  let memoryStore = {};
+  let useLocalStorage = true;
+  let useSessionStorage = true;
+  
+  // Test localStorage availability
+  try {
+    localStorage.setItem('__test__', '1');
+    localStorage.removeItem('__test__');
+  } catch (e) {
+    useLocalStorage = false;
+    console.warn("localStorage not available, falling back to sessionStorage");
+  }
+  
+  try {
+    sessionStorage.setItem('__test__', '1');
+    sessionStorage.removeItem('__test__');
+  } catch (e) {
+    useSessionStorage = false;
+    console.warn("sessionStorage not available, using in-memory storage");
+  }
+
+  return {
+    getItem(key) {
+      if (useLocalStorage) {
+        try { return localStorage.getItem(key); } catch (e) { useLocalStorage = false; }
+      }
+      if (useSessionStorage) {
+        try { return sessionStorage.getItem(key); } catch (e) { useSessionStorage = false; }
+      }
+      return memoryStore[key] || null;
+    },
+    setItem(key, value) {
+      if (useLocalStorage) {
+        try { localStorage.setItem(key, value); return; } catch (e) { useLocalStorage = false; }
+      }
+      if (useSessionStorage) {
+        try { sessionStorage.setItem(key, value); return; } catch (e) { useSessionStorage = false; }
+      }
+      memoryStore[key] = value;
+    },
+    removeItem(key) {
+      if (useLocalStorage) { try { localStorage.removeItem(key); } catch (e) {} }
+      if (useSessionStorage) { try { sessionStorage.removeItem(key); } catch (e) {} }
+      delete memoryStore[key];
+    }
+  };
+})();
+
+// ===== 2. MESSENGER DETECTION =====
+const isMessenger = /FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\//i.test(navigator.userAgent);
+if (isMessenger) {
+  const banner = document.getElementById('messengerBanner');
+  banner.classList.add('show');
+  document.getElementById('openExternal').addEventListener('click', (e) => {
+    e.preventDefault();
+    // Try to open in external browser
+    if (navigator.userAgent.match(/Android/i)) {
+      // Android: use intent
+      window.location.href = 'intent://' + window.location.href.replace(/^https?:\/\//, '') + '#Intent;scheme=https;end';
+    } else {
+      // iOS: show instructions
+      alert('Please tap the menu (⋯) at the top right and select "Open in Safari" or "Open in Chrome".');
+    }
+  });
+}
+
+// ===== 3. DYNAMIC HEIGHT FOR MOBILE KEYBOARD =====
 function setAppHeight() {
   document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
 }
@@ -204,9 +330,8 @@ const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-// --- PERSISTENCE KEYS ---
-const STORAGE_KEY = 'imachui_gen_ai_chats_v16';
-const ACTIVE_CHAT_KEY = 'imachui_gen_ai_active_chat_v16';
+const STORAGE_KEY = 'imachui_gen_ai_chats_v17';
+const ACTIVE_CHAT_KEY = 'imachui_gen_ai_active_chat_v17';
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
@@ -222,26 +347,27 @@ const micButton = $('micButton');
 const autoReadToggle = $('autoReadToggle');
 const backButton = $('backButton');
 
-// --- LOAD STATE FROM LOCALSTORAGE ---
-let chats = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-let activeChatId = localStorage.getItem(ACTIVE_CHAT_KEY) || null;
+// ===== LOAD STATE FROM STORAGE =====
+let chats = [];
+let activeChatId = null;
+try {
+  chats = JSON.parse(Storage.getItem(STORAGE_KEY) || '[]');
+  activeChatId = Storage.getItem(ACTIVE_CHAT_KEY) || null;
+} catch (e) {
+  console.error("Storage parse error:", e);
+}
+
 let currentMessages = [];
 let busy = false;
 let selectedFiles = [];
 let recognition = null;
 let listening = false;
 
-// --- MARKDOWN PARSER (BOLD & CLICKABLE LINKS) ---
+// ===== MARKDOWN PARSER =====
 function formatMessage(text) {
   let formatted = text;
-  
-  // Bold: **text** -> <strong>text</strong>
   formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  
-  // Markdown links: [text](url) -> <a href="url" target="_blank">text</a>
   formatted = formatted.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-  
-  // Raw links: Match http://, https://, and www.
   formatted = formatted.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<]+)/g, function(match, prefix, url) {
     let fullUrl = url;
     if (!/^https?:\/\//i.test(url)) {
@@ -249,11 +375,10 @@ function formatMessage(text) {
     }
     return `${prefix}<a href="${fullUrl}" target="_blank" rel="noopener noreferrer">${url}</a>`;
   });
-
   return formatted;
 }
 
-// --- VOICE SYNTHESIS (AI Voice) ---
+// ===== VOICE SYNTHESIS =====
 const synth = window.speechSynthesis;
 let voices = [];
 
@@ -298,7 +423,7 @@ function speakText(text, buttonElement) {
   synth.speak(utterance);
 }
 
-// --- SPEECH RECOGNITION (Mic) ---
+// ===== SPEECH RECOGNITION =====
 function startListening() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
@@ -366,22 +491,36 @@ function startListening() {
 
 micButton.addEventListener('click', startListening);
 
-// --- UI LOGIC ---
+// ===== MOBILE KEYBOARD SCROLL =====
+promptInput.addEventListener('focus', () => {
+  setTimeout(() => {
+    promptInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 300);
+});
+
+// ===== UI LOGIC =====
 function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function activeChat() { return chats.find(chat => chat.id === activeChatId); }
 
 function saveChats() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+    Storage.setItem(STORAGE_KEY, JSON.stringify(chats));
     if (activeChatId) {
-      localStorage.setItem(ACTIVE_CHAT_KEY, activeChatId);
+      Storage.setItem(ACTIVE_CHAT_KEY, activeChatId);
     } else {
-      localStorage.removeItem(ACTIVE_CHAT_KEY);
+      Storage.removeItem(ACTIVE_CHAT_KEY);
     }
   } catch (e) {
-    console.error("Failed to save to localStorage:", e);
+    console.error("Failed to save:", e);
   }
 }
+
+// Save on page unload / hide
+window.addEventListener('beforeunload', saveChats);
+window.addEventListener('pagehide', saveChats);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveChats();
+});
 
 function renderHistory() {
   historyElement.replaceChildren();
@@ -408,7 +547,7 @@ function createChat() {
   currentMessages = [];
   messagesElement.replaceChildren();
   welcomeElement.hidden = false;
-  saveChats(); // Saves both chats and activeChatId
+  saveChats();
   renderHistory(); sidebar.classList.remove('open'); promptInput.focus();
 }
 
@@ -416,7 +555,7 @@ function openChat(chatId) {
   const chat = chats.find(c => c.id === chatId);
   if (!chat) return;
   activeChatId = chat.id;
-  localStorage.setItem(ACTIVE_CHAT_KEY, activeChatId); // Save active chat immediately
+  Storage.setItem(ACTIVE_CHAT_KEY, activeChatId);
   currentMessages = (chat.messages || []).map(m => ({ role: m.role, content: m.content }));
   messagesElement.replaceChildren();
   welcomeElement.hidden = currentMessages.length > 0;
@@ -429,7 +568,7 @@ function deleteChat(chatId) {
   chats = chats.filter(c => c.id !== chatId);
   if (activeChatId === chatId) {
     activeChatId = null;
-    localStorage.removeItem(ACTIVE_CHAT_KEY);
+    Storage.removeItem(ACTIVE_CHAT_KEY);
     currentMessages = [];
     messagesElement.replaceChildren();
     welcomeElement.hidden = false;
@@ -626,10 +765,8 @@ async function sendMessage(raw) {
 
     if (!fullAnswer.trim()) throw new Error('The AI returned an empty answer.');
 
-    // Apply Markdown formatting after streaming completes
     textElement.innerHTML = formatMessage(fullAnswer);
 
-    // Add Read Aloud button after streaming completes
     const readRow = document.createElement('div');
     readRow.className = 'read-row';
     const read = document.createElement('button');
@@ -647,7 +784,6 @@ async function sendMessage(raw) {
     readRow.append(read);
     assistantMsg.querySelector('.message-content').append(readRow);
 
-    // AUTO-READ AI RESPONSE
     if (autoReadToggle.checked) {
       speakText(textElement.textContent, read);
     }
@@ -667,9 +803,9 @@ promptInput.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preve
 $('newChat').onclick = createChat;
 $('menuButton').onclick = () => sidebar.classList.toggle('open');
 $('backButton').onclick = () => sidebar.classList.remove('open');
-$('clearAll').onclick = () => { if (confirm('Delete ALL conversations?')) { chats = []; activeChatId = null; localStorage.removeItem(ACTIVE_CHAT_KEY); createChat(); } };
+$('clearAll').onclick = () => { if (confirm('Delete ALL conversations?')) { chats = []; activeChatId = null; Storage.removeItem(ACTIVE_CHAT_KEY); createChat(); } };
 
-// --- INITIAL LOAD ---
+// ===== INITIAL LOAD =====
 if (chats.length) {
   chats.sort((a, b) => (b.updated || 0) - (a.updated || 0));
   const chatToOpen = activeChatId && chats.find(c => c.id === activeChatId) ? activeChatId : chats[0].id;
