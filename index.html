@@ -75,6 +75,47 @@ button{font:inherit;cursor:pointer}
 .toggle-label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);cursor:pointer}
 .toggle-label input{accent-color:var(--accent2);width:16px;height:16px}
 
+/* ===== REDIRECT OVERLAY ===== */
+.redirect-overlay{
+  position:fixed;inset:0;z-index:99999;
+  background:radial-gradient(circle at 50% 50%,#1a1f35 0%,#05070a 100%);
+  display:flex;justify-content:center;align-items:center;padding:20px;
+  text-align:center;
+}
+.redirect-overlay .box{
+  max-width:420px;padding:35px 28px;border-radius:24px;
+  background:rgba(20,25,40,.7);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.redirect-overlay .icon{
+  width:70px;height:70px;margin:0 auto 20px;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,#42d9c8,#8b7cff,#05070a);
+  box-shadow:0 0 40px #8b7cff,0 0 80px #42d9c8;
+  display:grid;place-items:center;font-size:32px;color:#fff;
+}
+.redirect-overlay h2{margin:0 0 12px;font-size:20px;color:#f3f5fb}
+.redirect-overlay p{margin:0 0 8px;font-size:14px;line-height:1.6;color:#98a2b7}
+.redirect-overlay .small{font-size:12px;color:#8f9bb5;margin-bottom:20px}
+.redirect-overlay button{
+  width:100%;padding:16px;border-radius:14px;border:0;
+  background:linear-gradient(135deg,#b0a5ff,#55e2d2);
+  color:#05070a;font-weight:800;font-size:15px;margin-bottom:10px;
+  cursor:pointer;
+}
+.redirect-overlay button:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(85,226,210,.4)}
+.redirect-overlay button.secondary{
+  background:transparent;border:1px solid rgba(255,255,255,.15);
+  color:#98a2b7;font-size:13px;padding:12px;font-weight:600;
+}
+.redirect-overlay .spinner{
+  display:inline-block;width:14px;height:14px;
+  border:2px solid rgba(255,255,255,.2);border-top-color:#42d9c8;
+  border-radius:50%;animation:spin .8s linear infinite;
+  margin-right:8px;vertical-align:middle;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
 /* ===== MOBILE ===== */
 @media(max-width:768px){
   .app{grid-template-columns:1fr;height:100vh;height:100dvh}
@@ -85,11 +126,7 @@ button{font:inherit;cursor:pointer}
   .topbar{height:58px;padding:0 14px;gap:10px}
   .top-title{font-size:12px;flex:1}
   .chat{padding:18px 12px 24px}
-  .composer-wrap{
-    position:fixed;bottom:0;left:0;right:0;width:100%;
-    padding:10px 10px max(10px,env(safe-area-inset-bottom)) 10px;
-    z-index:100;background:linear-gradient(0deg,#05070a 70%,transparent 100%)
-  }
+  .composer-wrap{position:fixed;bottom:0;left:0;right:0;width:100%;padding:10px 10px max(10px,env(safe-area-inset-bottom)) 10px;z-index:100;background:linear-gradient(0deg,#05070a 70%,transparent 100%)}
   .chat{padding-bottom:220px}
   .composer{padding:10px;border-radius:18px}
   #prompt{min-height:48px;font-size:16px;padding:8px}
@@ -107,7 +144,23 @@ button{font:inherit;cursor:pointer}
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- ===== AUTO-REDIRECT OVERLAY (Shown before app loads if in Messenger) ===== -->
+<div class="redirect-overlay" id="redirectOverlay" style="display:none">
+  <div class="box">
+    <div class="icon">✦</div>
+    <h2 id="redirectTitle">Opening in Browser...</h2>
+    <p id="redirectMsg">Para gumana ang lahat ng features (voice, download, save chats), kailangan mong buksan sa <b>Chrome</b> o <b>Safari</b>.</p>
+    <p class="small" id="redirectSmall">Kung hindi awtomatikong bumukas, i-tap ang button sa ibaba.</p>
+    <button id="openBtn" onclick="forceOpenBrowser()">
+      <span class="spinner" id="spinner"></span>
+      🚀 Open in Browser
+    </button>
+    <button class="secondary" onclick="continueAnyway()">Continue Anyway (Limited Features)</button>
+  </div>
+</div>
+
+<div class="app" id="appRoot">
 <aside class="sidebar glass" id="sidebar">
   <button class="back-btn" onclick="closeSidebar()">← Back to Chat</button>
   <div class="brand">
@@ -163,8 +216,111 @@ button{font:inherit;cursor:pointer}
 </div>
 
 <script>
-// ========== STORAGE ==========
-var STORAGE_KEY = 'imachui_v25_data';
+'use strict';
+
+// ============================================================
+// ============= AUTO-REDIRECT FROM IN-APP BROWSERS ===========
+// ============================================================
+var ua = navigator.userAgent || navigator.vendor || window.opera;
+var isMessenger = /FBAN|FBAV|FB_IAB|Messenger|Instagram|Line|LinkedInApp|Twitter|Telegram|WhatsApp/i.test(ua);
+var isAndroid = /Android/i.test(ua);
+var isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+function tryAutoRedirect() {
+  var targetUrl = window.location.href;
+  // Remove hash to avoid issues
+  targetUrl = targetUrl.split('#')[0];
+  
+  try {
+    if (isAndroid) {
+      // Force open in Chrome via intent
+      var cleanUrl = targetUrl.replace(/^https?:\/\//, '');
+      var intentUrl = 'intent://' + cleanUrl + '#Intent;scheme=https;package=com.android.chrome;end';
+      window.location.href = intentUrl;
+      
+      // Fallback: if intent doesn't work after 2 seconds, try regular redirect
+      setTimeout(function() {
+        // If still here, try without package (opens default browser)
+        window.location.href = 'intent://' + cleanUrl + '#Intent;scheme=https;end';
+      }, 1500);
+      
+      // Final fallback: just open URL normally
+      setTimeout(function() {
+        window.location.href = targetUrl;
+      }, 3000);
+      
+    } else if (isIOS) {
+      // Try to open in Chrome if installed
+      var chromeUrl = 'googlechrome://' + targetUrl.replace(/^https?:\/\//, '');
+      var testIframe = document.createElement('iframe');
+      testIframe.style.display = 'none';
+      document.body.appendChild(testIframe);
+      
+      // Attempt Chrome
+      window.location.href = chromeUrl;
+      
+      // Fallback to Safari after 1.5 seconds
+      setTimeout(function() {
+        window.location.href = targetUrl;
+      }, 1500);
+    }
+  } catch(e) {
+    console.error('Redirect failed:', e);
+  }
+}
+
+function forceOpenBrowser() {
+  var btn = document.getElementById('openBtn');
+  var title = document.getElementById('redirectTitle');
+  var msg = document.getElementById('redirectMsg');
+  var small = document.getElementById('redirectSmall');
+  
+  if (isIOS) {
+    // iOS: Cannot force auto-open, show instructions
+    title.textContent = '⚠️ I-tap ang "⋯" sa Taas';
+    msg.innerHTML = 'I-tap ang <b>three dots (⋯)</b> sa kanang itaas ng Messenger, tapos piliin ang <b>"Open in Safari"</b> o <b>"Open in Chrome"</b>.';
+    small.innerHTML = 'Hindi kami makakapag-auto-open sa iPhone dahil sa security ng Apple.';
+    btn.innerHTML = '✓ Naintindihan Ko Na';
+    btn.onclick = function() {
+      document.getElementById('redirectOverlay').style.display = 'none';
+    };
+  } else {
+    // Android: Try intent again
+    btn.innerHTML = '<span class="spinner"></span> Opening...';
+    tryAutoRedirect();
+    setTimeout(function() {
+      btn.innerHTML = '🚀 Open in Browser';
+    }, 3000);
+  }
+}
+
+function continueAnyway() {
+  document.getElementById('redirectOverlay').style.display = 'none';
+}
+
+// Show overlay if in in-app browser
+if (isMessenger) {
+  document.getElementById('redirectOverlay').style.display = 'flex';
+  // Attempt auto-redirect after 1 second (give time for page to render)
+  setTimeout(tryAutoRedirect, 1000);
+  
+  // If user stays after 5 seconds, update message
+  setTimeout(function() {
+    var overlay = document.getElementById('redirectOverlay');
+    if (overlay && overlay.style.display !== 'none') {
+      var small = document.getElementById('redirectSmall');
+      if (small && !isIOS) {
+        small.innerHTML = 'Kung hindi bumukas, i-tap ang button sa ibaba.';
+      }
+    }
+  }, 5000);
+}
+
+// ============================================================
+// ============= MAIN APP LOGIC ===========
+// ============================================================
+
+var STORAGE_KEY = 'imachui_v26_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
@@ -175,7 +331,6 @@ var listening = false;
 var synth = window.speechSynthesis;
 var voices = [];
 
-// Load voices
 function loadVoices() { voices = synth.getVoices(); if (voices.length === 0) setTimeout(loadVoices, 200); }
 if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
 loadVoices();
@@ -220,15 +375,9 @@ function updateStatus() {
   }
 }
 
-// ========== SIDEBAR ==========
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-}
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); }
 
-// ========== BACKUP ==========
 function downloadBackup() {
   try {
     var data = JSON.stringify({chats: chats, activeChatId: activeChatId}, null, 2);
@@ -243,7 +392,7 @@ function downloadBackup() {
     setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
     alert('✅ Downloaded! ' + chats.length + ' chats saved.');
   } catch(e) {
-    alert('❌ Download error: ' + e.message);
+    alert('❌ Download error: ' + e.message + '\n\nUse Chrome or Safari browser.');
   }
 }
 
@@ -273,7 +422,6 @@ function handleUpload(event) {
   document.getElementById('uploadInput').value = '';
 }
 
-// ========== FORMAT ==========
 function fmt(text) {
   var f = text;
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -284,7 +432,6 @@ function fmt(text) {
   return f;
 }
 
-// ========== SPEAK (AI VOICE) ==========
 function speak(text, btn) {
   if (!synth) {
     if (btn) btn.textContent = '🔊 Read Aloud';
@@ -319,7 +466,6 @@ function speak(text, btn) {
   }
 }
 
-// ========== MIC ==========
 function toggleMic() {
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { alert('Speech Recognition not supported. Use Chrome.'); return; }
@@ -354,7 +500,6 @@ function toggleMic() {
   try { recognition.start(); } catch(e) { listening = false; btn.textContent = '🎙️ Mic'; }
 }
 
-// ========== UI ==========
 function newChat() {
   var chat = {id: 'c' + Date.now() + Math.random().toString(36).slice(2,6), title: 'New conversation', updated: Date.now(), messages: []};
   chats.unshift(chat);
@@ -645,7 +790,7 @@ if (chats.length > 0) {
   newChat();
 }
 
-console.log('✅ Imachui Gen AI ready. Storage:', storageOK, 'Chats:', chats.length);
+console.log('✅ Imachui Gen AI ready. Storage:', storageOK, 'Chats:', chats.length, 'InAppBrowser:', isMessenger);
 </script>
 </body>
 </html>
