@@ -126,7 +126,7 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
   <!-- MODEL SELECTOR: 4 PROVIDERS -->
   <div class="model-selector" id="modelSelector">
     <button type="button" class="model-btn active" data-mode="gemini"><strong>Gemini</strong>Multimodal</button>
-    <button type="button" class="model-btn" data-mode="nvidia"><strong>NVIDIA NIM</strong>Ultra 550B</button>
+    <button type="button" class="model-btn" data-mode="nvidia"><strong>NVIDIA NIM</strong>Fast AI</button>
     <button type="button" class="model-btn" data-mode="openrouter"><strong>OpenRouter</strong>Free Models</button>
     <button type="button" class="model-btn" data-mode="deepseek"><strong>DeepSeek</strong>Logic & Code</button>
   </div>
@@ -156,7 +156,7 @@ const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-const STORAGE_KEY = 'imachui_gen_ai_chats_v11';
+const STORAGE_KEY = 'imachui_gen_ai_chats_v12';
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
