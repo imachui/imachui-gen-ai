@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Groq Debugging)
+// api/chat.js - Imachui Gen AI (May Automatic Fallback sa DeepSeek)
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText, streamText } from 'ai';
 
@@ -66,6 +66,7 @@ export default async function handler(req, res) {
     const groq = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: groqKey });
     const deepseek = createOpenAI({ baseURL: 'https://api.deepseek.com', apiKey: deepseekKey });
 
+    // --- GROQ MODE WITH AUTOMATIC FALLBACK ---
     if (mode === 'groq') {
       console.log("[Imachui] Groq mode selected");
       try {
@@ -73,17 +74,33 @@ export default async function handler(req, res) {
           model: groq('llama-3.3-70b-versatile'), 
           messages: incomingMessages 
         });
-        for await (const chunk of result.textStream) res.write(chunk);
+        
+        let hasData = false;
+        for await (const chunk of result.textStream) {
+          hasData = true;
+          res.write(chunk);
+        }
+        
+        // Kung walang laman ang ibinalik ni Groq, i-throw ang error para lumipat kay DeepSeek
+        if (!hasData) {
+          throw new Error('Groq returned an empty stream.');
+        }
+        
         return res.end();
       } catch (groqError) {
-        // Dito natin mahuhuli ang aktwal na error ng Groq
-        console.error("[Imachui] Groq API Error Details:", groqError);
-        const errorMessage = groqError?.message || String(groqError);
-        res.write(`Groq Error: ${errorMessage.slice(0, 300)}`);
+        console.error("[Imachui] Groq failed, falling back to DeepSeek. Error:", groqError.message);
+        res.write(`[System Note: Groq API is currently unavailable. Falling back to DeepSeek...]\n\n`);
+        
+        const fallbackResult = await streamText({ 
+          model: deepseek('deepseek-chat'), 
+          messages: incomingMessages 
+        });
+        for await (const chunk of fallbackResult.textStream) res.write(chunk);
         return res.end();
       }
     }
 
+    // --- DEEPSEEK MODE ---
     if (mode === 'deepseek') {
       console.log("[Imachui] DeepSeek mode selected");
       const result = await streamText({ 
@@ -98,20 +115,12 @@ export default async function handler(req, res) {
     console.log("[Imachui] Ensemble mode started");
 
     const [groqResult, dsResult] = await Promise.allSettled([
-      generateText({ 
-        model: groq('llama-3.3-70b-versatile'), 
-        system: "You are a helpful AI assistant.",
-        messages: incomingMessages 
-      }),
-      generateText({ 
-        model: deepseek('deepseek-chat'), 
-        system: "You are a helpful AI assistant.",
-        messages: incomingMessages 
-      })
+      generateText({ model: groq('llama-3.3-70b-versatile'), messages: incomingMessages }),
+      generateText({ model: deepseek('deepseek-chat'), messages: incomingMessages })
     ]);
 
-    const groqAnswer = groqResult.status === 'fulfilled' ? groqResult.value.text : `[Groq Error: ${String(groqResult.reason?.message || groqResult.reason).slice(0, 100)}]`;
-    const dsAnswer = dsResult.status === 'fulfilled' ? dsResult.value.text : `[DeepSeek Error: ${String(dsResult.reason?.message || dsResult.reason).slice(0, 100)}]`;
+    const groqAnswer = groqResult.status === 'fulfilled' ? groqResult.value.text : `[Groq Error]`;
+    const dsAnswer = dsResult.status === 'fulfilled' ? dsResult.value.text : `[DeepSeek Error]`;
 
     const synthesisPrompt = `
       Ikaw ay isang tagahusga. Pag-aralan ang dalawang sagot sa ibaba at gumawa ng pinagsama-samang sagot.
@@ -123,7 +132,7 @@ export default async function handler(req, res) {
     `;
 
     const finalResult = streamText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: deepseek('deepseek-chat'), 
       messages: [{ role: 'user', content: synthesisPrompt }],
       temperature: 0.3,
     });
