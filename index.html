@@ -38,22 +38,22 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-/* ===== GLOWING TEXT EFFECT ===== */
+/* ===== INTENSE GLOWING TEXT EFFECT ===== */
 .gradient {
   background: linear-gradient(90deg, #b0a5ff, #42d9c8, #b0a5ff, #42d9c8);
   background-size: 300% 100%;
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  animation: gradientShift 4s ease infinite, textGlow 2s ease-in-out infinite alternate;
+  animation: gradientShift 4s ease infinite, textGlow 1.5s ease-in-out infinite alternate;
 }
 @keyframes gradientShift {
   0% { background-position: 0% 50%; }
   100% { background-position: 300% 50%; }
 }
 @keyframes textGlow {
-  0% { filter: drop-shadow(0 0 5px #8b7cff) drop-shadow(0 0 10px #42d9c8); }
-  100% { filter: drop-shadow(0 0 15px #8b7cff) drop-shadow(0 0 35px #42d9c8); }
+  0% { filter: drop-shadow(0 0 8px #8b7cff) drop-shadow(0 0 15px #42d9c8); }
+  100% { filter: drop-shadow(0 0 25px #8b7cff) drop-shadow(0 0 50px #42d9c8); }
 }
 
 /* ===== MESSENGER WARNING BANNER ===== */
@@ -93,7 +93,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 @keyframes pulseGlow {
   0% { box-shadow: 0 0 20px #8b7cff, 0 0 50px #42d9c8, inset 0 0 10px rgba(255,255,255,0.6); transform: scale(1); }
-  100% { box-shadow: 0 0 50px #8b7cff, 0 0 100px #42d9c8, inset 0 0 25px rgba(255,255,255,1); transform: scale(1.1); }
+  100% { box-shadow: 0 0 60px #8b7cff, 0 0 120px #42d9c8, inset 0 0 30px rgba(255,255,255,1); transform: scale(1.1); }
 }
 .brand-name { font-weight: 850; font-size: 16px; letter-spacing: 0.5px; }
 .brand-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
@@ -164,7 +164,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .back-button { display: block; }
   .menu { display: block; }
   
-  /* Fixed Composer on Mobile */
   .composer-wrap { 
     position: fixed; 
     bottom: 0; 
@@ -186,9 +185,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 </head>
 <body>
 
-<!-- MESSENGER WARNING BANNER -->
 <div class="messenger-banner" id="messengerBanner">
-  ⚠️ Messenger in-app browser detected. For best experience, please <a href="#" id="openExternal">open in your browser</a>.
+  ⚠️ Messenger in-app browser detected. Please <a href="#" id="openExternal">open in your browser</a> to save chats and send messages properly.
 </div>
 
 <div class="app">
@@ -250,51 +248,40 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 <script>
 'use strict';
 
-// ===== 1. BULLETPROOF STORAGE (Falls back to sessionStorage or memory) =====
+// ===== 1. BULLETPROOF STORAGE =====
 const Storage = (function() {
   let memoryStore = {};
-  let useLocalStorage = true;
-  let useSessionStorage = true;
-  
-  // Test localStorage availability
+  let type = 'memory';
   try {
     localStorage.setItem('__test__', '1');
     localStorage.removeItem('__test__');
+    type = 'local';
   } catch (e) {
-    useLocalStorage = false;
-    console.warn("localStorage not available, falling back to sessionStorage");
+    try {
+      sessionStorage.setItem('__test__', '1');
+      sessionStorage.removeItem('__test__');
+      type = 'session';
+    } catch (e2) {
+      type = 'memory';
+    }
   }
-  
-  try {
-    sessionStorage.setItem('__test__', '1');
-    sessionStorage.removeItem('__test__');
-  } catch (e) {
-    useSessionStorage = false;
-    console.warn("sessionStorage not available, using in-memory storage");
-  }
+  console.log("Storage type detected:", type);
 
   return {
+    type,
     getItem(key) {
-      if (useLocalStorage) {
-        try { return localStorage.getItem(key); } catch (e) { useLocalStorage = false; }
-      }
-      if (useSessionStorage) {
-        try { return sessionStorage.getItem(key); } catch (e) { useSessionStorage = false; }
-      }
+      if (type === 'local') { try { return localStorage.getItem(key); } catch (e) {} }
+      if (type === 'session') { try { return sessionStorage.getItem(key); } catch (e) {} }
       return memoryStore[key] || null;
     },
     setItem(key, value) {
-      if (useLocalStorage) {
-        try { localStorage.setItem(key, value); return; } catch (e) { useLocalStorage = false; }
-      }
-      if (useSessionStorage) {
-        try { sessionStorage.setItem(key, value); return; } catch (e) { useSessionStorage = false; }
-      }
+      if (type === 'local') { try { localStorage.setItem(key, value); return; } catch (e) {} }
+      if (type === 'session') { try { sessionStorage.setItem(key, value); return; } catch (e) {} }
       memoryStore[key] = value;
     },
     removeItem(key) {
-      if (useLocalStorage) { try { localStorage.removeItem(key); } catch (e) {} }
-      if (useSessionStorage) { try { sessionStorage.removeItem(key); } catch (e) {} }
+      if (type === 'local') { try { localStorage.removeItem(key); } catch (e) {} }
+      if (type === 'session') { try { sessionStorage.removeItem(key); } catch (e) {} }
       delete memoryStore[key];
     }
   };
@@ -303,22 +290,20 @@ const Storage = (function() {
 // ===== 2. MESSENGER DETECTION =====
 const isMessenger = /FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\//i.test(navigator.userAgent);
 if (isMessenger) {
-  const banner = document.getElementById('messengerBanner');
-  banner.classList.add('show');
+  document.getElementById('messengerBanner').classList.add('show');
   document.getElementById('openExternal').addEventListener('click', (e) => {
     e.preventDefault();
-    // Try to open in external browser
+    const url = window.location.href;
     if (navigator.userAgent.match(/Android/i)) {
-      // Android: use intent
-      window.location.href = 'intent://' + window.location.href.replace(/^https?:\/\//, '') + '#Intent;scheme=https;end';
+      // Force open in Chrome on Android
+      window.location.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
     } else {
-      // iOS: show instructions
-      alert('Please tap the menu (⋯) at the top right and select "Open in Safari" or "Open in Chrome".');
+      alert('Please tap the ⋯ menu at the top right and select "Open in Safari" or "Open in Chrome".');
     }
   });
 }
 
-// ===== 3. DYNAMIC HEIGHT FOR MOBILE KEYBOARD =====
+// ===== 3. DYNAMIC HEIGHT =====
 function setAppHeight() {
   document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
 }
@@ -347,7 +332,6 @@ const micButton = $('micButton');
 const autoReadToggle = $('autoReadToggle');
 const backButton = $('backButton');
 
-// ===== LOAD STATE FROM STORAGE =====
 let chats = [];
 let activeChatId = null;
 try {
@@ -515,7 +499,6 @@ function saveChats() {
   }
 }
 
-// Save on page unload / hide
 window.addEventListener('beforeunload', saveChats);
 window.addEventListener('pagehide', saveChats);
 document.addEventListener('visibilitychange', () => {
@@ -735,14 +718,21 @@ async function sendMessage(raw) {
   textElement.innerHTML = '<span class="typing-label">Thinking<span class="typing-dots"><span></span><span></span><span></span></span></span>';
 
   try {
+    // Add AbortController with timeout to prevent infinite hanging in Messenger
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 seconds timeout
+
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         message: text,
         messages: currentMessages.slice(-20)
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
@@ -792,7 +782,11 @@ async function sendMessage(raw) {
     if (chat) { chat.messages.push({role: 'assistant', content: fullAnswer}); chat.updated = Date.now(); saveChats(); }
 
   } catch (error) {
-    textElement.textContent = 'Chat error: ' + (error.message || 'Please try again.');
+    if (error.name === 'AbortError') {
+      textElement.textContent = 'Chat error: Request timed out. Please open in a browser (Chrome/Safari) for better performance.';
+    } else {
+      textElement.textContent = 'Chat error: ' + (error.message || 'Please try again.');
+    }
   } finally {
     busy = false; sendButton.disabled = false; promptInput.disabled = false; promptInput.focus();
   }
@@ -805,7 +799,6 @@ $('menuButton').onclick = () => sidebar.classList.toggle('open');
 $('backButton').onclick = () => sidebar.classList.remove('open');
 $('clearAll').onclick = () => { if (confirm('Delete ALL conversations?')) { chats = []; activeChatId = null; Storage.removeItem(ACTIVE_CHAT_KEY); createChat(); } };
 
-// ===== INITIAL LOAD =====
 if (chats.length) {
   chats.sort((a, b) => (b.updated || 0) - (a.updated || 0));
   const chatToOpen = activeChatId && chats.find(c => c.id === activeChatId) ? activeChatId : chats[0].id;
