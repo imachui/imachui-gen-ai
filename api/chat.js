@@ -1,6 +1,9 @@
-// api/chat.js - Imachui Gen AI by Imachui (Vision Fallback Chain)
-import { streamText } from 'ai';
+// api/chat.js - Imachui Gen AI (Multi-Model Ensemble)
 import { createOpenAI } from '@ai-sdk/openai';
+import { generateText, streamText } from 'ai';
+
+// Napakahalaga para hindi mag-timeout sa Vercel (Hobby plan allows up to 60s)
+export const maxDuration = 60; 
 
 const ALLOWED_ORIGINS = new Set([
   "https://imachui.github.io",
@@ -20,36 +23,21 @@ function setCors(req, res) {
 
 function normalizeMessages(body) {
   const incoming = Array.isArray(body.messages) ? body.messages : [];
-  
-  const messages = incoming
-    .filter(m =>
-      m &&
-      ["user", "assistant"].includes(m.role) &&
-      (typeof m.content === "string" || Array.isArray(m.content))
-    )
-    .slice(-50) 
+  return incoming
+    .filter(m => m && ["user", "assistant"].includes(m.role) && (typeof m.content === "string" || Array.isArray(m.content)))
+    .slice(-20)
     .map(m => {
       let content = m.content;
       if (Array.isArray(content)) {
         content = content.map(item => {
           if (item.type === 'image_url') {
-            const url = item.image_url?.url || item.image_url;
-            return { type: 'image', image: url }; 
+            return { type: 'image', image: item.image_url?.url || item.image_url };
           }
           return item;
         });
       }
       return { role: m.role, content: content };
     });
-
-  const message = typeof body.message === "string" ? body.message.trim() : "";
-  if (message) {
-    const last = messages[messages.length - 1];
-    if (!last || last.role !== "user" || last.content !== message) {
-      messages.push({ role: "user", content: message });
-    }
-  }
-  return messages;
 }
 
 export default async function handler(req, res) {
@@ -58,99 +46,95 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST for chat requests." });
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: "Missing OPENROUTER_API_KEY in Vercel Environment Variables." });
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const deepseekKey = process.env.DEEPSEEK_API_KEY;
+
+  if (!openaiKey || !deepseekKey) {
+    return res.status(500).json({ error: "Missing API keys in Vercel Environment Variables." });
   }
 
-  const messages = normalizeMessages(req.body || {});
-  if (!messages.length || !messages.some(m => m.role === "user")) {
+  // Kunin ang mode mula sa frontend (chatgpt, deepseek, o combine)
+  const mode = req.body?.mode || 'combine';
+  const incomingMessages = normalizeMessages(req.body || {});
+  const userMessage = req.body?.message || "";
+
+  if (!incomingMessages.length && !userMessage) {
     return res.status(400).json({ error: "Please enter a message first." });
   }
 
   try {
-    const openrouter = createOpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: apiKey,
-      headers: {
-        'HTTP-Referer': 'https://imachui.github.io',
-        'X-Title': 'Imachui Gen AI',
-      }
-    });
+    const openai = createOpenAI({ apiKey: openaiKey });
+    const deepseek = createOpenAI({ baseURL: 'https://api.deepseek.com', apiKey: deepseekKey });
 
-    // LIBRENG VISION-CAPABLE MODELS (fallback chain)
-    // Ang models array ay sinusubukan sa order na ito kung mabigo ang isa
-    const models = [
-      'qwen/qwen2.5-vl-72b-instruct:free',      // Pangunahin - pinakamahusay na libreng vision model
-      'google/gemma-3-27b-it:free',             // Fallback 1 - vision + text
-      'nvidia/nemotron-nano-12b-v2-vl:free'     // Fallback 2 - document intelligence
-    ];
+    // I-set ang headers para sa streaming response
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
 
-    let lastError = null;
-    let streamStarted = false;
-
-    for (const modelId of models) {
-      try {
-        console.log(`[Imachui Gen AI] Trying model: ${modelId}`);
-        
-        const result = await streamText({
-          model: openrouter(modelId),
-          system: "You are Imachui Gen AI by Imachui. You can see images and read text. Reply in the language the user uses or requests, including Filipino/Tagalog and Cebuano. Be helpful, clear, and accurate. Describe images in detail if asked. Admit uncertainty when needed; do not invent facts or sources. For coding tasks, provide complete, working code with explanations.",
-          messages: messages,
-          temperature: 0.5,
-          maxTokens: 4000,
-          // Idagdag ang OpenRouter provider routing options
-          providerOptions: {
-            openrouter: {
-              // Payagan ang fallback sa ibang providers
-              allow_fallbacks: true,
-            }
-          }
-        });
-
-        // I-set ang headers para sa streaming
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache');
-
-        let hasData = false;
-        for await (const chunk of result.textStream) {
-          hasData = true;
-          streamStarted = true;
-          res.write(chunk);
-        }
-
-        if (!hasData) {
-          throw new Error(`Model ${modelId} returned empty stream.`);
-        }
-
-        res.end();
-        console.log(`[Imachui Gen AI] Success with model: ${modelId}`);
-        return;
-
-      } catch (error) {
-        console.error(`[Imachui Gen AI] ${modelId} error:`, String(error?.message || error).slice(0, 300));
-        lastError = error;
-        
-        // Kung nagsimula nang mag-stream, hindi na makakabalik ng JSON error
-        if (streamStarted) {
-          res.end();
-          return;
-        }
-        // Kung hindi pa, ituloy ang loop sa susunod na modelo
-      }
+    if (mode === 'chatgpt') {
+      const result = await streamText({ model: openai('gpt-4o-mini'), messages: incomingMessages });
+      for await (const chunk of result.textStream) res.write(chunk);
+      return res.end();
     }
 
-    // Kung lahat ng modelo ay nabigo
-    return res.status(502).json({
-      error: `Chat error: ${String(lastError?.message || "All vision models failed.").slice(0, 500)}`
+    if (mode === 'deepseek') {
+      const result = await streamText({ model: deepseek('deepseek-chat'), messages: incomingMessages });
+      for await (const chunk of result.textStream) res.write(chunk);
+      return res.end();
+    }
+
+    // --- COMBINE BOTH (ENSEMBLE) ---
+    console.log("Starting Ensemble Reasoning...");
+
+    // 1. Tanungin ang DALAWANG AI nang sabay (Parallel)
+    const [gptResult, dsResult] = await Promise.allSettled([
+      generateText({ 
+        model: openai('gpt-4o-mini'), 
+        system: "You are a helpful AI assistant. Answer accurately and concisely.",
+        messages: incomingMessages 
+      }),
+      generateText({ 
+        model: deepseek('deepseek-chat'), 
+        system: "You are a helpful AI assistant. Answer accurately and concisely.",
+        messages: incomingMessages 
+      })
+    ]);
+
+    const gptAnswer = gptResult.status === 'fulfilled' ? gptResult.value.text : "ChatGPT failed to respond.";
+    const dsAnswer = dsResult.status === 'fulfilled' ? dsResult.value.text : "DeepSeek failed to respond.";
+
+    console.log("Both AI responded. Starting Synthesis...");
+
+    // 2. Pag-isahin ang sagot gamit si ChatGPT bilang "Judge"
+    const synthesisPrompt = `
+      Ikaw ay isang ekspertong tagahusga (synthesizer). Pag-aralan ang dalawang sagot sa ibaba mula sa dalawang magkaibang AI.
+      Gawin mong isang pinagsama-samang, pinakamahusay, at kumpletong sagot ang mga ito.
+      Alisin ang mga paulit-ulit. Kung may kontradiksyon, piliin ang pinaka-tama at lohikal.
+      Huwag banggitin na may dalawang AI na sumagot, diretso lang sa pinal na sagot.
+
+      --- SAGOT MULA SA CHATGPT ---
+      ${gptAnswer}
+
+      --- SAGOT MULA SA DEEPSEEK ---
+      ${dsAnswer}
+
+      --- PINAGSAMANG SAGOT ---
+    `;
+
+    const finalResult = streamText({
+      model: openai('gpt-4o-mini'), // Mabilis na model para sa synthesis
+      messages: [{ role: 'user', content: synthesisPrompt }],
+      temperature: 0.3, // Mas factual at diretso
     });
+
+    for await (const chunk of finalResult.textStream) {
+      res.write(chunk);
+    }
+    return res.end();
 
   } catch (error) {
     console.error("Global chat error:", String(error?.message || error).slice(0, 500));
     if (!res.headersSent) {
-      return res.status(502).json({
-        error: `Chat error: ${String(error?.message || error).slice(0, 500)}`
-      });
+      return res.status(502).json({ error: `Chat error: ${String(error?.message || error).slice(0, 300)}` });
     } else {
       res.end();
     }
