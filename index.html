@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090b12">
 <title>Imachui Gen AI — King AI</title>
-<!-- PDF.js Library para makabasa ng PDF sa browser -->
 <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
 :root{color-scheme:dark;--bg:#090b12;--panel:#10131d;--panel2:#171b28;--border:#292f42;--text:#f3f5fb;--muted:#98a2b7;--a:#8b7cff;--b:#42d9c8;--danger:#ff8d9a}
@@ -161,7 +160,7 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
 
 <div class="composer-wrap">
 <form class="composer" id="composer">
-  <textarea id="prompt" rows="2" placeholder="Message King AI..." aria-label="Message King AI" maxlength="12000"></textarea>
+  <textarea id="prompt" rows="2" placeholder="Message King AI... (Pwede mag-paste ng larawan dito)" aria-label="Message King AI" maxlength="12000"></textarea>
   <div id="attachments" class="attachment-list"></div>
   <div class="composer-bottom">
     <div class="tools">
@@ -185,7 +184,6 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
 <script>
 'use strict';
 
-// Initialize PDF.js worker
 if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 }
@@ -194,7 +192,7 @@ const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-const STORAGE_KEY = 'imachui_gen_ai_chats_v4'; // Binago ang version para sa bagong format
+const STORAGE_KEY = 'imachui_gen_ai_chats_v4';
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
@@ -211,7 +209,7 @@ const voiceStatus = $('voiceStatus');
 
 let chats = loadChats();
 let activeChatId = null;
-let currentMessages = []; // Array of {role, content}
+let currentMessages = [];
 let busy = false;
 let selectedFiles = [];
 let recognition = null;
@@ -295,17 +293,15 @@ function openChat(chatId) {
   if (!chat) return;
 
   activeChatId = chat.id;
-  // I-load ang messages (kayang i-render ang lumang string format at bagong array format)
   currentMessages = (chat.messages || []).map(message => ({
     role: message.role,
-    content: message.content // Pwedeng string o array
+    content: message.content
   }));
 
   messagesElement.replaceChildren();
   welcomeElement.hidden = currentMessages.length > 0;
   
   currentMessages.forEach(message => {
-    // Kung array (multimodal), hanapin ang text part para i-display
     let displayContent = message.content;
     let imageUrls = [];
     if (Array.isArray(message.content)) {
@@ -397,7 +393,6 @@ function addMessage(role, content, options = {}) {
   if (content) text.textContent = content;
   body.append(text);
 
-  // I-render ang mga attached images
   if (options.images && options.images.length) {
     options.images.forEach(url => {
       const img = document.createElement('img');
@@ -627,12 +622,30 @@ $('attachButton').addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', () => {
   selectedFiles.push(...Array.from(fileInput.files || []));
-  if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3); // Limitahan sa 3 files
+  if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
   renderAttachments();
   fileInput.value = '';
 });
 
-// BAGONG extractFile function na may PDF at Image support
+// BAGONG DIRECT PASTE FEATURE (Ctrl+V)
+promptInput.addEventListener('paste', (event) => {
+  const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+  for (const item of items) {
+    if (item.type.indexOf('image') === 0) {
+      const blob = item.getAsFile();
+      if (blob) {
+        // Gumawa ng pekeng File object para magkaroon ng pangalan
+        const file = new File([blob], `pasted_image_${Date.now()}.png`, { type: blob.type });
+        selectedFiles.push(file);
+        if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
+        renderAttachments();
+        event.preventDefault(); // Pigilan ang pag-paste ng image bilang text
+        setVoice('Image pasted! Click Send to analyze.');
+      }
+    }
+  }
+});
+
 async function extractFile(file) {
   const name = file.name.toLowerCase();
 
@@ -640,17 +653,15 @@ async function extractFile(file) {
     throw new Error(file.name + ' is over 10 MB. Max size is 10MB.');
   }
 
-  // IMAGE HANDLING
   if (file.type.startsWith('image/')) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve({ type: 'image', data: reader.result }); // Base64 string
+      reader.onload = () => resolve({ type: 'image', data: reader.result });
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   }
 
-  // PDF HANDLING
   if (name.endsWith('.pdf')) {
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -669,7 +680,6 @@ async function extractFile(file) {
     }
   }
 
-  // TEXT / OTHER HANDLING
   return { type: 'text', data: await file.text() };
 }
 
@@ -683,12 +693,9 @@ async function sendMessage(raw) {
   promptInput.disabled = true;
 
   const fileSnapshot = [...selectedFiles];
-  
-  // Buuin ang content array para sa API
   const messageContent = [];
   if (text) messageContent.push({ type: 'text', text: text });
   
-  // I-process ang mga files
   for (const file of fileSnapshot) {
     try {
       const extracted = await extractFile(file);
@@ -712,14 +719,12 @@ async function sendMessage(raw) {
     }
   }
 
-  // Para sa display, kunin ang text at images
   const displayText = text || 'Please review my attachment(s).';
   const imageUrls = messageContent.filter(c => c.type === 'image_url').map(c => c.image_url.url);
   const fileNames = fileSnapshot.map(f => ({ name: f.name }));
 
   addMessage('user', displayText, { images: imageUrls, files: fileNames });
 
-  // I-save sa kasaysayan
   currentMessages.push({ role: 'user', content: messageContent });
 
   const chat = activeChat();
@@ -752,8 +757,8 @@ async function sendMessage(raw) {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        message: text, // Fallback string
-        messages: currentMessages.slice(-50) // Limitahan sa 50 messages para sa performance
+        message: text,
+        messages: currentMessages.slice(-50)
       })
     });
 
@@ -779,7 +784,6 @@ async function sendMessage(raw) {
       throw new Error('The AI returned an empty answer.');
     }
 
-    // Idagdag ang read aloud button
     const readRow = document.createElement('div');
     readRow.className = 'read-row';
     const read = document.createElement('button');
@@ -801,7 +805,6 @@ async function sendMessage(raw) {
     readRow.append(read, providerMini);
     bodyElement.append(readRow);
 
-    // I-save ang sagot
     currentMessages.push({role: 'assistant', content: fullAnswer});
     const live = activeChat();
     if (live) {
