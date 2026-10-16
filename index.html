@@ -71,11 +71,6 @@ button,textarea,input{font:inherit}button{cursor:pointer}button:disabled{opacity
 .tool{border:1px solid var(--border);border-radius:9px;padding:8px 10px;background:rgba(23,27,40,.8);backdrop-filter:blur(18px);color:var(--text);font-size:12px}
 .send{border:0;border-radius:11px;padding:11px 17px;color:#080b12;background:linear-gradient(135deg,#b0a5ff,#55e2d2);font-weight:850}
 .send:hover{box-shadow:0 0 18px #42d9c855}
-/* MODEL SELECTOR STYLES */
-.model-selector{display:flex;gap:8px;margin-top:10px;margin-bottom:5px;justify-content:center}
-.model-btn{flex:1;max-width:200px;padding:10px;border-radius:12px;border:1px solid var(--border);background:rgba(16,19,29,.7);color:var(--muted);font-size:12px;text-align:center;transition:all .3s}
-.model-btn.active{border-color:var(--b);color:var(--b);background:rgba(66,217,200,.05);box-shadow:0 0 15px rgba(66,217,200,.15)}
-.model-btn strong{display:block;font-size:13px;margin-bottom:2px}
 body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;white-space:nowrap;font-size:clamp(48px,10vw,150px);font-weight:950;letter-spacing:.08em;color:rgba(165,175,220,.035);transform:rotate(-18deg)}
 @media(max-width:760px){
 .app{grid-template-columns:1fr}
@@ -83,8 +78,6 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
 .sidebar.open{display:flex}
 .menu{display:block}
 .composer-wrap{padding:8px 8px max(8px,env(safe-area-inset-bottom))}
-.model-selector{flex-direction:column;gap:5px}
-.model-btn{max-width:100%}
 }
 </style>
 </head>
@@ -107,14 +100,14 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
 <header class="topbar">
   <button class="menu" id="menuButton" type="button" aria-label="Open menu">☰</button>
   <div class="top-title">IMACHUI GEN AI <span class="gradient">/ KING AI</span></div>
-  <div class="status"><span class="dot"></span>Multi-Model Workspace</div>
+  <div class="status"><span class="dot"></span>DeepSeek Engine</div>
 </header>
 
 <section class="chat" id="chat">
   <div class="welcome" id="welcome">
     <div class="hero">✦</div>
     <h1>Welcome to <span class="gradient">Imachui Gen AI</span></h1>
-    <p>Ask questions, attach images, and choose your AI. <b>OpenRouter</b> for speed, <b>DeepSeek</b> for logic, or <b>Combine Both</b> for the best answer.</p>
+    <p>Ask questions, attach images, or paste pictures directly. Powered by <b>DeepSeek</b> for logic, code, and general knowledge.</p>
   </div>
   <div id="messages" aria-live="polite"></div>
 </section>
@@ -123,13 +116,6 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
 <form class="composer" id="composer">
   <textarea id="prompt" rows="2" placeholder="Message King AI... (Pwede mag-paste ng larawan dito)" aria-label="Message King AI" maxlength="12000"></textarea>
   
-  <!-- MODEL SELECTOR: OPENROUTER, DEEPSEEK, COMBINE -->
-  <div class="model-selector" id="modelSelector">
-    <button type="button" class="model-btn active" data-mode="openrouter"><strong>OpenRouter</strong>Fast & Free</button>
-    <button type="button" class="model-btn" data-mode="combine"><strong>Combine Both</strong>Best Quality</button>
-    <button type="button" class="model-btn" data-mode="deepseek"><strong>DeepSeek</strong>Logic & Code</button>
-  </div>
-
   <div id="attachments" class="attachment-list"></div>
   <div class="composer-bottom">
     <div class="tools">
@@ -155,7 +141,7 @@ const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-const STORAGE_KEY = 'imachui_gen_ai_chats_v8';
+const STORAGE_KEY = 'imachui_gen_ai_chats_v9';
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
@@ -169,7 +155,6 @@ const fileInput = $('fileInput');
 const attachmentsElement = $('attachments');
 const micButton = $('micButton');
 const voiceStatus = $('voiceStatus');
-const modelSelector = $('modelSelector');
 
 let chats = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 let activeChatId = null;
@@ -178,16 +163,6 @@ let busy = false;
 let selectedFiles = [];
 let recognition = null;
 let listening = false;
-let selectedMode = 'openrouter'; // Default mode
-
-// MODEL SELECTOR LOGIC
-modelSelector.addEventListener('click', (e) => {
-  const btn = e.target.closest('.model-btn');
-  if (!btn) return;
-  document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  selectedMode = btn.dataset.mode;
-});
 
 function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
@@ -266,8 +241,7 @@ function addMessage(role, content, options = {}) {
   if (role === 'assistant') {
     const provider = document.createElement('div');
     provider.className = 'provider-line';
-    const providerName = selectedMode === 'openrouter' ? 'OpenRouter' : selectedMode === 'deepseek' ? 'DeepSeek' : 'OpenRouter + DeepSeek';
-    provider.textContent = 'Provider: ' + providerName;
+    provider.textContent = 'Provider: DeepSeek';
     body.append(provider);
   }
 
@@ -389,8 +363,7 @@ async function sendMessage(raw) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         message: text,
-        messages: currentMessages.slice(-20),
-        mode: selectedMode // IPAPADALA ANG NAPILING MODE (openrouter, deepseek, combine)
+        messages: currentMessages.slice(-20)
       })
     });
 
