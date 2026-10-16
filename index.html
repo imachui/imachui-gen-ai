@@ -114,7 +114,7 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
   <div class="welcome" id="welcome">
     <div class="hero">✦</div>
     <h1>Welcome to <span class="gradient">Imachui Gen AI</span></h1>
-    <p>Ask questions, attach images, and choose your AI. <b>ChatGPT</b> for general tasks, <b>DeepSeek</b> for logic and code.</p>
+    <p>Ask questions, attach images, and choose your AI. <b>Groq</b> for speed, <b>DeepSeek</b> for logic, or <b>Combine Both</b> for the best answer.</p>
   </div>
   <div id="messages" aria-live="polite"></div>
 </section>
@@ -123,9 +123,10 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
 <form class="composer" id="composer">
   <textarea id="prompt" rows="2" placeholder="Message King AI... (Pwede mag-paste ng larawan dito)" aria-label="Message King AI" maxlength="12000"></textarea>
   
-  <!-- SIMPLIFIED MODEL SELECTOR: CHATGPT OR DEEPSEEK ONLY -->
+  <!-- MODEL SELECTOR: GROQ, DEEPSEEK, COMBINE -->
   <div class="model-selector" id="modelSelector">
-    <button type="button" class="model-btn active" data-mode="chatgpt"><strong>ChatGPT</strong>Fast & Creative</button>
+    <button type="button" class="model-btn active" data-mode="groq"><strong>Groq</strong>Fast & Free</button>
+    <button type="button" class="model-btn" data-mode="combine"><strong>Combine Both</strong>Best Quality</button>
     <button type="button" class="model-btn" data-mode="deepseek"><strong>DeepSeek</strong>Logic & Code</button>
   </div>
 
@@ -154,7 +155,7 @@ const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-const STORAGE_KEY = 'imachui_gen_ai_chats_v7';
+const STORAGE_KEY = 'imachui_gen_ai_chats_v8';
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
@@ -177,7 +178,7 @@ let busy = false;
 let selectedFiles = [];
 let recognition = null;
 let listening = false;
-let selectedMode = 'chatgpt'; // Default mode
+let selectedMode = 'groq'; // Default mode
 
 // MODEL SELECTOR LOGIC
 modelSelector.addEventListener('click', (e) => {
@@ -265,7 +266,8 @@ function addMessage(role, content, options = {}) {
   if (role === 'assistant') {
     const provider = document.createElement('div');
     provider.className = 'provider-line';
-    provider.textContent = 'Provider: ' + (selectedMode === 'chatgpt' ? 'ChatGPT' : 'DeepSeek');
+    const providerName = selectedMode === 'groq' ? 'Groq' : selectedMode === 'deepseek' ? 'DeepSeek' : 'Groq + DeepSeek';
+    provider.textContent = 'Provider: ' + providerName;
     body.append(provider);
   }
 
@@ -388,7 +390,7 @@ async function sendMessage(raw) {
       body: JSON.stringify({
         message: text,
         messages: currentMessages.slice(-20),
-        mode: selectedMode // IPAPADALA ANG NAPILING MODE (chatgpt o deepseek)
+        mode: selectedMode // IPAPADALA ANG NAPILING MODE (groq, deepseek, combine)
       })
     });
 
