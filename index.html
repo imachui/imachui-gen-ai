@@ -86,7 +86,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .message-role { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: #c9c4ff; text-transform: uppercase; letter-spacing: 0.5px; }
 .message.user .message-role { color: #8fe9dd; }
 .message-text { white-space: pre-wrap; overflow-wrap: anywhere; }
-.message-text a { color: var(--accent2); text-decoration: underline; }
+.message-text a { color: var(--accent2); text-decoration: underline; font-weight: 600; }
+.message-text a:hover { color: #fff; }
 .message-text strong { color: #fff; font-weight: 700; }
 .provider-line { font-size: 10px; color: #8f9bb5; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
 .provider-line::before { content: "●"; color: var(--accent2); font-size: 8px; }
@@ -138,7 +139,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   </div>
   <button class="new-chat" id="newChat" type="button">＋ New Conversation</button>
   <div class="side-label">Workspace</div>
-  <button class="nav-button" id="chatNav" type="button">✦ Ask Imachui gen ai</button>
+  <button class="nav-button" id="chatNav" type="button">✦ Ask Imachui Gen Ai</button>
   <div class="side-label" style="margin-top: 10px;">Recent Conversations</div>
   <div class="history" id="history"></div>
   <div class="sidebar-foot">Imachui Gen AI by Imachui<br>One workspace for conversations.</div>
@@ -191,7 +192,7 @@ const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-const STORAGE_KEY = 'imachui_gen_ai_chats_v15';
+const STORAGE_KEY = 'imachui_gen_ai_chats_v16';
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
@@ -215,13 +216,26 @@ let selectedFiles = [];
 let recognition = null;
 let listening = false;
 
-// --- MARKDOWN PARSER (BOLD & LINKS) ---
+// --- MARKDOWN PARSER (BOLD & CLICKABLE LINKS) ---
 function formatMessage(text) {
   let formatted = text;
+  
   // Bold: **text** -> <strong>text</strong>
   formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  // Links: https://... -> <a href="..." target="_blank">...</a>
-  formatted = formatted.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  
+  // Markdown links: [text](url) -> <a href="url" target="_blank">text</a>
+  formatted = formatted.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  
+  // Raw links: Match http://, https://, and www.
+  // Uses a callback to add https:// if missing and target="_blank"
+  formatted = formatted.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<]+)/g, function(match, prefix, url) {
+    let fullUrl = url;
+    if (!/^https?:\/\//i.test(url)) {
+      fullUrl = 'https://' + url;
+    }
+    return `${prefix}<a href="${fullUrl}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+  });
+
   return formatted;
 }
 
@@ -244,7 +258,6 @@ function speakText(text, buttonElement) {
   if (!synth) return;
   synth.cancel();
 
-  // Remove HTML tags for speech
   const cleanText = text
     .replace(/<[^>]*>/g, ' ')
     .replace(/```[\s\S]*?```/g, ' Code block omitted. ')
@@ -422,7 +435,7 @@ function addMessage(role, content, options = {}) {
 
   const text = document.createElement('div');
   text.className = 'message-text';
-  if (content) text.innerHTML = formatMessage(content); // Use innerHTML for markdown
+  if (content) text.innerHTML = formatMessage(content);
   body.append(text);
 
   if (options.images?.length) {
@@ -558,7 +571,6 @@ async function sendMessage(raw) {
       body: JSON.stringify({
         message: text,
         messages: currentMessages.slice(-20)
-        // No mode needed, backend always does Combine All
       })
     });
 
