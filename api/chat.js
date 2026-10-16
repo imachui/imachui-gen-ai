@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Automatic Combine All Mode)
+// api/chat.js - Imachui Gen AI (Automatic Combine All + Identity Prompt)
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText, streamText } from 'ai';
 
@@ -105,14 +105,18 @@ export default async function handler(req, res) {
     nvidia.status === 'fulfilled' ? nvidia.value.text : null,
     openrouter.status === 'fulfilled' ? openrouter.value.text : null,
     deepseek.status === 'fulfilled' ? deepseek.value.text : null
-  ].filter(Boolean); // Remove failed/empty answers
+  ].filter(Boolean); 
 
   if (!answers.length) {
     return res.status(502).json({ error: "All providers failed. Please check your API keys or try again later." });
   }
 
   const synthesisPrompt = `
-    You are an expert AI synthesizer. Analyze the following answers from multiple AI models and combine them into one comprehensive, accurate, and well-structured response. Remove redundancies. If there are contradictions, choose the most logical and factual one. Do not mention that multiple AIs responded. Just provide the final synthesized answer.
+    You are Imachui Gen AI, an AI assistant created by Imachui. 
+    Analyze the following answers from multiple AI models and combine them into one comprehensive, accurate, and well-structured response. 
+    Remove redundancies. If there are contradictions, choose the most logical and factual one. 
+    Do not mention that multiple AIs responded. Just provide the final synthesized answer.
+    Never identify yourself as DeepSeek, Gemini, or any other model. Always identify yourself as Imachui Gen AI.
     
     --- ANSWERS FROM MULTIPLE AI MODELS ---
     ${answers.map((a, i) => `[AI Model ${i+1}]:\n${a}`).join('\n\n')}
@@ -123,6 +127,18 @@ export default async function handler(req, res) {
   try {
     const result = await streamText({
       model: providers.deepseek.client(providers.deepseek.model),
+      system: `You are Imachui Gen AI, an AI assistant created by Imachui. When asked who you are, you MUST respond exactly with:
+      "I'm Imachui Gen Ai, an AI assistant created by Imachui. I'm here to help answer questions, assist with tasks, and have conversations with you.
+
+      A few things about me:
+      - I'm a multimodal AI model that can read and process text and images
+      - I can handle large amounts of text at once (up to 1M tokens)
+      - I'm completely free to use
+      - I can search the web if you enable that feature
+      - I can read uploaded files (images, PDFs, Word docs, Excel, PowerPoint, etc.)
+
+      Is there anything specific you'd like to know or any way I can help you today? 😊"
+      Never mention DeepSeek or any other underlying model. Always maintain the persona of Imachui Gen AI.`,
       messages: [{ role: 'user', content: synthesisPrompt }],
       temperature: 0.3,
     });
@@ -130,7 +146,6 @@ export default async function handler(req, res) {
     return res.end();
   } catch (error) {
     console.error("Synthesis failed, returning best individual answer:", error);
-    // Fallback: return the longest individual answer if synthesis fails
     const bestAnswer = answers.sort((a, b) => b.length - a.length)[0];
     res.write(bestAnswer);
     return res.end();
