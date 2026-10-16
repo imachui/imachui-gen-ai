@@ -373,12 +373,11 @@ function addMessage(role, content, options = {}) {
     body.append(provider);
   }
 
-  if (content) {
-    const text = document.createElement('div');
-    text.className = 'message-text';
-    text.textContent = content;
-    body.append(text);
-  }
+  // Palaging gumawa ng message-text div para paglagyan ng streaming content
+  const text = document.createElement('div');
+  text.className = 'message-text';
+  if (content) text.textContent = content;
+  body.append(text);
 
   if (options.files?.length) {
     options.files.forEach(file => {
@@ -389,6 +388,7 @@ function addMessage(role, content, options = {}) {
     });
   }
 
+  // Ang read row ay idadagdag natin pagkatapos ng streaming
   if (role === 'assistant' && content) {
     const readRow = document.createElement('div');
     readRow.className = 'read-row';
@@ -403,7 +403,7 @@ function addMessage(role, content, options = {}) {
         read.textContent = '🔊 Read aloud';
         setVoice('Reading stopped.');
       } else {
-        speakText(content, read);
+        speakText(text.textContent, read);
       }
     });
 
@@ -725,7 +725,11 @@ async function sendMessage(raw) {
   selectedFiles = [];
   renderAttachments();
 
-  const loading = addLoading();
+  // Gumawa ng assistant message element kung saan mag-a-appear ang text
+  const assistantMessageElement = addMessage('assistant', '');
+  const textElement = assistantMessageElement.querySelector('.message-text');
+  const bodyElement = assistantMessageElement.querySelector('.message-content');
+  textElement.textContent = ''; // Siguraduhing walang laman sa simula
 
   try {
     const response = await fetch(API_URL, {
@@ -733,30 +737,72 @@ async function sendMessage(raw) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         message: combined,
-        messages: currentMessages.slice(-16)
+        messages: currentMessages.slice(-100) // Pinalaki ang context window
       })
     });
 
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Chat API error (' + response.status + ').');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Chat API error (' + response.status + ').');
+    }
 
-    const answer = data.answer || data.response || data.message || data.choices?.[0]?.message?.content;
-    if (typeof answer !== 'string' || !answer.trim()) {
+    // Basahin ang streaming response
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullAnswer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value, { stream: true });
+      fullAnswer += chunk;
+      textElement.textContent = fullAnswer; // I-update ang UI sa real-time
+      scrollBottom();
+    }
+
+    // Kung walang laman ang sagot, mag-error
+    if (!fullAnswer.trim()) {
       throw new Error('The AI returned an empty answer.');
     }
 
-    loading.remove();
-    addMessage('assistant', answer);
-    currentMessages.push({role: 'assistant', content: answer});
+    // Idagdag ang read aloud button pagkatapos ng streaming
+    const readRow = document.createElement('div');
+    readRow.className = 'read-row';
 
+    const read = document.createElement('button');
+    read.className = 'read-button';
+    read.type = 'button';
+    read.textContent = '🔊 Read aloud';
+    read.addEventListener('click', () => {
+      if (window.speechSynthesis?.speaking) {
+        window.speechSynthesis.cancel();
+        read.textContent = '🔊 Read aloud';
+        setVoice('Reading stopped.');
+      } else {
+        speakText(textElement.textContent, read);
+      }
+    });
+
+    const providerMini = document.createElement('span');
+    providerMini.className = 'provider-line';
+    providerMini.textContent = 'Provider: Imachui Gen AI';
+
+    readRow.append(read, providerMini);
+    bodyElement.append(readRow);
+
+    // I-save ang kumpletong sagot sa kasaysayan
+    currentMessages.push({role: 'assistant', content: fullAnswer});
     const live = activeChat();
     if (live) {
-      live.messages.push({role: 'assistant', content: answer});
+      live.messages.push({role: 'assistant', content: fullAnswer});
       live.updated = Date.now();
       saveChats();
     }
+
   } catch (error) {
-    loading.remove();
+    // Alisin ang assistant message element kung nabigo
+    assistantMessageElement.remove();
     addMessage('assistant', 'Chat error: ' + (error.message || 'Please try again.'));
   } finally {
     busy = false;
