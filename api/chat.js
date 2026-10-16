@@ -1,7 +1,4 @@
-// api/chat.js - Imachui Gen AI by Imachui (Multimodal Upgrade)
-// Powered by OpenRouter (Free Vision-Language Model)
-// Add OPENROUTER_API_KEY in Vercel Environment Variables.
-
+// api/chat.js - Imachui Gen AI by Imachui (Multimodal)
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
@@ -24,17 +21,16 @@ function setCors(req, res) {
 function normalizeMessages(body) {
   const incoming = Array.isArray(body.messages) ? body.messages : [];
   
-  // Tumatanggap na ito ng string (text) o array (multimodal: text + images)
   const messages = incoming
     .filter(m =>
       m &&
       ["user", "assistant"].includes(m.role) &&
       (typeof m.content === "string" || Array.isArray(m.content))
     )
-    .slice(-100) 
+    .slice(-50) 
     .map(m => ({
       role: m.role,
-      content: m.content // Pwedeng string o array of objects
+      content: m.content 
     }));
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
@@ -43,7 +39,7 @@ function normalizeMessages(body) {
     if (!last || last.role !== "user" || last.content !== message) {
       messages.push({
         role: "user",
-        content: message // Plain text
+        content: message 
       });
     }
   }
