@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090b12">
 <title>Imachui Gen AI — King AI</title>
+<!-- PDF.js Library para makabasa ng PDF sa browser -->
+<script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
 :root{color-scheme:dark;--bg:#090b12;--panel:#10131d;--panel2:#171b28;--border:#292f42;--text:#f3f5fb;--muted:#98a2b7;--a:#8b7cff;--b:#42d9c8;--danger:#ff8d9a}
 *{box-sizing:border-box}
@@ -60,6 +62,7 @@ button,textarea,input{font:inherit}button{cursor:pointer}button:disabled{opacity
 .read-button:hover{border-color:var(--a);box-shadow:0 0 10px #8174ff25}
 .attachment-list{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
 .attachment-chip{font-size:11px;color:#c9d1e6;border:1px solid var(--border);border-radius:8px;padding:6px 8px}
+.attachment-img{max-width:100%;max-height:250px;border-radius:8px;margin-top:8px;border:1px solid var(--border)}
 .loading{display:flex;align-items:center;gap:9px;color:var(--muted)}
 .typing-label{display:flex;align-items:center;gap:4px;color:#c9c4ff;font-size:12px;font-weight:700}
 .typing-dots{display:inline-flex;gap:4px;align-items:center;margin-left:3px}
@@ -182,11 +185,16 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
 <script>
 'use strict';
 
+// Initialize PDF.js worker
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+}
+
 const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-const STORAGE_KEY = 'imachui_gen_ai_chats_v3';
+const STORAGE_KEY = 'imachui_gen_ai_chats_v4'; // Binago ang version para sa bagong format
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
@@ -203,7 +211,7 @@ const voiceStatus = $('voiceStatus');
 
 let chats = loadChats();
 let activeChatId = null;
-let currentMessages = [];
+let currentMessages = []; // Array of {role, content}
 let busy = false;
 let selectedFiles = [];
 let recognition = null;
@@ -287,14 +295,27 @@ function openChat(chatId) {
   if (!chat) return;
 
   activeChatId = chat.id;
+  // I-load ang messages (kayang i-render ang lumang string format at bagong array format)
   currentMessages = (chat.messages || []).map(message => ({
     role: message.role,
-    content: message.content
+    content: message.content // Pwedeng string o array
   }));
 
   messagesElement.replaceChildren();
   welcomeElement.hidden = currentMessages.length > 0;
-  currentMessages.forEach(message => addMessage(message.role, message.content));
+  
+  currentMessages.forEach(message => {
+    // Kung array (multimodal), hanapin ang text part para i-display
+    let displayContent = message.content;
+    let imageUrls = [];
+    if (Array.isArray(message.content)) {
+      const textPart = message.content.find(c => c.type === 'text');
+      displayContent = textPart ? textPart.text : '';
+      imageUrls = message.content.filter(c => c.type === 'image_url').map(c => c.image_url.url);
+    }
+    addMessage(message.role, displayContent, { images: imageUrls });
+  });
+  
   renderHistory();
   sidebar.classList.remove('open');
   scrollBottom();
@@ -328,9 +349,7 @@ $('clearAll').addEventListener('click', () => {
     alert('No conversations to clear.');
     return;
   }
-
   if (!confirm('Delete ALL conversations? This cannot be undone.')) return;
-
   chats = [];
   activeChatId = null;
   currentMessages = [];
@@ -373,11 +392,21 @@ function addMessage(role, content, options = {}) {
     body.append(provider);
   }
 
-  // Palaging gumawa ng message-text div para paglagyan ng streaming content
   const text = document.createElement('div');
   text.className = 'message-text';
   if (content) text.textContent = content;
   body.append(text);
+
+  // I-render ang mga attached images
+  if (options.images && options.images.length) {
+    options.images.forEach(url => {
+      const img = document.createElement('img');
+      img.src = url;
+      img.className = 'attachment-img';
+      img.alt = 'Attached image';
+      body.append(img);
+    });
+  }
 
   if (options.files?.length) {
     options.files.forEach(file => {
@@ -388,7 +417,6 @@ function addMessage(role, content, options = {}) {
     });
   }
 
-  // Ang read row ay idadagdag natin pagkatapos ng streaming
   if (role === 'assistant' && content) {
     const readRow = document.createElement('div');
     readRow.className = 'read-row';
@@ -421,45 +449,6 @@ function addMessage(role, content, options = {}) {
   return article;
 }
 
-function addLoading() {
-  const article = document.createElement('article');
-  article.className = 'message assistant typing-message';
-
-  const avatar = document.createElement('div');
-  avatar.className = 'avatar';
-  avatar.textContent = 'G';
-
-  const body = document.createElement('div');
-  body.className = 'message-content';
-
-  const role = document.createElement('div');
-  role.className = 'message-role';
-  role.textContent = 'King AI';
-
-  const provider = document.createElement('div');
-  provider.className = 'provider-line';
-  provider.textContent = 'Provider: Imachui Gen AI';
-
-  const typing = document.createElement('div');
-  typing.className = 'typing-label';
-  typing.append(document.createTextNode('Typing'));
-
-  const dots = document.createElement('span');
-  dots.className = 'typing-dots';
-
-  for (let i = 0; i < 3; i++) {
-    const dot = document.createElement('span');
-    dots.append(dot);
-  }
-
-  typing.append(dots);
-  body.append(role, provider, typing);
-  article.append(avatar, body);
-  messagesElement.append(article);
-  scrollBottom();
-  return article;
-}
-
 function setVoice(text) {
   voiceStatus.textContent = text;
 }
@@ -473,18 +462,15 @@ function stopListening() {
 
 function startListening() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
   if (!SpeechRecognition) {
     setVoice('Voice recognition unavailable. Try Chrome or Edge.');
     return;
   }
-
   if (listening) {
     stopListening();
     setVoice('Microphone stopped.');
     return;
   }
-
   try {
     recognition = new SpeechRecognition();
     recognition.lang = 'fil-PH';
@@ -502,13 +488,11 @@ function startListening() {
     recognition.onresult = event => {
       let finalText = '';
       let interimText = '';
-
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0]?.transcript || '';
         if (event.results[i].isFinal) finalText += transcript;
         else interimText += transcript;
       }
-
       if (finalText.trim()) {
         promptInput.value += (promptInput.value.trim() ? ' ' : '') + finalText.trim();
         promptInput.focus();
@@ -520,10 +504,10 @@ function startListening() {
 
     recognition.onerror = event => {
       const errors = {
-        'not-allowed': 'Microphone permission denied. Allow microphone access.',
+        'not-allowed': 'Microphone permission denied.',
         'audio-capture': 'No microphone detected.',
         'no-speech': 'No speech detected. Try again.',
-        'network': 'Browser speech service network error. Try Chrome or Edge.'
+        'network': 'Browser speech service network error.'
       };
       setVoice(errors[event.error] || ('Voice error: ' + event.error));
     };
@@ -537,7 +521,7 @@ function startListening() {
 
     recognition.start();
   } catch {
-    setVoice('Could not start microphone. Check browser permissions.');
+    setVoice('Could not start microphone.');
   }
 }
 
@@ -558,16 +542,14 @@ function selectVoice() {
   const filipino = voices.filter(v => /^(fil|tl)(-|$)/i.test(v.lang || ''));
   const english = voices.filter(v => /^en(-|$)/i.test(v.lang || ''));
   const list = filipino.length ? filipino : english.length ? english : voices;
-
   return list.find(v => /female|woman|zira|samantha|aria|jenny|ava|susan|karen|tessa/i.test(v.name || '')) || list[0] || null;
 }
 
 function speakText(text, button) {
-  if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
-    setVoice('Read aloud is not supported in this browser.');
+  if (!('speechSynthesis' in window)) {
+    setVoice('Read aloud not supported.');
     return;
   }
-
   window.speechSynthesis.cancel();
   document.querySelectorAll('.read-button').forEach(item => {
     item.textContent = '🔊 Read aloud';
@@ -577,39 +559,38 @@ function speakText(text, button) {
   utterance.lang = 'fil-PH';
   utterance.rate = 0.92;
   utterance.pitch = 1.08;
-
   const voice = selectVoice();
   if (voice) {
     utterance.voice = voice;
     utterance.lang = voice.lang || 'fil-PH';
   }
-
   if (button) button.textContent = '■ Stop reading';
-
   utterance.onend = () => {
     if (button) button.textContent = button.id === 'readConversation' ? '🔊 Read conversation' : '🔊 Read aloud';
     setVoice('Voice ready.');
   };
-
   utterance.onerror = () => {
     if (button) button.textContent = button.id === 'readConversation' ? '🔊 Read conversation' : '🔊 Read aloud';
-    setVoice('Could not play voice. Check device speech settings.');
+    setVoice('Could not play voice.');
   };
-
   utterance.onstart = () => setVoice('Reading aloud…');
   window.speechSynthesis.speak(utterance);
 }
 
 function readConversation() {
-  const text = currentMessages.map(message =>
-    (message.role === 'user' ? 'You said: ' : 'King AI said: ') + message.content
-  ).join('. Next message. ');
+  const text = currentMessages.map(message => {
+    let content = message.content;
+    if (Array.isArray(content)) {
+      const textPart = content.find(c => c.type === 'text');
+      content = textPart ? textPart.text : '';
+    }
+    return (message.role === 'user' ? 'You said: ' : 'King AI said: ') + content;
+  }).join('. Next message. ');
 
   if (!text.trim()) {
     setVoice('There is no conversation to read yet.');
     return;
   }
-
   const button = $('readConversation');
   if (window.speechSynthesis?.speaking) {
     window.speechSynthesis.cancel();
@@ -624,23 +605,19 @@ $('readConversation').addEventListener('click', readConversation);
 
 function renderAttachments() {
   attachmentsElement.replaceChildren();
-
   selectedFiles.forEach((file, index) => {
     const chip = document.createElement('span');
     chip.className = 'attachment-chip';
     chip.append(document.createTextNode('📎 ' + file.name + ' '));
-
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.textContent = '×';
     remove.title = 'Remove ' + file.name;
     remove.style.cssText = 'border:0;background:transparent;color:#ffb0bd;margin-left:5px';
-
     remove.addEventListener('click', () => {
       selectedFiles.splice(index, 1);
       renderAttachments();
     });
-
     chip.append(remove);
     attachmentsElement.append(chip);
   });
@@ -650,27 +627,50 @@ $('attachButton').addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', () => {
   selectedFiles.push(...Array.from(fileInput.files || []));
-  if (selectedFiles.length > 5) selectedFiles = selectedFiles.slice(0, 5);
+  if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3); // Limitahan sa 3 files
   renderAttachments();
   fileInput.value = '';
 });
 
+// BAGONG extractFile function na may PDF at Image support
 async function extractFile(file) {
   const name = file.name.toLowerCase();
 
-  if (file.size > 2 * 1024 * 1024) {
-    throw new Error(file.name + ' is over 2 MB.');
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error(file.name + ' is over 10 MB. Max size is 10MB.');
   }
 
+  // IMAGE HANDLING
   if (file.type.startsWith('image/')) {
-    return '[Image attached: ' + file.name + '. This text-chat backend does not currently analyze image pixels.]';
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ type: 'image', data: reader.result }); // Base64 string
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
-  if (name.endsWith('.pdf') || name.endsWith('.docx')) {
-    return '[' + file.name + ' attached. Automatic PDF/DOCX text extraction is not enabled in this version.]';
+  // PDF HANDLING
+  if (name.endsWith('.pdf')) {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        fullText += `[Page ${i}]\n${pageText}\n\n`;
+      }
+      return { type: 'text', data: fullText.trim() };
+    } catch (err) {
+      console.error("PDF read error:", err);
+      throw new Error('Could not read PDF file: ' + file.name);
+    }
   }
 
-  return await file.text();
+  // TEXT / OTHER HANDLING
+  return { type: 'text', data: await file.text() };
 }
 
 async function sendMessage(raw) {
@@ -683,33 +683,50 @@ async function sendMessage(raw) {
   promptInput.disabled = true;
 
   const fileSnapshot = [...selectedFiles];
-  let combined = text;
-
-  try {
-    for (const file of fileSnapshot) {
+  
+  // Buuin ang content array para sa API
+  const messageContent = [];
+  if (text) messageContent.push({ type: 'text', text: text });
+  
+  // I-process ang mga files
+  for (const file of fileSnapshot) {
+    try {
       const extracted = await extractFile(file);
-      combined += '\n\n[Attachment: ' + file.name + ']\n' + extracted;
+      if (extracted.type === 'image') {
+        messageContent.push({ 
+          type: 'image_url', 
+          image_url: { url: extracted.data } 
+        });
+      } else {
+        messageContent.push({ 
+          type: 'text', 
+          text: `\n\n[Attachment: ${file.name}]\n${extracted.data}` 
+        });
+      }
+    } catch (error) {
+      addMessage('assistant', error.message);
+      busy = false;
+      sendButton.disabled = false;
+      promptInput.disabled = false;
+      return;
     }
-  } catch (error) {
-    addMessage('assistant', error.message);
-    busy = false;
-    sendButton.disabled = false;
-    promptInput.disabled = false;
-    return;
   }
 
-  addMessage('user', text || 'Please review my attachment(s).', {
-    files: fileSnapshot.map(file => ({name: file.name}))
-  });
+  // Para sa display, kunin ang text at images
+  const displayText = text || 'Please review my attachment(s).';
+  const imageUrls = messageContent.filter(c => c.type === 'image_url').map(c => c.image_url.url);
+  const fileNames = fileSnapshot.map(f => ({ name: f.name }));
 
-  currentMessages.push({role: 'user', content: combined});
+  addMessage('user', displayText, { images: imageUrls, files: fileNames });
+
+  // I-save sa kasaysayan
+  currentMessages.push({ role: 'user', content: messageContent });
 
   const chat = activeChat();
   if (chat) {
     chat.messages.push({
       role: 'user',
-      content: combined,
-      files: fileSnapshot.map(file => ({name: file.name}))
+      content: messageContent
     });
 
     if (chat.title === 'New conversation') {
@@ -725,19 +742,18 @@ async function sendMessage(raw) {
   selectedFiles = [];
   renderAttachments();
 
-  // Gumawa ng assistant message element kung saan mag-a-appear ang text
   const assistantMessageElement = addMessage('assistant', '');
   const textElement = assistantMessageElement.querySelector('.message-text');
   const bodyElement = assistantMessageElement.querySelector('.message-content');
-  textElement.textContent = ''; // Siguraduhing walang laman sa simula
+  textElement.textContent = '';
 
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        message: combined,
-        messages: currentMessages.slice(-100) // Pinalaki ang context window
+        message: text, // Fallback string
+        messages: currentMessages.slice(-50) // Limitahan sa 50 messages para sa performance
       })
     });
 
@@ -746,7 +762,6 @@ async function sendMessage(raw) {
       throw new Error(errorData.error || 'Chat API error (' + response.status + ').');
     }
 
-    // Basahin ang streaming response
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let fullAnswer = '';
@@ -754,22 +769,19 @@ async function sendMessage(raw) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      
       const chunk = decoder.decode(value, { stream: true });
       fullAnswer += chunk;
-      textElement.textContent = fullAnswer; // I-update ang UI sa real-time
+      textElement.textContent = fullAnswer;
       scrollBottom();
     }
 
-    // Kung walang laman ang sagot, mag-error
     if (!fullAnswer.trim()) {
       throw new Error('The AI returned an empty answer.');
     }
 
-    // Idagdag ang read aloud button pagkatapos ng streaming
+    // Idagdag ang read aloud button
     const readRow = document.createElement('div');
     readRow.className = 'read-row';
-
     const read = document.createElement('button');
     read.className = 'read-button';
     read.type = 'button';
@@ -783,15 +795,13 @@ async function sendMessage(raw) {
         speakText(textElement.textContent, read);
       }
     });
-
     const providerMini = document.createElement('span');
     providerMini.className = 'provider-line';
     providerMini.textContent = 'Provider: Imachui Gen AI';
-
     readRow.append(read, providerMini);
     bodyElement.append(readRow);
 
-    // I-save ang kumpletong sagot sa kasaysayan
+    // I-save ang sagot
     currentMessages.push({role: 'assistant', content: fullAnswer});
     const live = activeChat();
     if (live) {
@@ -801,7 +811,6 @@ async function sendMessage(raw) {
     }
 
   } catch (error) {
-    // Alisin ang assistant message element kung nabigo
     assistantMessageElement.remove();
     addMessage('assistant', 'Chat error: ' + (error.message || 'Please try again.'));
   } finally {
