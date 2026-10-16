@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#05070a">
-<title>Imachui Gen AI — King AI</title>
+<title>Imachui Gen AI — Global King</title>
 <style>
 :root {
   color-scheme: dark;
@@ -24,7 +24,7 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow: hidden;
 }
-button, textarea, input { font: inherit; }
+button, textarea, input, select { font: inherit; }
 button { cursor: pointer; transition: all 0.3s ease; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -39,8 +39,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .app { height: 100dvh; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
 .sidebar { height: 100dvh; padding: 24px 20px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid var(--glass-border); }
+.back-button { display: none; background: transparent; border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text); padding: 10px; text-align: left; font-size: 13px; }
+.back-button:hover { background: rgba(255,255,255,0.05); border-color: var(--accent); }
 .brand { display: flex; align-items: center; gap: 12px; padding-bottom: 15px; }
-/* GALAXY GLOWING LOGO */
 .brand-icon {
   width: 48px; height: 48px; border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #42d9c8, #8b7cff, #05070a);
@@ -109,7 +110,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .tool:hover { background: rgba(255,255,255,0.08); border-color: var(--accent); }
 .send { border: 0; border-radius: 12px; padding: 12px 24px; color: #05070a; background: linear-gradient(135deg, #b0a5ff, #55e2d2); font-weight: 850; font-size: 14px; }
 .send:hover { box-shadow: 0 0 20px rgba(85,226,210,0.4); transform: translateY(-2px); }
-/* SELECT DROPDOWN STYLES */
 .engine-select { padding: 10px 14px; border-radius: 12px; background: rgba(20, 25, 40, 0.8); border: 1px solid var(--glass-border); color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
 .engine-select option { background: #10131d; color: #fff; }
 .toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; }
@@ -118,6 +118,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .app { grid-template-columns: 1fr; }
   .sidebar { display: none; position: fixed; z-index: 50; width: 280px; height: 100dvh; background: var(--bg); }
   .sidebar.open { display: flex; }
+  .back-button { display: block; } /* Show Back button on mobile */
   .menu { display: block; }
   .composer-wrap { padding: 12px; }
   .composer { padding: 12px; }
@@ -129,13 +130,16 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 <body>
 <div class="app">
 <aside class="sidebar glass" id="sidebar">
+  <!-- BACK BUTTON FOR MOBILE -->
+  <button class="back-button" id="backButton" type="button">← Back to Chat</button>
+  
   <div class="brand">
     <div class="brand-icon">✦</div>
-    <div><div class="brand-name">IMACHUI GEN AI</div><div class="brand-sub">by Imachui · King AI</div></div>
+    <div><div class="brand-name">IMACHUI GEN AI</div><div class="brand-sub">by Imachui · Global King</div></div>
   </div>
   <button class="new-chat" id="newChat" type="button">＋ New Conversation</button>
   <div class="side-label">Workspace</div>
-  <button class="nav-button" id="chatNav" type="button">✦ Ask King AI</button>
+  <button class="nav-button" id="chatNav" type="button">✦ Ask Imachui gen ai</button>
   <div class="side-label" style="margin-top: 10px;">Recent Conversations</div>
   <div class="history" id="history"></div>
   <div class="sidebar-foot">Imachui Gen AI by Imachui<br>One workspace for conversations.</div>
@@ -144,7 +148,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 <main class="main">
 <header class="topbar glass">
   <button class="menu" id="menuButton" type="button" aria-label="Open menu">☰</button>
-  <div class="top-title">IMACHUI GEN AI <span class="gradient">/ KING AI</span></div>
+  <div class="top-title">IMACHUI GEN AI <span class="gradient">/ GLOBAL KING</span></div>
   <div class="status"><span class="dot"></span>Multi-Provider Engine</div>
 </header>
 
@@ -152,7 +156,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   <div class="welcome" id="welcome">
     <div class="brand-icon" style="margin: 0 auto 20px; width: 80px; height: 80px; font-size: 40px;">✦</div>
     <h1>Welcome to <span class="gradient">Imachui Gen AI</span></h1>
-    <p>Ask questions, attach images, and choose your AI engine. Combine all providers for the best answer, or pick a specific one.</p>
+    <p>Ask questions, attach images, and choose your AI engine. Pick a provider to get started!</p>
   </div>
   <div id="messages" aria-live="polite"></div>
 </section>
@@ -174,11 +178,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     </div>
     <div class="actions">
       <select class="engine-select" id="engineSelect">
-        <option value="combine" selected>🌟 Combine All (Best)</option>
+        <option value="deepseek" selected>🧠 DeepSeek (Logic & Code)</option>
         <option value="gemini">✨ Gemini (Multimodal)</option>
         <option value="nvidia">⚡ NVIDIA NIM (Fast)</option>
         <option value="openrouter">🌐 OpenRouter (Free)</option>
-        <option value="deepseek">🧠 DeepSeek (Logic & Code)</option>
       </select>
       <button class="send" id="sendButton" type="submit">Send ↑</button>
     </div>
@@ -195,7 +198,7 @@ const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-const STORAGE_KEY = 'imachui_gen_ai_chats_v13';
+const STORAGE_KEY = 'imachui_gen_ai_chats_v14';
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
@@ -210,6 +213,7 @@ const attachmentsElement = $('attachments');
 const micButton = $('micButton');
 const engineSelect = $('engineSelect');
 const autoReadToggle = $('autoReadToggle');
+const backButton = $('backButton');
 
 let chats = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 let activeChatId = null;
@@ -218,16 +222,28 @@ let busy = false;
 let selectedFiles = [];
 let recognition = null;
 let listening = false;
-let selectedMode = 'combine';
+let selectedMode = 'deepseek';
 
 // --- VOICE SYNTHESIS (AI Voice) ---
 const synth = window.speechSynthesis;
+let voices = [];
 
-function speakText(text) {
+function loadVoices() {
+  voices = synth.getVoices();
+  if (voices.length === 0) {
+    // If voices aren't loaded yet, try again shortly
+    setTimeout(loadVoices, 100);
+  }
+}
+if (synth.onvoiceschanged !== undefined) {
+  synth.onvoiceschanged = loadVoices;
+}
+loadVoices();
+
+function speakText(text, buttonElement) {
   if (!synth) return;
   synth.cancel(); // Stop any ongoing speech
 
-  // Clean markdown and special characters for better speech
   const cleanText = text
     .replace(/```[\s\S]*?```/g, ' Code block omitted. ')
     .replace(/`([^`]+)`/g, '$1')
@@ -238,15 +254,25 @@ function speakText(text) {
 
   if (!cleanText) return;
 
-  const utterance = new SpeechSynthesisUtterance(cleanText.slice(0, 12000)); // Limit length to prevent crash
+  const utterance = new SpeechSynthesisUtterance(cleanText.slice(0, 12000));
   utterance.lang = 'en-US';
   utterance.rate = 1.0;
   utterance.pitch = 1.0;
 
-  // Try to select a good voice (prefer English/Filipino female voices if available)
-  const voices = synth.getVoices();
+  // Select a voice
   const preferredVoice = voices.find(v => /en-(US|GB)|fil-PH/i.test(v.lang) && /female|zira|samantha|aria|jenny/i.test(v.name)) || voices.find(v => /en-(US|GB)|fil-PH/i.test(v.lang));
   if (preferredVoice) utterance.voice = preferredVoice;
+
+  utterance.onstart = () => {
+    if (buttonElement) buttonElement.textContent = '⏹️ Stop Reading';
+  };
+  utterance.onend = () => {
+    if (buttonElement) buttonElement.textContent = '🔊 Read Aloud';
+  };
+  utterance.onerror = () => {
+    if (buttonElement) buttonElement.textContent = '🔊 Read Aloud';
+    console.error("Voice synthesis error");
+  };
 
   synth.speak(utterance);
 }
@@ -255,18 +281,18 @@ function speakText(text) {
 function startListening() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    alert("Your browser does not support Speech Recognition. Try Chrome or Edge.");
+    alert("Your browser does not support Speech Recognition. Please use Chrome or Edge.");
     return;
   }
 
   if (listening) {
-    recognition.stop();
+    if (recognition) recognition.stop();
     return;
   }
 
   recognition = new SpeechRecognition();
-  recognition.lang = 'en-US'; // You can change this to 'fil-PH' if you want Tagalog input
-  recognition.continuous = false;
+  recognition.lang = 'en-US'; // Change to 'fil-PH' for Tagalog input if desired
+  recognition.continuous = true; // Keep listening until stopped
   recognition.interimResults = true;
 
   recognition.onstart = () => {
@@ -294,13 +320,28 @@ function startListening() {
     micButton.textContent = '🎙️ Mic';
     micButton.style.borderColor = '';
     micButton.style.color = '';
+    if (event.error === 'not-allowed') {
+      alert("Microphone access denied. Please allow microphone permissions in your browser settings.");
+    }
   };
 
   recognition.onend = () => {
-    listening = false;
-    micButton.textContent = '🎙️ Mic';
-    micButton.style.borderColor = '';
-    micButton.style.color = '';
+    // If it ends unexpectedly (e.g., due to silence), restart it if we are still in "listening" mode
+    if (listening) {
+      try {
+        recognition.start();
+      } catch (e) {
+        // If restart fails, reset the button
+        listening = false;
+        micButton.textContent = '🎙️ Mic';
+        micButton.style.borderColor = '';
+        micButton.style.color = '';
+      }
+    } else {
+      micButton.textContent = '🎙️ Mic';
+      micButton.style.borderColor = '';
+      micButton.style.color = '';
+    }
   };
 
   recognition.start();
@@ -383,14 +424,13 @@ function addMessage(role, content, options = {}) {
   
   const label = document.createElement('div');
   label.className = 'message-role';
-  label.textContent = role === 'user' ? 'You' : 'King AI';
+  label.textContent = role === 'user' ? 'You' : 'Imachui Gen AI';
   body.append(label);
 
   if (role === 'assistant') {
     const provider = document.createElement('div');
     provider.className = 'provider-line';
-    const providerName = selectedMode === 'combine' ? 'Combined AI Engines' : selectedMode.charAt(0).toUpperCase() + selectedMode.slice(1);
-    provider.textContent = 'Engine: ' + providerName;
+    provider.textContent = 'Imachui Gen AI : Global King';
     body.append(provider);
   }
 
@@ -405,6 +445,25 @@ function addMessage(role, content, options = {}) {
       img.src = url; img.className = 'attachment-img';
       body.append(img);
     });
+  }
+
+  if (role === 'assistant' && content) {
+    const readRow = document.createElement('div');
+    readRow.className = 'read-row';
+    const read = document.createElement('button');
+    read.className = 'read-button';
+    read.type = 'button';
+    read.textContent = '🔊 Read Aloud';
+    read.onclick = () => {
+      if (synth.speaking) {
+        synth.cancel();
+        read.textContent = '🔊 Read Aloud';
+      } else {
+        speakText(text.textContent, read);
+      }
+    };
+    readRow.append(read);
+    body.append(readRow);
   }
   
   article.append(avatar, body);
@@ -538,9 +597,27 @@ async function sendMessage(raw) {
 
     if (!fullAnswer.trim()) throw new Error('The AI returned an empty answer.');
 
+    // Add Read Aloud button after streaming completes
+    const readRow = document.createElement('div');
+    readRow.className = 'read-row';
+    const read = document.createElement('button');
+    read.className = 'read-button';
+    read.type = 'button';
+    read.textContent = '🔊 Read Aloud';
+    read.onclick = () => {
+      if (synth.speaking) {
+        synth.cancel();
+        read.textContent = '🔊 Read Aloud';
+      } else {
+        speakText(fullAnswer, read);
+      }
+    };
+    readRow.append(read);
+    assistantMsg.querySelector('.message-content').append(readRow);
+
     // AUTO-READ AI RESPONSE
     if (autoReadToggle.checked) {
-      speakText(fullAnswer);
+      speakText(fullAnswer, read);
     }
 
     currentMessages.push({role: 'assistant', content: fullAnswer});
@@ -557,6 +634,7 @@ composer.onsubmit = (e) => { e.preventDefault(); sendMessage(promptInput.value);
 promptInput.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); composer.requestSubmit(); } };
 $('newChat').onclick = createChat;
 $('menuButton').onclick = () => sidebar.classList.toggle('open');
+$('backButton').onclick = () => sidebar.classList.remove('open'); // Close sidebar on mobile
 $('clearAll').onclick = () => { if (confirm('Delete ALL conversations?')) { chats = []; activeChatId = null; createChat(); } };
 
 if (chats.length) { chats.sort((a, b) => (b.updated || 0) - (a.updated || 0)); openChat(chats[0].id); } else { createChat(); }
