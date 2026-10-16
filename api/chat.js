@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Groq + DeepSeek Ensemble)
+// api/chat.js - Imachui Gen AI (Groq Debugging)
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText, streamText } from 'ai';
 
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Missing API keys. Add GROQ_API_KEY and DEEPSEEK_API_KEY in Vercel." });
   }
 
-  const mode = req.body?.mode || 'groq'; // Default to Groq na
+  const mode = req.body?.mode || 'groq'; 
   const incomingMessages = normalizeMessages(req.body || {});
 
   if (!incomingMessages.length) {
@@ -68,12 +68,20 @@ export default async function handler(req, res) {
 
     if (mode === 'groq') {
       console.log("[Imachui] Groq mode selected");
-      const result = await streamText({ 
-        model: groq('llama-3.3-70b-versatile'), 
-        messages: incomingMessages 
-      });
-      for await (const chunk of result.textStream) res.write(chunk);
-      return res.end();
+      try {
+        const result = await streamText({ 
+          model: groq('llama-3.3-70b-versatile'), 
+          messages: incomingMessages 
+        });
+        for await (const chunk of result.textStream) res.write(chunk);
+        return res.end();
+      } catch (groqError) {
+        // Dito natin mahuhuli ang aktwal na error ng Groq
+        console.error("[Imachui] Groq API Error Details:", groqError);
+        const errorMessage = groqError?.message || String(groqError);
+        res.write(`Groq Error: ${errorMessage.slice(0, 300)}`);
+        return res.end();
+      }
     }
 
     if (mode === 'deepseek') {
@@ -87,17 +95,17 @@ export default async function handler(req, res) {
     }
 
     // --- COMBINE BOTH (ENSEMBLE) ---
-    console.log("[Imachui] Ensemble mode started (Groq + DeepSeek)");
+    console.log("[Imachui] Ensemble mode started");
 
     const [groqResult, dsResult] = await Promise.allSettled([
       generateText({ 
         model: groq('llama-3.3-70b-versatile'), 
-        system: "You are a helpful AI assistant. Answer accurately and concisely.",
+        system: "You are a helpful AI assistant.",
         messages: incomingMessages 
       }),
       generateText({ 
         model: deepseek('deepseek-chat'), 
-        system: "You are a helpful AI assistant. Answer accurately and concisely.",
+        system: "You are a helpful AI assistant.",
         messages: incomingMessages 
       })
     ]);
@@ -106,17 +114,11 @@ export default async function handler(req, res) {
     const dsAnswer = dsResult.status === 'fulfilled' ? dsResult.value.text : `[DeepSeek Error: ${String(dsResult.reason?.message || dsResult.reason).slice(0, 100)}]`;
 
     const synthesisPrompt = `
-      Ikaw ay isang ekspertong tagahusga (synthesizer). Pag-aralan ang dalawang sagot sa ibaba mula sa dalawang magkaibang AI.
-      Gawin mong isang pinagsama-samang, pinakamahusay, at kumpletong sagot ang mga ito.
-      Alisin ang mga paulit-ulit. Kung may kontradiksyon, piliin ang pinaka-tama at lohikal.
-      Huwag banggitin na may dalawang AI na sumagot, diretso lang sa pinal na sagot.
-
-      --- SAGOT MULA SA AI #1 (Groq/Llama) ---
+      Ikaw ay isang tagahusga. Pag-aralan ang dalawang sagot sa ibaba at gumawa ng pinagsama-samang sagot.
+      --- SAGOT #1 (Groq) ---
       ${groqAnswer}
-
-      --- SAGOT MULA SA AI #2 (DeepSeek) ---
+      --- SAGOT #2 (DeepSeek) ---
       ${dsAnswer}
-
       --- PINAGSAMANG SAGOT ---
     `;
 
