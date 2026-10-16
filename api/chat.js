@@ -1,5 +1,5 @@
-// api/chat.js - Imachui Gen AI by Imachui
-// Powered by OpenRouter (Free AI for Coding & Reasoning)
+// api/chat.js - Imachui Gen AI by Imachui (Multimodal Upgrade)
+// Powered by OpenRouter (Free Vision-Language Model)
 // Add OPENROUTER_API_KEY in Vercel Environment Variables.
 
 import { streamText } from 'ai';
@@ -24,17 +24,17 @@ function setCors(req, res) {
 function normalizeMessages(body) {
   const incoming = Array.isArray(body.messages) ? body.messages : [];
   
-  // Pinalaki natin ang memorya mula 16 patungong 100 messages
+  // Tumatanggap na ito ng string (text) o array (multimodal: text + images)
   const messages = incoming
     .filter(m =>
       m &&
       ["user", "assistant"].includes(m.role) &&
-      typeof m.content === "string"
+      (typeof m.content === "string" || Array.isArray(m.content))
     )
     .slice(-100) 
     .map(m => ({
       role: m.role,
-      content: m.content.slice(0, 15000) // Mas malaking limitasyon sa text
+      content: m.content // Pwedeng string o array of objects
     }));
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
@@ -43,7 +43,7 @@ function normalizeMessages(body) {
     if (!last || last.role !== "user" || last.content !== message) {
       messages.push({
         role: "user",
-        content: message.slice(0, 15000)
+        content: message // Plain text
       });
     }
   }
@@ -53,12 +53,8 @@ function normalizeMessages(body) {
 export default async function handler(req, res) {
   setCors(req, res);
 
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Use POST for chat requests." });
-  }
+  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Use POST for chat requests." });
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
@@ -71,7 +67,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Gumawa ng custom OpenAI-compatible provider para sa OpenRouter
     const openrouter = createOpenAI({
       baseURL: 'https://openrouter.ai/api/v1',
       apiKey: apiKey,
@@ -81,22 +76,20 @@ export default async function handler(req, res) {
       }
     });
 
-    // 100% LIBRENG MODELO na may 1M context window
-    const modelId = 'nvidia/nemotron-3.5-lightning-free'; 
+    // LIBRENG MULTIMODAL MODEL (Vision-Language)
+    const modelId = 'nvidia/nemotron-3.5-super-vl:free'; 
     
     const result = await streamText({
       model: openrouter(modelId),
-      system: "You are Imachui Gen AI by Imachui. Reply in the language the user uses or requests, including Filipino/Tagalog and Cebuano. Be helpful, clear, and accurate. Admit uncertainty when needed; do not invent facts or sources. For coding tasks, provide complete, working code with explanations.",
+      system: "You are Imachui Gen AI by Imachui. You can see images and read text. Reply in the language the user uses or requests, including Filipino/Tagalog and Cebuano. Be helpful, clear, and accurate. Describe images in detail if asked. Admit uncertainty when needed; do not invent facts or sources. For coding tasks, provide complete, working code with explanations.",
       messages: messages,
       temperature: 0.5,
       maxTokens: 4000, 
     });
 
-    // I-set ang headers para sa streaming
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
 
-    // I-stream ang resulta pabalik sa frontend
     for await (const chunk of result.textStream) {
       res.write(chunk);
     }
