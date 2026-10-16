@@ -1,8 +1,7 @@
-// api/chat.js - Imachui Gen AI (Libreng Ensemble: Groq + DeepSeek)
+// api/chat.js - Imachui Gen AI (Groq + DeepSeek Ensemble)
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText, streamText } from 'ai';
 
-// Kailangan ito para sa mas mahabang processing time sa Vercel
 export const maxDuration = 60; 
 
 const ALLOWED_ORIGINS = new Set([
@@ -46,7 +45,6 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST for chat requests." });
 
-  // KUNIN ANG MGA API KEY MULA SA VERCEL ENVIRONMENT VARIABLES
   const groqKey = process.env.GROQ_API_KEY;
   const deepseekKey = process.env.DEEPSEEK_API_KEY;
 
@@ -54,6 +52,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Missing API keys. Add GROQ_API_KEY and DEEPSEEK_API_KEY in Vercel." });
   }
 
+  const mode = req.body?.mode || 'groq'; // Default to Groq na
   const incomingMessages = normalizeMessages(req.body || {});
 
   if (!incomingMessages.length) {
@@ -64,16 +63,35 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-cache');
 
   try {
-    // 1. GUMAWA NG CLIENTS PARA SA DALAWANG PROVIDER
     const groq = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: groqKey });
     const deepseek = createOpenAI({ baseURL: 'https://api.deepseek.com', apiKey: deepseekKey });
 
-    // 2. IPADALA ANG TANONG SA DALAWA NANG SABAY (Parallel)
-    console.log("[Imachui] Starting ensemble: Groq + DeepSeek");
-    
+    if (mode === 'groq') {
+      console.log("[Imachui] Groq mode selected");
+      const result = await streamText({ 
+        model: groq('llama-3.3-70b-versatile'), 
+        messages: incomingMessages 
+      });
+      for await (const chunk of result.textStream) res.write(chunk);
+      return res.end();
+    }
+
+    if (mode === 'deepseek') {
+      console.log("[Imachui] DeepSeek mode selected");
+      const result = await streamText({ 
+        model: deepseek('deepseek-chat'), 
+        messages: incomingMessages 
+      });
+      for await (const chunk of result.textStream) res.write(chunk);
+      return res.end();
+    }
+
+    // --- COMBINE BOTH (ENSEMBLE) ---
+    console.log("[Imachui] Ensemble mode started (Groq + DeepSeek)");
+
     const [groqResult, dsResult] = await Promise.allSettled([
       generateText({ 
-        model: groq('llama-3.3-70b-versatile'), // Magandang libreng modelo mula sa Groq
+        model: groq('llama-3.3-70b-versatile'), 
         system: "You are a helpful AI assistant. Answer accurately and concisely.",
         messages: incomingMessages 
       }),
@@ -84,15 +102,9 @@ export default async function handler(req, res) {
       })
     ]);
 
-    // 3. KUNIN ANG MGA SAGOT
     const groqAnswer = groqResult.status === 'fulfilled' ? groqResult.value.text : `[Groq Error: ${String(groqResult.reason?.message || groqResult.reason).slice(0, 100)}]`;
     const dsAnswer = dsResult.status === 'fulfilled' ? dsResult.value.text : `[DeepSeek Error: ${String(dsResult.reason?.message || dsResult.reason).slice(0, 100)}]`;
 
-    console.log("[Imachui] Groq answer length:", groqAnswer.length);
-    console.log("[Imachui] DeepSeek answer length:", dsAnswer.length);
-
-    // 4. PAGSAMAHIN ANG MGA SAGOT (Synthesis)
-    // Gagamitin natin ang Groq (Llama) bilang "tagahusga" dahil mabilis ito.
     const synthesisPrompt = `
       Ikaw ay isang ekspertong tagahusga (synthesizer). Pag-aralan ang dalawang sagot sa ibaba mula sa dalawang magkaibang AI.
       Gawin mong isang pinagsama-samang, pinakamahusay, at kumpletong sagot ang mga ito.
@@ -111,10 +123,9 @@ export default async function handler(req, res) {
     const finalResult = streamText({
       model: groq('llama-3.3-70b-versatile'),
       messages: [{ role: 'user', content: synthesisPrompt }],
-      temperature: 0.3, // Mas factual at diretso
+      temperature: 0.3,
     });
 
-    // 5. I-STREAM ANG HULING SAGOT PABALIK SA FRONTEND
     for await (const chunk of finalResult.textStream) {
       res.write(chunk);
     }
