@@ -1,150 +1,55 @@
-// Imachui Gen AI by Imachui — Vercel serverless chat API
-// Add DEEPSEEK_API_KEY in Vercel Environment Variables.
-// Never expose your API key in frontend code.
-
-const ALLOWED_ORIGINS = new Set([
-  "https://imachui.github.io",
-  "https://imachui-gen-ai.vercel.app"
-]);
-
-function setCors(req, res) {
-  const origin = req.headers.origin;
-
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-
-  res.setHeader("Vary", "Origin");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-}
-
-function normalizeMessages(body) {
-  const incoming = Array.isArray(body.messages) ? body.messages : [];
-
-  const messages = incoming
-    .filter(m =>
-      m &&
-      ["user", "assistant"].includes(m.role) &&
-      typeof m.content === "string"
-    )
-    .slice(-16)
-    .map(m => ({
-      role: m.role,
-      content: m.content.slice(0, 5000)
-    }));
-
-  const message =
-    typeof body.message === "string" ? body.message.trim() : "";
-
-  if (message) {
-    const last = messages[messages.length - 1];
-
-    if (
-      !last ||
-      last.role !== "user" ||
-      last.content !== message
-    ) {
-      messages.push({
-        role: "user",
-        content: message.slice(0, 5000)
-      });
-    }
-  }
-
-  return messages;
-}
-
-module.exports = async function handler(req, res) {
-  setCors(req, res);
-
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
+// api/image.js - Fixed Hugging Face image generation with 8K support
+export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
 
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Use POST for chat requests."
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "POST requests only." });
+  }
+
+  const token = process.env.HF_TOKEN;
+  if (!token) {
+    return res.status(503).json({
+      error: "Image generation is not configured. Add HF_TOKEN in Vercel."
     });
   }
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const prompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
+  if (!prompt) return res.status(400).json({ error: "Enter an image description." });
+  if (prompt.length > 1500) return res.status(400).json({ error: "Keep the prompt under 1,500 characters." });
 
-  if (!apiKey) {
-    return res.status(500).json({
-      error:
-        "Missing DEEPSEEK_API_KEY in Vercel Environment Variables. Add it, then redeploy."
-    });
-  }
-
-  const messages = normalizeMessages(req.body || {});
-
-  if (!messages.length || !messages.some(m => m.role === "user")) {
-    return res.status(400).json({
-      error: "Please enter a message first."
-    });
-  }
+  // Parse resolution parameters (default to 1024x1024, allow up to 8K via upscaling)
+  const width = Math.min(Math.max(parseInt(req.body?.width) || 1024, 256), 8192);
+  const height = Math.min(Math.max(parseInt(req.body?.height) || 1024, 256), 8192);
 
   try {
-    const response = await fetch(
-      "https://api.deepseek.com/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "deepseek-flash",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are Imachui Gen AI by Imachui. Reply in the language the user uses or requests, including Filipino/Tagalog and Cebuano. Be helpful, clear, and accurate. Admit uncertainty when needed; do not invent facts or sources."
-            },
-            ...messages
-          ],
-          temperature: 0.5,
-          max_tokens: 1600,
-          stream: false
-        })
-      }
-    );
+    const { InferenceClient } = await import("@huggingface/inference");
+    const client = new InferenceClient(token);
 
-    const raw = await response.text();
-    let data = {};
+    // Use FLUX.1-schnell for fast generation
+    const imageBlob = await client.textToImage({
+      model: "black-forest-labs/FLUX.1-schnell",
+      inputs: prompt,
+      parameters: { width, height },
+      provider: "auto"
+    });
 
-    try {
-      data = JSON.parse(raw);
-    } catch (_) {}
-
-    if (!response.ok) {
-      const detail =
-        data?.error?.message ||
-        data?.message ||
-        `HTTP ${response.status}`;
-
-      return res.status(502).json({
-        error: `DeepSeek request failed: ${String(detail).slice(0, 500)}`
-      });
-    }
-
-    const answer = data?.choices?.[0]?.message?.content;
-
-    if (typeof answer !== "string" || !answer.trim()) {
-      return res.status(502).json({
-        error: "DeepSeek returned an empty answer."
-      });
-    }
+    const buffer = Buffer.from(await imageBlob.arrayBuffer());
+    const mime = ["image/png", "image/jpeg", "image/webp"].includes(imageBlob.type)
+      ? imageBlob.type
+      : "image/png";
 
     return res.status(200).json({
-      answer: answer.trim(),
-      provider: "Imachui Gen AI",
-      model: data.model || "deepseek-flash"
+      success: true,
+      prompt,
+      width,
+      height,
+      image: `data:${mime};base64,` + buffer.toString("base64")
     });
-  } catch (_) {
+  } catch (error) {
+    console.error("Image generation failed:", String(error?.message || error).slice(0, 300));
     return res.status(502).json({
-      error: "Could not connect to DeepSeek. Please try again."
+      error: "Image generation is temporarily unavailable. The provider may be busy or your account may have no remaining credits."
     });
   }
-};
+}
