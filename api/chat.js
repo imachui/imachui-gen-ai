@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI by Imachui (Multimodal)
+// api/chat.js - Imachui Gen AI by Imachui (Multimodal Fixed)
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
@@ -72,7 +72,6 @@ export default async function handler(req, res) {
       }
     });
 
-    // LIBRENG MULTIMODAL MODEL (Vision-Language)
     const modelId = 'nvidia/nemotron-3.5-super-vl:free'; 
     
     const result = await streamText({
