@@ -2,17 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,interactive-widget=resizes-content">
 <meta name="theme-color" content="#05070a">
 <title>Imachui Gen AI</title>
 <style>
 :root{color-scheme:dark;--bg:#05070a;--text:#f3f5fb;--muted:#98a2b7;--accent:#8b7cff;--accent2:#42d9c8}
-*{box-sizing:border-box}
-body{margin:0;height:100vh;background:radial-gradient(circle at 50% -20%,#1a1f35 0%,var(--bg) 70%);color:var(--text);font-family:Inter,system-ui,sans-serif;overflow:hidden}
+*{box-sizing:border-box;touch-action:manipulation}
+body{margin:0;height:100vh;height:100dvh;background:radial-gradient(circle at 50% -20%,#1a1f35 0%,var(--bg) 70%);color:var(--text);font-family:Inter,system-ui,sans-serif;overflow:hidden;position:fixed;width:100%}
 button{font:inherit;cursor:pointer}
-.glass{background:rgba(20,25,40,.5);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08)}
-.app{height:100vh;display:grid;grid-template-columns:280px 1fr;overflow:hidden}
-.sidebar{padding:24px 20px;display:flex;flex-direction:column;gap:14px;border-right:1px solid rgba(255,255,255,.08);overflow-y:auto}
+.glass{background:rgba(20,25,40,.5);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08)}
+.app{height:100vh;height:100dvh;display:grid;grid-template-columns:280px 1fr;overflow:hidden}
+.sidebar{padding:24px 20px;display:flex;flex-direction:column;gap:14px;border-right:1px solid rgba(255,255,255,.08);overflow-y:auto;height:100vh;height:100dvh}
+.back-btn{display:none;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:12px;color:#fff;padding:12px;font-size:13px;text-align:left;cursor:pointer}
+.back-btn:hover{background:rgba(255,255,255,.05)}
 .brand{display:flex;align-items:center;gap:12px;padding-bottom:15px}
 .brand-icon{width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#42d9c8,#8b7cff,#05070a);box-shadow:0 0 40px #8b7cff,0 0 80px #42d9c8;display:grid;place-items:center;font-weight:900;font-size:24px;color:#fff;flex-shrink:0}
 .brand-name{font-weight:850;font-size:16px}
@@ -20,7 +22,7 @@ button{font:inherit;cursor:pointer}
 .side-btn{width:100%;padding:14px;border-radius:14px;color:#fff;text-align:left;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);cursor:pointer}
 .side-btn:hover{background:rgba(139,124,255,.2);border-color:var(--accent)}
 .side-label{font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-top:10px}
-.history{display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto}
+.history{display:flex;flex-direction:column;gap:8px;max-height:30vh;overflow-y:auto}
 .history-row{display:flex;align-items:center;gap:6px;border-radius:10px}
 .history-row.active{background:rgba(139,124,255,.15);border:1px solid rgba(139,124,255,.3)}
 .history-open{flex:1;text-align:left;border:0;background:transparent;color:#cbd2e4;padding:12px 10px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
@@ -31,21 +33,22 @@ button{font:inherit;cursor:pointer}
 .backup-row button{flex:1;padding:10px;font-size:12px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);color:#fff;cursor:pointer}
 .backup-row button:hover{background:rgba(139,124,255,.2)}
 .side-foot{margin-top:auto;padding-top:15px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:var(--muted)}
-.main{display:flex;flex-direction:column;overflow:hidden;height:100vh}
-.topbar{height:70px;display:flex;align-items:center;padding:0 30px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.main{display:flex;flex-direction:column;overflow:hidden;height:100vh;height:100dvh}
+.topbar{height:70px;display:flex;align-items:center;gap:12px;padding:0 30px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.menu-btn{display:none;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#fff;padding:8px 12px;font-size:16px;cursor:pointer}
 .top-title{font-size:14px;font-weight:850}
 .gradient{background:linear-gradient(90deg,#b0a5ff,#42d9c8,#b0a5ff);background-size:300% 100%;background-clip:text;-webkit-background-clip:text;color:transparent;animation:shift 4s infinite,glow 1.5s ease-in-out infinite alternate}
 @keyframes shift{0%{background-position:0% 50%}100%{background-position:300% 50%}}
 @keyframes glow{0%{filter:drop-shadow(0 0 8px #8b7cff)}100%{filter:drop-shadow(0 0 25px #42d9c8)}}
-.chat{flex:1;overflow-y:auto;padding:30px 24px;display:flex;flex-direction:column;align-items:center}
+.chat{flex:1;overflow-y:auto;padding:30px 24px;display:flex;flex-direction:column;align-items:center;-webkit-overflow-scrolling:touch}
 .chat>*{width:100%;max-width:850px}
 .welcome{text-align:center;padding:60px 0 40px}
-.welcome h1{font-size:42px;margin:0 0 15px}
-.welcome p{color:var(--muted);font-size:15px}
+.welcome h1{font-size:clamp(28px,4vw,42px);margin:0 0 15px;font-weight:800}
+.welcome p{color:var(--muted);font-size:15px;max-width:560px;margin:0 auto}
 .msg{display:flex;gap:16px;margin:24px 0}
 .avatar{width:36px;height:36px;flex:0 0 36px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:grid;place-items:center;font-size:12px;font-weight:800}
 .msg.user .avatar{background:rgba(139,124,255,.2)}
-.body{flex:1;padding:16px 20px;border-radius:16px;line-height:1.75;background:rgba(20,25,40,.5);border:1px solid rgba(255,255,255,.08)}
+.body{flex:1;padding:16px 20px;border-radius:16px;line-height:1.75;background:rgba(20,25,40,.5);border:1px solid rgba(255,255,255,.08);min-width:0}
 .role{font-size:12px;font-weight:800;margin-bottom:6px;color:#c9c4ff;text-transform:uppercase}
 .msg.user .role{color:#8fe9dd}
 .text{white-space:pre-wrap;overflow-wrap:anywhere}
@@ -70,19 +73,50 @@ button{font:inherit;cursor:pointer}
 .send{border:0;border-radius:12px;padding:12px 24px;color:#05070a;background:linear-gradient(135deg,#b0a5ff,#55e2d2);font-weight:850;font-size:14px;cursor:pointer}
 .send:hover{box-shadow:0 0 20px rgba(85,226,210,.4)}
 .toggle-label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);cursor:pointer}
-@media(max-width:768px){.app{grid-template-columns:1fr}.sidebar{display:none}}
+.toggle-label input{accent-color:var(--accent2);width:16px;height:16px}
+
+/* ===== MOBILE ===== */
+@media(max-width:768px){
+  .app{grid-template-columns:1fr;height:100vh;height:100dvh}
+  .sidebar{display:none;position:fixed;z-index:50;inset:0 auto 0 0;width:min(85vw,300px);height:100vh;height:100dvh;background:#0a0e18;box-shadow:20px 0 60px #000;padding:16px 14px}
+  .sidebar.open{display:flex}
+  .back-btn{display:block}
+  .menu-btn{display:block}
+  .topbar{height:58px;padding:0 14px;gap:10px}
+  .top-title{font-size:12px;flex:1}
+  .chat{padding:18px 12px 24px}
+  .composer-wrap{
+    position:fixed;bottom:0;left:0;right:0;width:100%;
+    padding:10px 10px max(10px,env(safe-area-inset-bottom)) 10px;
+    z-index:100;background:linear-gradient(0deg,#05070a 70%,transparent 100%)
+  }
+  .chat{padding-bottom:220px}
+  .composer{padding:10px;border-radius:18px}
+  #prompt{min-height:48px;font-size:16px;padding:8px}
+  .composer-bottom{flex-direction:column;align-items:stretch;gap:8px}
+  .tools{justify-content:space-between;width:100%}
+  .tool{padding:10px 12px;font-size:12px;flex:1;text-align:center}
+  .actions{width:100%}
+  .send{width:100%;padding:14px;font-size:16px;font-weight:900}
+  .msg{gap:10px;margin:16px 0}
+  .avatar{width:32px;height:32px;flex:0 0 32px;font-size:11px}
+  .body{padding:12px 14px;font-size:14px}
+  .welcome h1{font-size:28px}
+  .welcome p{font-size:13px}
+}
 </style>
 </head>
 <body>
 <div class="app">
-<aside class="sidebar glass">
+<aside class="sidebar glass" id="sidebar">
+  <button class="back-btn" onclick="closeSidebar()">← Back to Chat</button>
   <div class="brand">
     <div class="brand-icon">✦</div>
     <div><div class="brand-name">IMACHUI GEN AI</div><div class="brand-sub">by Imachui · Global King</div></div>
   </div>
-  <button class="side-btn" id="newChatBtn" onclick="newChat()">＋ New Conversation</button>
+  <button class="side-btn" onclick="newChat();closeSidebar()">＋ New Conversation</button>
   <div class="side-label">Workspace</div>
-  <button class="side-btn" onclick="document.getElementById('prompt').focus()">✦ Ask Imachui Gen Ai</button>
+  <button class="side-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen Ai</button>
   <div class="side-label">Recent Conversations</div>
   <div class="history" id="history"></div>
   
@@ -99,6 +133,7 @@ button{font:inherit;cursor:pointer}
 
 <main class="main">
 <header class="topbar glass">
+  <button class="menu-btn" onclick="toggleSidebar()">☰</button>
   <div class="top-title">IMACHUI GEN AI <span class="gradient">/ GLOBAL KING</span></div>
 </header>
 <section class="chat" id="chat">
@@ -115,10 +150,10 @@ button{font:inherit;cursor:pointer}
   <div class="att-list" id="attachments"></div>
   <div class="composer-bottom">
     <div class="tools">
-      <button type="button" class="tool" onclick="document.getElementById('fileInput').click()">＋ Attach Images</button>
+      <button type="button" class="tool" onclick="document.getElementById('fileInput').click()">＋ Attach</button>
       <input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFiles(event)">
       <button type="button" class="tool" onclick="toggleMic()" id="micBtn">🎙️ Mic</button>
-      <label class="toggle-label"><input type="checkbox" id="autoRead" checked> Auto-Read AI</label>
+      <label class="toggle-label"><input type="checkbox" id="autoRead" checked> Auto-Read</label>
     </div>
     <div class="actions"><button type="submit" class="send" id="sendBtn">Send ↑</button></div>
   </div>
@@ -128,8 +163,8 @@ button{font:inherit;cursor:pointer}
 </div>
 
 <script>
-// ========== SIMPLE STORAGE ==========
-var STORAGE_KEY = 'imachui_pc_data';
+// ========== STORAGE ==========
+var STORAGE_KEY = 'imachui_v25_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
@@ -138,8 +173,15 @@ var selectedFiles = [];
 var recognition = null;
 var listening = false;
 var synth = window.speechSynthesis;
+var voices = [];
 
-// Test localStorage
+// Load voices
+function loadVoices() { voices = synth.getVoices(); if (voices.length === 0) setTimeout(loadVoices, 200); }
+if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+loadVoices();
+setTimeout(loadVoices, 500);
+setTimeout(loadVoices, 1500);
+
 var storageOK = false;
 try {
   localStorage.setItem('_t','1');
@@ -159,7 +201,7 @@ function load() {
 }
 
 function save() {
-  if (!storageOK) return;
+  if (!storageOK) { updateStatus(); return; }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({chats: chats, activeChatId: activeChatId}));
     updateStatus();
@@ -178,7 +220,15 @@ function updateStatus() {
   }
 }
 
-// ========== DOWNLOAD BACKUP ==========
+// ========== SIDEBAR ==========
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+// ========== BACKUP ==========
 function downloadBackup() {
   try {
     var data = JSON.stringify({chats: chats, activeChatId: activeChatId}, null, 2);
@@ -191,13 +241,12 @@ function downloadBackup() {
     a.click();
     document.body.removeChild(a);
     setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
-    alert('✅ Downloaded! ' + chats.length + ' chats saved to your Downloads folder.');
+    alert('✅ Downloaded! ' + chats.length + ' chats saved.');
   } catch(e) {
     alert('❌ Download error: ' + e.message);
   }
 }
 
-// ========== UPLOAD RESTORE ==========
 function handleUpload(event) {
   var file = event.target.files[0];
   if (!file) return;
@@ -213,11 +262,8 @@ function handleUpload(event) {
       activeChatId = parsed.activeChatId || (chats[0] ? chats[0].id : null);
       save();
       renderHistory();
-      if (activeChatId) {
-        openChat(activeChatId);
-      } else {
-        newChat();
-      }
+      if (activeChatId) openChat(activeChatId);
+      else newChat();
       alert('✅ Restored ' + chats.length + ' conversations!');
     } catch(err) {
       alert('❌ Error: ' + err.message);
@@ -227,7 +273,7 @@ function handleUpload(event) {
   document.getElementById('uploadInput').value = '';
 }
 
-// ========== FORMAT MESSAGE ==========
+// ========== FORMAT ==========
 function fmt(text) {
   var f = text;
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -238,18 +284,39 @@ function fmt(text) {
   return f;
 }
 
-// ========== SPEAK ==========
+// ========== SPEAK (AI VOICE) ==========
 function speak(text, btn) {
-  if (!synth) return;
-  synth.cancel();
-  var clean = text.replace(/<[^>]*>/g, ' ').replace(/https?:\/\/\S+/g, ' link ').replace(/\s+/g, ' ').trim();
-  if (!clean) return;
-  var u = new SpeechSynthesisUtterance(clean.slice(0, 12000));
-  u.lang = 'en-US';
-  u.onstart = function() { if (btn) btn.textContent = '⏹️ Stop'; };
-  u.onend = function() { if (btn) btn.textContent = '🔊 Read Aloud'; };
-  u.onerror = function() { if (btn) btn.textContent = '🔊 Read Aloud'; };
-  synth.speak(u);
+  if (!synth) {
+    if (btn) btn.textContent = '🔊 Read Aloud';
+    return;
+  }
+  try {
+    synth.cancel();
+    var clean = String(text || '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/```[\s\S]*?```/g, ' Code block omitted ')
+      .replace(/https?:\/\/\S+/g, ' link ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!clean) {
+      if (btn) btn.textContent = '🔊 Read Aloud';
+      return;
+    }
+    if (voices.length === 0) voices = synth.getVoices();
+    var u = new SpeechSynthesisUtterance(clean.slice(0, 12000));
+    u.lang = 'en-US';
+    u.rate = 1.0;
+    u.pitch = 1.0;
+    var pv = voices.find(function(v) { return /en-(US|GB)/i.test(v.lang) && /female|zira|samantha|aria|jenny/i.test(v.name); }) || voices.find(function(v) { return /en-(US|GB)/i.test(v.lang); });
+    if (pv) u.voice = pv;
+    u.onstart = function() { if (btn) btn.textContent = '⏹️ Stop'; };
+    u.onend = function() { if (btn) btn.textContent = '🔊 Read Aloud'; };
+    u.onerror = function() { if (btn) btn.textContent = '🔊 Read Aloud'; };
+    synth.speak(u);
+  } catch(e) {
+    console.error('Speak error:', e);
+    if (btn) btn.textContent = '🔊 Read Aloud';
+  }
 }
 
 // ========== MIC ==========
@@ -284,7 +351,7 @@ function toggleMic() {
     listening = false;
     btn.textContent = '🎙️ Mic';
   };
-  recognition.start();
+  try { recognition.start(); } catch(e) { listening = false; btn.textContent = '🎙️ Mic'; }
 }
 
 // ========== UI ==========
@@ -297,7 +364,7 @@ function newChat() {
   document.getElementById('welcome').style.display = 'block';
   save();
   renderHistory();
-  document.getElementById('prompt').focus();
+  setTimeout(function() { document.getElementById('prompt').focus(); }, 100);
 }
 
 function renderHistory() {
@@ -334,6 +401,7 @@ function openChat(id) {
     addMessage(m.role, display);
   });
   renderHistory();
+  closeSidebar();
   scrollBottom();
 }
 
@@ -353,8 +421,10 @@ function deleteChat(id) {
 }
 
 function scrollBottom() {
-  var c = document.getElementById('chat');
-  c.scrollTop = c.scrollHeight;
+  setTimeout(function() {
+    var c = document.getElementById('chat');
+    if (c) c.scrollTop = c.scrollHeight;
+  }, 100);
 }
 
 function addMessage(role, content, options) {
@@ -375,7 +445,6 @@ function addMessage(role, content, options) {
     var p = document.createElement('div');
     p.className = 'prov';
     p.textContent = '● Imachui Gen AI : Global King';
-    p.style.color = '#8f9bb5';
     body.appendChild(p);
   }
   var t = document.createElement('div');
@@ -539,7 +608,9 @@ async function sendMessage() {
     };
     rr.appendChild(rd);
     am.querySelector('.body').appendChild(rr);
-    if (document.getElementById('autoRead').checked) speak(te.textContent, rd);
+    if (document.getElementById('autoRead').checked) {
+      setTimeout(function() { speak(te.textContent, rd); }, 300);
+    }
     currentMessages.push({role: 'assistant', content: full});
     if (chat) {
       chat.messages.push({role: 'assistant', content: full});
@@ -552,12 +623,13 @@ async function sendMessage() {
     busy = false;
     document.getElementById('sendBtn').disabled = false;
     promptEl.disabled = false;
-    promptEl.focus();
+    if (window.innerWidth > 768) promptEl.focus();
   }
 }
 
 // ========== INIT ==========
 window.addEventListener('beforeunload', save);
+window.addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') save(); });
 
 load();
