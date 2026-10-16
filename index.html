@@ -14,7 +14,7 @@ button,textarea,input{font:inherit}button{cursor:pointer;transition:all 0.3s eas
 .gradient{background:linear-gradient(90deg,#b0a5ff,#42d9c8,#b0a5ff,#42d9c8);background-size:300% 100%;background-clip:text;-webkit-background-clip:text;color:transparent;animation:gradientShift 4s ease infinite,textGlow 1.5s ease-in-out infinite alternate}
 @keyframes gradientShift{0%{background-position:0% 50%}100%{background-position:300% 50%}}
 @keyframes textGlow{0%{filter:drop-shadow(0 0 8px #8b7cff) drop-shadow(0 0 15px #42d9c8)}100%{filter:drop-shadow(0 0 25px #8b7cff) drop-shadow(0 0 50px #42d9c8)}}
-.storage-status{font-size:10px;padding:6px 10px;border-radius:8px;text-align:center;font-weight:700;margin-top:10px;transition:all 0.3s ease}
+.storage-status{font-size:10px;padding:6px 10px;border-radius:8px;text-align:center;font-weight:700;margin-top:10px}
 .storage-status.ok{background:rgba(66,217,200,0.15);color:#42d9c8;border:1px solid rgba(66,217,200,0.3)}
 .storage-status.error{background:rgba(255,141,154,0.15);color:#ff8d9a;border:1px solid rgba(255,141,154,0.3)}
 .storage-actions{display:flex;gap:6px;margin-top:8px}
@@ -106,8 +106,8 @@ button,textarea,input{font:inherit}button{cursor:pointer;transition:all 0.3s eas
   
   <div class="storage-status" id="storageStatus">Checking...</div>
   <div class="storage-actions">
-    <button id="exportBtn" type="button">⬇ Export</button>
-    <button id="importBtn" type="button">⬆ Import</button>
+    <button id="copyBtn" type="button">📋 Copy Backup</button>
+    <button id="pasteBtn" type="button">📥 Paste Backup</button>
   </div>
   
   <div class="sidebar-foot">Imachui Gen AI by Imachui<br>One workspace for conversations.</div>
@@ -149,7 +149,7 @@ button,textarea,input{font:inherit}button{cursor:pointer;transition:all 0.3s eas
 'use strict';
 
 // ===== SIMPLE RELIABLE STORAGE =====
-const STORAGE_KEY = 'imachui_v19_data';
+const STORAGE_KEY = 'imachui_v20_data';
 const $ = id => document.getElementById(id);
 
 let chats = [];
@@ -160,7 +160,6 @@ let selectedFiles = [];
 let recognition = null;
 let listening = false;
 
-// Storage availability check
 let storageOK = false;
 try {
   localStorage.setItem('__test__', '1');
@@ -205,16 +204,14 @@ function updateStorageStatus(ok) {
     el.textContent = `✅ Saved ${chats.length} chats (${(size/1024).toFixed(1)}KB)`;
   } else {
     el.className = 'storage-status error';
-    el.textContent = '❌ Cannot save. Use Export!';
+    el.textContent = '❌ Cannot save. Use Copy Backup!';
   }
 }
 
-// Manual save on hide
 window.addEventListener('beforeunload', saveAll);
 window.addEventListener('pagehide', saveAll);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveAll(); });
 
-// ===== UI DYNAMIC HEIGHT =====
 function setAppHeight() { document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`); }
 window.addEventListener('resize', setAppHeight);
 window.addEventListener('orientationchange', setAppHeight);
@@ -235,7 +232,6 @@ const micButton = $('micButton');
 const autoReadToggle = $('autoReadToggle');
 const backButton = $('backButton');
 
-// ===== MARKDOWN =====
 function formatMessage(text) {
   let f = text;
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -244,7 +240,6 @@ function formatMessage(text) {
   return f;
 }
 
-// ===== VOICE =====
 const synth = window.speechSynthesis;
 let voices = [];
 function loadVoices() { voices = synth.getVoices(); if (voices.length === 0) setTimeout(loadVoices, 100); }
@@ -266,7 +261,6 @@ function speakText(text, btn) {
   synth.speak(u);
 }
 
-// ===== SPEECH RECOGNITION =====
 function startListening() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { alert("Speech Recognition not supported. Use Chrome or Edge."); return; }
@@ -279,7 +273,7 @@ function startListening() {
     for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) ft += e.results[i][0].transcript;
     if (ft) promptInput.value = ft;
   };
-  recognition.onerror = (e) => { listening = false; micButton.textContent = '🎙️ Mic'; micButton.style.borderColor = ''; micButton.style.color = ''; };
+  recognition.onerror = () => { listening = false; micButton.textContent = '🎙️ Mic'; micButton.style.borderColor = ''; micButton.style.color = ''; };
   recognition.onend = () => {
     if (listening) { try { recognition.start(); } catch (e) { listening = false; micButton.textContent = '🎙️ Mic'; micButton.style.borderColor = ''; micButton.style.color = ''; } }
     else { micButton.textContent = '🎙️ Mic'; micButton.style.borderColor = ''; micButton.style.color = ''; }
@@ -289,7 +283,6 @@ function startListening() {
 micButton.addEventListener('click', startListening);
 promptInput.addEventListener('focus', () => { setTimeout(() => promptInput.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300); });
 
-// ===== UI =====
 function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function activeChat() { return chats.find(c => c.id === activeChatId); }
 
@@ -454,7 +447,7 @@ async function sendMessage(raw) {
     chat.messages.push({ role: 'user', content: messageContent });
     if (chat.title === 'New conversation') chat.title = (text || fileSnapshot[0]?.name || 'Attachment').slice(0, 40);
     chat.updated = Date.now();
-    saveAll(); // SAVE IMMEDIATELY
+    saveAll();
     renderHistory();
   }
   promptInput.value = ''; selectedFiles = []; renderAttachments();
@@ -497,43 +490,45 @@ $('menuButton').onclick = () => sidebar.classList.toggle('open');
 $('backButton').onclick = () => sidebar.classList.remove('open');
 $('clearAll').onclick = () => { if (confirm('Delete ALL conversations?')) { chats = []; activeChatId = null; saveAll(); createChat(); } };
 
-// ===== EXPORT / IMPORT =====
-$('exportBtn').onclick = () => {
-  const data = JSON.stringify({ chats, activeChatId }, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `imachui-chats-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+// ===== MANUAL COPY/PASTE BACKUP (FOR MESSENGER/WEBVIEW) =====
+$('copyBtn').onclick = async () => {
+  try {
+    const data = JSON.stringify({ chats, activeChatId });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(data);
+      alert('✅ Backup copied to clipboard!\n\nSave it in a notes app or message to yourself.');
+    } else {
+      // Fallback: select a textarea and copy
+      const ta = document.createElement('textarea');
+      ta.value = data;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('✅ Backup copied!');
+    }
+  } catch (e) {
+    alert('❌ Copy failed: ' + e.message);
+  }
 };
 
-$('importBtn').onclick = () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (data.chats && Array.isArray(data.chats)) {
-        chats = data.chats;
-        activeChatId = data.activeChatId || (chats[0]?.id || null);
-        saveAll();
-        renderHistory();
-        if (activeChatId) openChat(activeChatId);
-        alert('✅ Imported ' + chats.length + ' conversations!');
-      } else {
-        alert('❌ Invalid file format.');
-      }
-    } catch (e) {
-      alert('❌ Error: ' + e.message);
+$('pasteBtn').onclick = () => {
+  const data = prompt('Paste your backup JSON here:');
+  if (!data) return;
+  try {
+    const parsed = JSON.parse(data);
+    if (parsed.chats && Array.isArray(parsed.chats)) {
+      chats = parsed.chats;
+      activeChatId = parsed.activeChatId || (chats[0]?.id || null);
+      saveAll(); renderHistory();
+      if (activeChatId) openChat(activeChatId); else createChat();
+      alert('✅ Restored ' + chats.length + ' conversations!');
+    } else {
+      alert('❌ Invalid backup format.');
     }
-  };
-  input.click();
+  } catch (e) {
+    alert('❌ Error: ' + e.message);
+  }
 };
 
 // ===== INITIAL LOAD =====
