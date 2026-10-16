@@ -3,144 +3,183 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#090b12">
+<meta name="theme-color" content="#05070a">
 <title>Imachui Gen AI — King AI</title>
 <style>
-:root{color-scheme:dark;--bg:#090b12;--panel:#10131d;--panel2:#171b28;--border:#292f42;--text:#f3f5fb;--muted:#98a2b7;--a:#8b7cff;--b:#42d9c8;--danger:#ff8d9a}
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#171a31 0%,var(--bg) 55%);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
-button,textarea,input{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
-.app{height:100dvh;min-height:0;display:grid;grid-template-columns:270px minmax(0,1fr);overflow:hidden}
-.sidebar{height:100dvh;background:rgba(10,12,20,.72);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-right:1px solid var(--border);padding:20px 15px;display:flex;flex-direction:column;gap:18px;min-width:0}
-.brand{display:flex;align-items:center;gap:11px;padding:3px 6px 12px}
-.brand-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(135deg,var(--a),var(--b));font-weight:900;font-size:23px;box-shadow:0 0 20px #42d9c855}
-.brand-name{font-weight:850}.brand-sub{font-size:11px;color:var(--muted);margin-top:4px}
-.new-chat,.nav-button{width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--panel);color:var(--text);text-align:left}
-.new-chat:hover,.nav-button:hover{border-color:#69618f;background:var(--panel2);box-shadow:0 0 14px #8174ff25}
-.side-label{font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
-.history-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.clear-all{border:1px solid #4b3544;border-radius:8px;padding:6px 8px;background:#211620;color:#ffb0bd;font-size:11px}
-.history{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto}
-.history-row{display:flex;align-items:center;gap:4px;border-radius:9px}
-.history-row.active{background:#2a2543;box-shadow:0 0 12px #8174ff20}
-.history-open{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;border:0;background:transparent;color:#cbd2e4;padding:10px 8px;font-size:12px}
-.delete-chat{border:0;background:transparent;color:#a4abc0;border-radius:7px;padding:7px;font-size:11px}
-.delete-chat:hover{background:#3a1c28;color:#ff9bac}
-.sidebar-foot{margin-top:auto;padding:12px 7px 0;border-top:1px solid var(--border);font-size:11px;line-height:1.7;color:var(--muted)}
-.main{position:relative;min-width:0;height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:rgba(9,11,18,.58)}
-.topbar{flex:0 0 70px;height:70px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 24px;border-bottom:1px solid var(--border);background:rgba(11,13,21,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);position:relative;z-index:3}
-.top-title{font-size:14px;font-weight:850}
-.gradient{background:linear-gradient(90deg,#b0a5ff,var(--b));background-clip:text;color:transparent}
-.status{font-size:11px;color:var(--muted);white-space:nowrap}
-.dot{display:inline-block;width:7px;height:7px;background:var(--b);border-radius:50%;margin-right:6px;box-shadow:0 0 9px var(--b)}
-.menu{display:none;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px}
-.chat{position:relative;width:100%;max-width:1050px;margin:0 auto;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:30px 24px 35px;z-index:1;scrollbar-width:thin;scrollbar-color:#3d4260 transparent}
-.welcome{text-align:center;padding:55px 12px 32px}
-.hero{width:74px;height:74px;margin:0 auto 20px;border-radius:24px;display:grid;place-items:center;font-size:37px;background:linear-gradient(135deg,var(--a),var(--b));box-shadow:0 0 30px #42d9c855}
-.welcome h1{font-size:clamp(28px,4vw,42px);margin:0 0 12px}
-.welcome p{max-width:560px;margin:0 auto;color:var(--muted);line-height:1.7}
-.message{display:flex;gap:12px;margin:24px 0;align-items:flex-start}
-.avatar{width:34px;height:34px;flex:0 0 34px;border-radius:11px;background:var(--panel2);border:1px solid var(--border);display:grid;place-items:center;font-size:11px;font-weight:850}
-.message.user .avatar{background:#292346;border-color:#4d447d}
-.message-content{flex:1;min-width:0;padding:12px 14px 13px;line-height:1.75;overflow-wrap:anywhere}
-.message-role{font-size:12px;font-weight:800;margin-bottom:4px;color:#c9c4ff}
-.message.user .message-role{color:#8fe9dd}
-.message-text{white-space:pre-wrap;overflow-wrap:anywhere}
-.message.assistant .message-content{position:relative;border:1px solid transparent;border-radius:14px;background:linear-gradient(rgba(13,17,27,.88),rgba(13,17,27,.88)) padding-box,linear-gradient(120deg,#8174ff,#39dccc,#8174ff) border-box;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 0 10px #8174ff20,0 0 18px #39dccc12}
-.provider-line{display:block;margin:5px 0 9px;font-size:10px;line-height:1.4;color:#8f9bb5;letter-spacing:.15px}
-.provider-line:before{content:"●";color:var(--b);font-size:8px;margin-right:6px}
-.read-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:8px}
-.read-row .provider-line{display:inline-block;margin:0}
-.read-button{border:1px solid var(--border);background:rgba(23,27,40,.8);backdrop-filter:blur(18px);color:var(--text);border-radius:9px;padding:7px 10px;font-size:12px}
-.read-button:hover{border-color:var(--a);box-shadow:0 0 10px #8174ff25}
-.attachment-list{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-.attachment-chip{font-size:11px;color:#c9d1e6;border:1px solid var(--border);border-radius:8px;padding:6px 8px}
-.attachment-img{max-width:100%;max-height:250px;border-radius:8px;margin-top:8px;border:1px solid var(--border)}
-.typing-label{display:flex;align-items:center;gap:4px;color:#c9c4ff;font-size:12px;font-weight:700}
-.typing-dots{display:inline-flex;gap:4px;align-items:center;margin-left:3px}
-.typing-dots span{width:5px;height:5px;border-radius:50%;background:var(--b);box-shadow:0 0 6px var(--b);animation:typingPulse 1s infinite ease-in-out}
-.typing-dots span:nth-child(2){animation-delay:.15s}.typing-dots span:nth-child(3){animation-delay:.3s}
-@keyframes typingPulse{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
-.composer-wrap{position:relative;flex:0 0 auto;padding:12px 20px 10px;background:linear-gradient(0deg,rgba(9,11,18,.97),rgba(9,11,18,.68));z-index:2}
-.composer{max-width:850px;margin:0 auto;padding:12px;border:1px solid #383d54;border-radius:18px;background:rgba(18,21,33,.76);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 12px 55px #0007}
-.composer:focus-within{border-color:#7770ba;box-shadow:0 0 18px #8174ff20}
-#prompt{width:100%;min-height:55px;max-height:180px;resize:vertical;border:0;outline:0;color:var(--text);background:transparent;padding:7px 9px;line-height:1.6}
-#prompt::placeholder{color:#788197}
-.composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:5px 3px 0}
-.tools,.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.tool{border:1px solid var(--border);border-radius:9px;padding:8px 10px;background:rgba(23,27,40,.8);backdrop-filter:blur(18px);color:var(--text);font-size:12px}
-.send{border:0;border-radius:11px;padding:11px 17px;color:#080b12;background:linear-gradient(135deg,#b0a5ff,#55e2d2);font-weight:850}
-.send:hover{box-shadow:0 0 18px #42d9c855}
-/* MODEL SELECTOR STYLES */
-.model-selector{display:flex;gap:6px;margin-top:10px;margin-bottom:5px;justify-content:center;flex-wrap:wrap}
-.model-btn{flex:1;min-width:100px;max-width:140px;padding:8px;border-radius:10px;border:1px solid var(--border);background:rgba(16,19,29,.7);color:var(--muted);font-size:11px;text-align:center;transition:all .3s}
-.model-btn.active{border-color:var(--b);color:var(--b);background:rgba(66,217,200,.05);box-shadow:0 0 15px rgba(66,217,200,.15)}
-.model-btn strong{display:block;font-size:12px;margin-bottom:2px}
-body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;white-space:nowrap;font-size:clamp(48px,10vw,150px);font-weight:950;letter-spacing:.08em;color:rgba(165,175,220,.035);transform:rotate(-18deg)}
-@media(max-width:760px){
-.app{grid-template-columns:1fr}
-.sidebar{display:none;position:fixed;z-index:10;inset:0 auto 0 0;width:min(86vw,300px);height:100dvh;padding:16px 13px}
-.sidebar.open{display:flex}
-.menu{display:block}
-.composer-wrap{padding:8px 8px max(8px,env(safe-area-inset-bottom))}
-.model-selector{flex-direction:column;gap:5px}
-.model-btn{max-width:100%}
+:root {
+  color-scheme: dark;
+  --bg: #05070a;
+  --glass-bg: rgba(20, 25, 40, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --text: #f3f5fb;
+  --muted: #98a2b7;
+  --accent: #8b7cff;
+  --accent2: #42d9c8;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh;
+  background: radial-gradient(circle at 50% -20%, #1a1f35 0%, var(--bg) 70%);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+button, textarea, input { font: inherit; }
+button { cursor: pointer; transition: all 0.3s ease; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* --- GLASSMORPHISM STYLES --- */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.app { height: 100dvh; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
+.sidebar { height: 100dvh; padding: 24px 20px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid var(--glass-border); }
+.brand { display: flex; align-items: center; gap: 12px; padding-bottom: 15px; }
+/* GALAXY GLOWING LOGO */
+.brand-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #42d9c8, #8b7cff, #05070a);
+  box-shadow: 0 0 30px #8b7cff, 0 0 60px #42d9c8, inset 0 0 15px rgba(255,255,255,0.8);
+  animation: pulseGlow 3s infinite alternate;
+  display: grid; place-items: center; font-weight: 900; font-size: 24px; color: #fff;
+}
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 20px #8b7cff, 0 0 50px #42d9c8, inset 0 0 10px rgba(255,255,255,0.6); transform: scale(1); }
+  100% { box-shadow: 0 0 40px #8b7cff, 0 0 80px #42d9c8, inset 0 0 20px rgba(255,255,255,1); transform: scale(1.05); }
+}
+.brand-name { font-weight: 850; font-size: 16px; letter-spacing: 0.5px; }
+.brand-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.new-chat, .nav-button { width: 100%; padding: 14px; border-radius: 14px; color: var(--text); text-align: left; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); }
+.new-chat:hover, .nav-button:hover { background: rgba(255,255,255,0.08); border-color: var(--accent); box-shadow: 0 0 15px rgba(139,124,255,0.2); }
+.side-label { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-top: 10px; }
+.history { display: flex; flex-direction: column; gap: 8px; max-height: 40vh; overflow-y: auto; }
+.history-row { display: flex; align-items: center; gap: 6px; border-radius: 10px; }
+.history-row.active { background: rgba(139,124,255,0.15); border: 1px solid rgba(139,124,255,0.3); }
+.history-open { flex: 1; text-align: left; border: 0; background: transparent; color: #cbd2e4; padding: 12px 10px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.delete-chat { border: 0; background: transparent; color: #a4abc0; padding: 8px; font-size: 14px; border-radius: 8px; }
+.delete-chat:hover { background: rgba(255,0,0,0.2); color: #ff9bac; }
+.sidebar-foot { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--glass-border); font-size: 11px; color: var(--muted); line-height: 1.6; }
+.main { position: relative; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; border-bottom: 1px solid var(--glass-border); background: rgba(5,7,10,0.5); backdrop-filter: blur(10px); z-index: 10; }
+.top-title { font-size: 14px; font-weight: 850; letter-spacing: 0.5px; }
+.gradient { background: linear-gradient(90deg, #b0a5ff, var(--accent2)); background-clip: text; color: transparent; }
+.status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; background: var(--accent2); border-radius: 50%; box-shadow: 0 0 10px var(--accent2); animation: pulseDot 2s infinite; }
+@keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.menu { display: none; background: transparent; border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text); padding: 8px 12px; }
+.chat { flex: 1; overflow-y: auto; padding: 30px 24px; display: flex; flex-direction: column; align-items: center; }
+.chat > * { width: 100%; max-width: 850px; }
+.welcome { text-align: center; padding: 60px 0 40px; }
+.welcome h1 { font-size: clamp(28px, 4vw, 42px); margin: 0 0 15px; font-weight: 800; }
+.welcome p { color: var(--muted); line-height: 1.7; max-width: 600px; margin: 0 auto; font-size: 15px; }
+.message { display: flex; gap: 16px; margin: 24px 0; align-items: flex-start; }
+.avatar { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+.message.user .avatar { background: rgba(139,124,255,0.2); border-color: rgba(139,124,255,0.4); }
+.message-content { flex: 1; padding: 16px 20px; border-radius: 16px; line-height: 1.75; font-size: 15px; background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--glass-border); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+.message.user .message-content { background: rgba(139,124,255,0.05); border-color: rgba(139,124,255,0.2); }
+.message-role { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: #c9c4ff; text-transform: uppercase; letter-spacing: 0.5px; }
+.message.user .message-role { color: #8fe9dd; }
+.message-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.provider-line { font-size: 10px; color: #8f9bb5; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.provider-line::before { content: "●"; color: var(--accent2); font-size: 8px; }
+.read-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.read-button { border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: var(--text); border-radius: 10px; padding: 8px 14px; font-size: 12px; }
+.read-button:hover { background: rgba(255,255,255,0.1); border-color: var(--accent); }
+.attachment-list { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.attachment-chip { font-size: 11px; color: #c9d1e6; border: 1px solid var(--glass-border); border-radius: 8px; padding: 6px 10px; background: rgba(255,255,255,0.03); }
+.attachment-img { max-width: 100%; max-height: 250px; border-radius: 12px; margin-top: 12px; border: 1px solid var(--glass-border); }
+.typing-label { display: flex; align-items: center; gap: 6px; color: #c9c4ff; font-size: 13px; font-weight: 700; }
+.typing-dots { display: inline-flex; gap: 4px; }
+.typing-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); box-shadow: 0 0 8px var(--accent2); animation: typingPulse 1s infinite ease-in-out; }
+.typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typingPulse { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-5px); } }
+.composer-wrap { padding: 20px 24px 30px; background: linear-gradient(0deg, var(--bg) 0%, transparent 100%); z-index: 10; display: flex; justify-content: center; }
+.composer { width: 100%; max-width: 850px; padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 12px; }
+#prompt { width: 100%; min-height: 60px; max-height: 200px; resize: vertical; border: 0; outline: 0; color: var(--text); background: transparent; padding: 8px 12px; line-height: 1.6; font-size: 15px; }
+#prompt::placeholder { color: #6b7385; }
+.composer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--glass-border); }
+.tools, .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tool { border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px 14px; background: rgba(255,255,255,0.03); color: var(--text); font-size: 12px; }
+.tool:hover { background: rgba(255,255,255,0.08); border-color: var(--accent); }
+.send { border: 0; border-radius: 12px; padding: 12px 24px; color: #05070a; background: linear-gradient(135deg, #b0a5ff, #55e2d2); font-weight: 850; font-size: 14px; }
+.send:hover { box-shadow: 0 0 20px rgba(85,226,210,0.4); transform: translateY(-2px); }
+/* SELECT DROPDOWN STYLES */
+.engine-select { padding: 10px 14px; border-radius: 12px; background: rgba(20, 25, 40, 0.8); border: 1px solid var(--glass-border); color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
+.engine-select option { background: #10131d; color: #fff; }
+.toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.toggle-label input { accent-color: var(--accent2); width: 16px; height: 16px; }
+@media (max-width: 768px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { display: none; position: fixed; z-index: 50; width: 280px; height: 100dvh; background: var(--bg); }
+  .sidebar.open { display: flex; }
+  .menu { display: block; }
+  .composer-wrap { padding: 12px; }
+  .composer { padding: 12px; }
+  .composer-bottom { flex-direction: column; align-items: stretch; }
+  .tools, .actions { justify-content: space-between; }
 }
 </style>
 </head>
 <body>
 <div class="app">
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar glass" id="sidebar">
   <div class="brand">
     <div class="brand-icon">✦</div>
     <div><div class="brand-name">IMACHUI GEN AI</div><div class="brand-sub">by Imachui · King AI</div></div>
   </div>
-  <button class="new-chat" id="newChat" type="button">＋ New conversation</button>
+  <button class="new-chat" id="newChat" type="button">＋ New Conversation</button>
   <div class="side-label">Workspace</div>
   <button class="nav-button" id="chatNav" type="button">✦ Ask King AI</button>
-  <div class="history-head"><div class="side-label">Recent conversations</div><button class="clear-all" id="clearAll" type="button">Clear all</button></div>
+  <div class="side-label" style="margin-top: 10px;">Recent Conversations</div>
   <div class="history" id="history"></div>
   <div class="sidebar-foot">Imachui Gen AI by Imachui<br>One workspace for conversations.</div>
 </aside>
 
 <main class="main">
-<header class="topbar">
+<header class="topbar glass">
   <button class="menu" id="menuButton" type="button" aria-label="Open menu">☰</button>
   <div class="top-title">IMACHUI GEN AI <span class="gradient">/ KING AI</span></div>
-  <div class="status"><span class="dot"></span>Multi-Provider Workspace</div>
+  <div class="status"><span class="dot"></span>Multi-Provider Engine</div>
 </header>
 
 <section class="chat" id="chat">
   <div class="welcome" id="welcome">
-    <div class="hero">✦</div>
+    <div class="brand-icon" style="margin: 0 auto 20px; width: 80px; height: 80px; font-size: 40px;">✦</div>
     <h1>Welcome to <span class="gradient">Imachui Gen AI</span></h1>
-    <p>Ask questions, attach images, and choose your AI provider. Each provider has different strengths — try them all!</p>
+    <p>Ask questions, attach images, and choose your AI engine. Combine all providers for the best answer, or pick a specific one.</p>
   </div>
   <div id="messages" aria-live="polite"></div>
 </section>
 
 <div class="composer-wrap">
-<form class="composer" id="composer">
-  <textarea id="prompt" rows="2" placeholder="Message King AI... (Pwede mag-paste ng larawan dito)" aria-label="Message King AI" maxlength="12000"></textarea>
+<form class="composer glass" id="composer">
+  <textarea id="prompt" rows="2" placeholder="Message Imachui Gen AI..." aria-label="Message" maxlength="12000"></textarea>
   
-  <!-- MODEL SELECTOR: 4 PROVIDERS -->
-  <div class="model-selector" id="modelSelector">
-    <button type="button" class="model-btn active" data-mode="gemini"><strong>Gemini</strong>Multimodal</button>
-    <button type="button" class="model-btn" data-mode="nvidia"><strong>NVIDIA NIM</strong>Fast AI</button>
-    <button type="button" class="model-btn" data-mode="openrouter"><strong>OpenRouter</strong>Free Models</button>
-    <button type="button" class="model-btn" data-mode="deepseek"><strong>DeepSeek</strong>Logic & Code</button>
-  </div>
-
   <div id="attachments" class="attachment-list"></div>
+  
   <div class="composer-bottom">
     <div class="tools">
-      <button class="tool" id="attachButton" type="button">＋ Attach files</button>
-      <input class="file-input" id="fileInput" type="file" multiple accept="image/*">
-      <button class="tool" id="micButton" type="button">🎙 Mic</button>
-      <span id="voiceStatus" class="voice-status">Voice ready</span>
+      <button class="tool" id="attachButton" type="button">＋ Attach Images</button>
+      <input class="file-input" id="fileInput" type="file" multiple accept="image/*" style="display:none;">
+      <button class="tool" id="micButton" type="button">🎙️ Mic</button>
+      <label class="toggle-label">
+        <input type="checkbox" id="autoReadToggle" checked> Auto-Read AI
+      </label>
     </div>
     <div class="actions">
-      <span class="hint">Enter to send</span>
+      <select class="engine-select" id="engineSelect">
+        <option value="combine" selected>🌟 Combine All (Best)</option>
+        <option value="gemini">✨ Gemini (Multimodal)</option>
+        <option value="nvidia">⚡ NVIDIA NIM (Fast)</option>
+        <option value="openrouter">🌐 OpenRouter (Free)</option>
+        <option value="deepseek">🧠 DeepSeek (Logic & Code)</option>
+      </select>
       <button class="send" id="sendButton" type="submit">Send ↑</button>
     </div>
   </div>
@@ -156,7 +195,7 @@ const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-const STORAGE_KEY = 'imachui_gen_ai_chats_v12';
+const STORAGE_KEY = 'imachui_gen_ai_chats_v13';
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
@@ -169,8 +208,8 @@ const sendButton = $('sendButton');
 const fileInput = $('fileInput');
 const attachmentsElement = $('attachments');
 const micButton = $('micButton');
-const voiceStatus = $('voiceStatus');
-const modelSelector = $('modelSelector');
+const engineSelect = $('engineSelect');
+const autoReadToggle = $('autoReadToggle');
 
 let chats = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 let activeChatId = null;
@@ -179,27 +218,102 @@ let busy = false;
 let selectedFiles = [];
 let recognition = null;
 let listening = false;
-let selectedMode = 'gemini'; // Default mode
+let selectedMode = 'combine';
 
-// PROVIDER DISPLAY NAMES
-const PROVIDER_NAMES = {
-  gemini: 'Google Gemini',
-  nvidia: 'NVIDIA NIM',
-  openrouter: 'OpenRouter',
-  deepseek: 'DeepSeek'
-};
+// --- VOICE SYNTHESIS (AI Voice) ---
+const synth = window.speechSynthesis;
 
-// MODEL SELECTOR LOGIC
-modelSelector.addEventListener('click', (e) => {
-  const btn = e.target.closest('.model-btn');
-  if (!btn) return;
-  document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  selectedMode = btn.dataset.mode;
+function speakText(text) {
+  if (!synth) return;
+  synth.cancel(); // Stop any ongoing speech
+
+  // Clean markdown and special characters for better speech
+  const cleanText = text
+    .replace(/```[\s\S]*?```/g, ' Code block omitted. ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/https?:\/\/\S+/g, ' link ')
+    .replace(/[*_#>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleanText) return;
+
+  const utterance = new SpeechSynthesisUtterance(cleanText.slice(0, 12000)); // Limit length to prevent crash
+  utterance.lang = 'en-US';
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+
+  // Try to select a good voice (prefer English/Filipino female voices if available)
+  const voices = synth.getVoices();
+  const preferredVoice = voices.find(v => /en-(US|GB)|fil-PH/i.test(v.lang) && /female|zira|samantha|aria|jenny/i.test(v.name)) || voices.find(v => /en-(US|GB)|fil-PH/i.test(v.lang));
+  if (preferredVoice) utterance.voice = preferredVoice;
+
+  synth.speak(utterance);
+}
+
+// --- SPEECH RECOGNITION (Mic) ---
+function startListening() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Your browser does not support Speech Recognition. Try Chrome or Edge.");
+    return;
+  }
+
+  if (listening) {
+    recognition.stop();
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-US'; // You can change this to 'fil-PH' if you want Tagalog input
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    listening = true;
+    micButton.textContent = '⏹️ Stop';
+    micButton.style.borderColor = '#ff8d9a';
+    micButton.style.color = '#ff8d9a';
+  };
+
+  recognition.onresult = (event) => {
+    let finalTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      }
+    }
+    if (finalTranscript) {
+      promptInput.value = finalTranscript;
+    }
+  };
+
+  recognition.onerror = (event) => {
+    console.error("Speech recognition error:", event.error);
+    listening = false;
+    micButton.textContent = '🎙️ Mic';
+    micButton.style.borderColor = '';
+    micButton.style.color = '';
+  };
+
+  recognition.onend = () => {
+    listening = false;
+    micButton.textContent = '🎙️ Mic';
+    micButton.style.borderColor = '';
+    micButton.style.color = '';
+  };
+
+  recognition.start();
+}
+
+micButton.addEventListener('click', startListening);
+
+// --- UI LOGIC ---
+engineSelect.addEventListener('change', (e) => {
+  selectedMode = e.target.value;
 });
 
 function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-
 function activeChat() { return chats.find(chat => chat.id === activeChatId); }
 
 function saveChats() {
@@ -263,7 +377,7 @@ function addMessage(role, content, options = {}) {
   article.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
   const avatar = document.createElement('div');
   avatar.className = 'avatar';
-  avatar.textContent = role === 'user' ? 'YOU' : 'G';
+  avatar.textContent = role === 'user' ? 'YOU' : 'AI';
   const body = document.createElement('div');
   body.className = 'message-content';
   
@@ -275,7 +389,8 @@ function addMessage(role, content, options = {}) {
   if (role === 'assistant') {
     const provider = document.createElement('div');
     provider.className = 'provider-line';
-    provider.textContent = 'Provider: ' + (PROVIDER_NAMES[selectedMode] || selectedMode);
+    const providerName = selectedMode === 'combine' ? 'Combined AI Engines' : selectedMode.charAt(0).toUpperCase() + selectedMode.slice(1);
+    provider.textContent = 'Engine: ' + providerName;
     body.append(provider);
   }
 
@@ -422,6 +537,11 @@ async function sendMessage(raw) {
     }
 
     if (!fullAnswer.trim()) throw new Error('The AI returned an empty answer.');
+
+    // AUTO-READ AI RESPONSE
+    if (autoReadToggle.checked) {
+      speakText(fullAnswer);
+    }
 
     currentMessages.push({role: 'assistant', content: fullAnswer});
     if (chat) { chat.messages.push({role: 'assistant', content: fullAnswer}); chat.updated = Date.now(); saveChats(); }
