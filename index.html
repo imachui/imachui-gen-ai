@@ -307,7 +307,8 @@ function openChat(chatId) {
     if (Array.isArray(message.content)) {
       const textPart = message.content.find(c => c.type === 'text');
       displayContent = textPart ? textPart.text : '';
-      imageUrls = message.content.filter(c => c.type === 'image_url').map(c => c.image_url.url);
+      // Inayos ang pag-filter para sa 'image' type
+      imageUrls = message.content.filter(c => c.type === 'image').map(c => c.image);
     }
     addMessage(message.role, displayContent, { images: imageUrls });
   });
@@ -545,31 +546,35 @@ function speakText(text, button) {
     setVoice('Read aloud not supported.');
     return;
   }
-  window.speechSynthesis.cancel();
-  document.querySelectorAll('.read-button').forEach(item => {
-    item.textContent = '🔊 Read aloud';
-  });
+  try {
+    window.speechSynthesis.cancel();
+    document.querySelectorAll('.read-button').forEach(item => {
+      item.textContent = '🔊 Read aloud';
+    });
 
-  const utterance = new SpeechSynthesisUtterance(stripForSpeech(text).slice(0, 12000));
-  utterance.lang = 'fil-PH';
-  utterance.rate = 0.92;
-  utterance.pitch = 1.08;
-  const voice = selectVoice();
-  if (voice) {
-    utterance.voice = voice;
-    utterance.lang = voice.lang || 'fil-PH';
+    const utterance = new SpeechSynthesisUtterance(stripForSpeech(text).slice(0, 12000));
+    utterance.lang = 'fil-PH';
+    utterance.rate = 0.92;
+    utterance.pitch = 1.08;
+    const voice = selectVoice();
+    if (voice) {
+      utterance.voice = voice;
+      utterance.lang = voice.lang || 'fil-PH';
+    }
+    if (button) button.textContent = '■ Stop reading';
+    utterance.onend = () => {
+      if (button) button.textContent = button.id === 'readConversation' ? '🔊 Read conversation' : '🔊 Read aloud';
+      setVoice('Voice ready.');
+    };
+    utterance.onerror = () => {
+      if (button) button.textContent = button.id === 'readConversation' ? '🔊 Read conversation' : '🔊 Read aloud';
+      setVoice('Could not play voice. Check device speech settings.');
+    };
+    utterance.onstart = () => setVoice('Reading aloud…');
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    setVoice('Could not play voice. Check device speech settings.');
   }
-  if (button) button.textContent = '■ Stop reading';
-  utterance.onend = () => {
-    if (button) button.textContent = button.id === 'readConversation' ? '🔊 Read conversation' : '🔊 Read aloud';
-    setVoice('Voice ready.');
-  };
-  utterance.onerror = () => {
-    if (button) button.textContent = button.id === 'readConversation' ? '🔊 Read conversation' : '🔊 Read aloud';
-    setVoice('Could not play voice.');
-  };
-  utterance.onstart = () => setVoice('Reading aloud…');
-  window.speechSynthesis.speak(utterance);
 }
 
 function readConversation() {
@@ -627,19 +632,18 @@ fileInput.addEventListener('change', () => {
   fileInput.value = '';
 });
 
-// BAGONG DIRECT PASTE FEATURE (Ctrl+V)
+// DIRECT PASTE FEATURE (Ctrl+V)
 promptInput.addEventListener('paste', (event) => {
   const items = (event.clipboardData || event.originalEvent.clipboardData).items;
   for (const item of items) {
     if (item.type.indexOf('image') === 0) {
       const blob = item.getAsFile();
       if (blob) {
-        // Gumawa ng pekeng File object para magkaroon ng pangalan
         const file = new File([blob], `pasted_image_${Date.now()}.png`, { type: blob.type });
         selectedFiles.push(file);
         if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
         renderAttachments();
-        event.preventDefault(); // Pigilan ang pag-paste ng image bilang text
+        event.preventDefault();
         setVoice('Image pasted! Click Send to analyze.');
       }
     }
@@ -700,9 +704,10 @@ async function sendMessage(raw) {
     try {
       const extracted = await extractFile(file);
       if (extracted.type === 'image') {
+        // GINAMIT NA NATIN ANG TAMANG FORMAT: type: 'image', image: data
         messageContent.push({ 
-          type: 'image_url', 
-          image_url: { url: extracted.data } 
+          type: 'image', 
+          image: extracted.data 
         });
       } else {
         messageContent.push({ 
@@ -720,7 +725,8 @@ async function sendMessage(raw) {
   }
 
   const displayText = text || 'Please review my attachment(s).';
-  const imageUrls = messageContent.filter(c => c.type === 'image_url').map(c => c.image_url.url);
+  // Inayos ang pagkuha ng imageUrls para sa display
+  const imageUrls = messageContent.filter(c => c.type === 'image').map(c => c.image);
   const fileNames = fileSnapshot.map(f => ({ name: f.name }));
 
   addMessage('user', displayText, { images: imageUrls, files: fileNames });
