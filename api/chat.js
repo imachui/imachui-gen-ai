@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (4 Providers: Gemini, NVIDIA, OpenRouter, DeepSeek)
+// api/chat.js - Imachui Gen AI (4 Providers with Auto-Fallback)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
-  // --- PROVIDER CONFIGURATIONS (4 Available Providers) ---
+  // --- PROVIDER CONFIGURATIONS (FIXED MODEL NAMES) ---
   const providers = {
     gemini: {
       client: createOpenAI({
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
         apiKey: process.env.GEMINI_API_KEY,
         headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
       }),
-      model: 'gemini-3.8-flash'
+      model: 'gemini-1.5-flash' // Tamang model name
     },
     nvidia: {
       client: createOpenAI({
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
         apiKey: process.env.NVIDIA_API_KEY,
         headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
       }),
-      model: 'nvidia/nemotron-3-ultra-550b-a55b'
+      model: 'meta/llama-3.1-8b-instruct' // Mas mabilis at stable na modelo
     },
     openrouter: {
       client: createOpenAI({
@@ -97,39 +97,37 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Unknown mode: ${mode}` });
   }
 
+  // Helper function para sa streaming at empty check
+  async function streamAndCheck(client, model, messages, res) {
+    const result = await streamText({ model: client(model), messages });
+    let hasData = false;
+    for await (const chunk of result.textStream) {
+      hasData = true;
+      res.write(chunk);
+    }
+    // Kung walang data na dumating, i-throw ang error para mag-fallback
+    if (!hasData) throw new Error("Empty stream from provider");
+  }
+
   try {
     console.log(`[Imachui] ${mode} mode selected`);
 
-    const result = await streamText({
-      model: provider.client(provider.model),
-      messages: incomingMessages
-    });
-
-    for await (const chunk of result.textStream) {
-      res.write(chunk);
-    }
+    await streamAndCheck(provider.client, provider.model, incomingMessages, res);
     return res.end();
 
   } catch (error) {
     console.error(`[Imachui] ${mode} failed, falling back to DeepSeek. Error:`, error.message);
-    res.write(`[System Note: ${mode} is unavailable. Falling back to DeepSeek...]\n\n`);
+    res.write(`[System Note: ${mode} is currently unavailable. Falling back to DeepSeek...]\n\n`);
 
-    // Fallback to DeepSeek if the selected provider fails
     try {
-      const fallbackResult = await streamText({
-        model: providers.deepseek.client(providers.deepseek.model),
-        messages: incomingMessages
-      });
-      for await (const chunk of fallbackResult.textStream) {
-        res.write(chunk);
-      }
+      await streamAndCheck(providers.deepseek.client, providers.deepseek.model, incomingMessages, res);
       return res.end();
     } catch (fallbackError) {
       console.error("[Imachui] DeepSeek fallback also failed:", fallbackError.message);
       if (!res.headersSent) {
         return res.status(502).json({ error: `All providers failed: ${fallbackError.message}` });
       }
-      res.write(`\n\n[System Error: All providers failed.]`);
+      res.write(`\n\n[System Error: All providers failed. Please try again later.]`);
       return res.end();
     }
   }
