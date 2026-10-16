@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI by Imachui (Multimodal Fixed)
+// api/chat.js - Imachui Gen AI by Imachui (Foolproof Multimodal Fix)
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
@@ -21,6 +21,7 @@ function setCors(req, res) {
 function normalizeMessages(body) {
   const incoming = Array.isArray(body.messages) ? body.messages : [];
   
+  // Ito ang magic: kinukuha natin ang messages at kinoconvert ang lumang image_url format
   const messages = incoming
     .filter(m =>
       m &&
@@ -28,10 +29,26 @@ function normalizeMessages(body) {
       (typeof m.content === "string" || Array.isArray(m.content))
     )
     .slice(-50) 
-    .map(m => ({
-      role: m.role,
-      content: m.content 
-    }));
+    .map(m => {
+      let content = m.content;
+      
+      // Kung array (multimodal), i-convert ang lumang image_url format
+      if (Array.isArray(content)) {
+        content = content.map(item => {
+          // Tanggapin ang LUMANG format mula sa browser cache
+          if (item.type === 'image_url') {
+            const url = item.image_url?.url || item.image_url;
+            return { type: 'image', image: url }; // I-convert sa tamang format
+          }
+          return item;
+        });
+      }
+      
+      return {
+        role: m.role,
+        content: content 
+      };
+    });
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (message) {
