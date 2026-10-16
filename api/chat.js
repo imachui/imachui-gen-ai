@@ -1,21 +1,12 @@
-// api/chat.js - Imachui Gen AI (Automatic Combine All + Identity Prompt)
+// api/chat.js - Imachui Gen AI (Universal CORS + Automatic Combine All)
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText, streamText } from 'ai';
 
 export const maxDuration = 60;
 
-const ALLOWED_ORIGINS = new Set([
-  "https://imachui.github.io",
-  "https://imachui-gen-ai.vercel.app",
-  "http://localhost:3000"
-]);
-
+// PAYAGAN ANG LAHAT NG ORIGINS para gumana sa Messenger, Facebook, at iba pa
 function setCors(req, res) {
-  const origin = req.headers.origin;
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-  res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -54,7 +45,6 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
-  // --- PROVIDER CONFIGURATIONS ---
   const providers = {
     gemini: {
       client: createOpenAI({
@@ -90,7 +80,6 @@ export default async function handler(req, res) {
     }
   };
 
-  // --- AUTOMATIC COMBINE ALL MODE ---
   console.log("[Imachui] Automatic Combined Mode Started");
 
   const [gemini, nvidia, openrouter, deepseek] = await Promise.allSettled([
@@ -105,7 +94,7 @@ export default async function handler(req, res) {
     nvidia.status === 'fulfilled' ? nvidia.value.text : null,
     openrouter.status === 'fulfilled' ? openrouter.value.text : null,
     deepseek.status === 'fulfilled' ? deepseek.value.text : null
-  ].filter(Boolean); 
+  ].filter(Boolean);
 
   if (!answers.length) {
     return res.status(502).json({ error: "All providers failed. Please check your API keys or try again later." });
