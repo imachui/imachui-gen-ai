@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Simplified Single-Model Selection)
+// api/chat.js - Imachui Gen AI (Debugging OpenAI Error)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -52,7 +52,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Missing API keys in Vercel Environment Variables." });
   }
 
-  // Kunin ang napiling mode mula sa frontend (chatgpt o deepseek)
   const mode = req.body?.mode || 'chatgpt';
   const incomingMessages = normalizeMessages(req.body || {});
 
@@ -67,12 +66,21 @@ export default async function handler(req, res) {
     if (mode === 'chatgpt') {
       console.log("[Imachui] ChatGPT mode selected");
       const openai = createOpenAI({ apiKey: openaiKey });
-      const result = await streamText({ 
-        model: openai('gpt-4o-mini'), 
-        messages: incomingMessages 
-      });
-      for await (const chunk of result.textStream) res.write(chunk);
-      return res.end();
+      
+      try {
+        const result = await streamText({ 
+          model: openai('gpt-4o-mini'), 
+          messages: incomingMessages 
+        });
+        for await (const chunk of result.textStream) res.write(chunk);
+        return res.end();
+      } catch (gptError) {
+        // Dito natin mahuhuli ang aktwal na error ng OpenAI
+        console.error("[Imachui] ChatGPT API Error Details:", gptError);
+        const errorMessage = gptError?.message || "Unknown ChatGPT error";
+        res.write(`Chat error: Hindi makapag-generate ng sagot si ChatGPT. Detalye: ${errorMessage.slice(0, 200)}`);
+        return res.end();
+      }
     }
 
     if (mode === 'deepseek') {
@@ -89,7 +97,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid mode selected." });
 
   } catch (error) {
-    console.error("[Imachui] Error:", String(error?.message || error).slice(0, 300));
+    console.error("[Imachui] Global Error:", String(error?.message || error).slice(0, 300));
     if (!res.headersSent) {
       return res.status(502).json({ error: `Chat error: ${String(error?.message || error).slice(0, 300)}` });
     } else {
