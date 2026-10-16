@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090b12">
 <title>Imachui Gen AI — King AI</title>
-<script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
 :root{color-scheme:dark;--bg:#090b12;--panel:#10131d;--panel2:#171b28;--border:#292f42;--text:#f3f5fb;--muted:#98a2b7;--a:#8b7cff;--b:#42d9c8;--danger:#ff8d9a}
 *{box-sizing:border-box}
@@ -70,7 +69,6 @@ button,textarea,input{font:inherit}button{cursor:pointer}button:disabled{opacity
 .composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:5px 3px 0}
 .tools,.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tool{border:1px solid var(--border);border-radius:9px;padding:8px 10px;background:rgba(23,27,40,.8);backdrop-filter:blur(18px);color:var(--text);font-size:12px}
-.tool.active{border-color:var(--b);color:var(--b);box-shadow:0 0 12px #42d9c833}
 .send{border:0;border-radius:11px;padding:11px 17px;color:#080b12;background:linear-gradient(135deg,#b0a5ff,#55e2d2);font-weight:850}
 .send:hover{box-shadow:0 0 18px #42d9c855}
 /* MODEL SELECTOR STYLES */
@@ -116,7 +114,7 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
   <div class="welcome" id="welcome">
     <div class="hero">✦</div>
     <h1>Welcome to <span class="gradient">Imachui Gen AI</span></h1>
-    <p>Ask questions, attach images, and let <b>ChatGPT</b> + <b>DeepSeek</b> work together for the best answer.</p>
+    <p>Ask questions, attach images, and choose your AI. <b>ChatGPT</b> for general tasks, <b>DeepSeek</b> for logic and code.</p>
   </div>
   <div id="messages" aria-live="polite"></div>
 </section>
@@ -125,10 +123,9 @@ body:before{content:"IMACHUI GEN AI";position:fixed;z-index:0;inset:0;display:fl
 <form class="composer" id="composer">
   <textarea id="prompt" rows="2" placeholder="Message King AI... (Pwede mag-paste ng larawan dito)" aria-label="Message King AI" maxlength="12000"></textarea>
   
-  <!-- MODEL SELECTOR UI -->
+  <!-- SIMPLIFIED MODEL SELECTOR: CHATGPT OR DEEPSEEK ONLY -->
   <div class="model-selector" id="modelSelector">
-    <button type="button" class="model-btn" data-mode="chatgpt"><strong>ChatGPT</strong>Fast & Creative</button>
-    <button type="button" class="model-btn active" data-mode="combine"><strong>Combine Both</strong>Best Quality</button>
+    <button type="button" class="model-btn active" data-mode="chatgpt"><strong>ChatGPT</strong>Fast & Creative</button>
     <button type="button" class="model-btn" data-mode="deepseek"><strong>DeepSeek</strong>Logic & Code</button>
   </div>
 
@@ -157,7 +154,7 @@ const API_URL = location.hostname === 'imachui.github.io'
   ? 'https://imachui-gen-ai.vercel.app/api/chat'
   : '/api/chat';
 
-const STORAGE_KEY = 'imachui_gen_ai_chats_v6';
+const STORAGE_KEY = 'imachui_gen_ai_chats_v7';
 const $ = id => document.getElementById(id);
 
 const promptInput = $('prompt');
@@ -180,7 +177,7 @@ let busy = false;
 let selectedFiles = [];
 let recognition = null;
 let listening = false;
-let selectedMode = 'combine'; // Default mode
+let selectedMode = 'chatgpt'; // Default mode
 
 // MODEL SELECTOR LOGIC
 modelSelector.addEventListener('click', (e) => {
@@ -191,20 +188,9 @@ modelSelector.addEventListener('click', (e) => {
   selectedMode = btn.dataset.mode;
 });
 
-// ... (Rest of the chat logic: makeId, activeChat, loadChats, saveChats, renderHistory, createChat, openChat, deleteChat, scrollBottom, addMessage) ...
+function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
-function createChat() {
-  const chat = {id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), title: 'New conversation', updated: Date.now(), messages: []};
-  chats.unshift(chat);
-  activeChatId = chat.id;
-  currentMessages = [];
-  messagesElement.replaceChildren();
-  welcomeElement.hidden = false;
-  saveChats();
-  renderHistory();
-  sidebar.classList.remove('open');
-  promptInput.focus();
-}
+function activeChat() { return chats.find(chat => chat.id === activeChatId); }
 
 function saveChats() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); } catch (e) {}
@@ -228,6 +214,16 @@ function renderHistory() {
   });
 }
 
+function createChat() {
+  const chat = {id: makeId(), title: 'New conversation', updated: Date.now(), messages: []};
+  chats.unshift(chat);
+  activeChatId = chat.id;
+  currentMessages = [];
+  messagesElement.replaceChildren();
+  welcomeElement.hidden = false;
+  saveChats(); renderHistory(); sidebar.classList.remove('open'); promptInput.focus();
+}
+
 function openChat(chatId) {
   const chat = chats.find(c => c.id === chatId);
   if (!chat) return;
@@ -236,8 +232,7 @@ function openChat(chatId) {
   messagesElement.replaceChildren();
   welcomeElement.hidden = currentMessages.length > 0;
   currentMessages.forEach(m => addMessage(m.role, Array.isArray(m.content) ? m.content.find(c => c.type === 'text')?.text || '' : m.content));
-  renderHistory();
-  scrollBottom();
+  renderHistory(); sidebar.classList.remove('open'); scrollBottom();
 }
 
 function deleteChat(chatId) {
@@ -270,7 +265,7 @@ function addMessage(role, content, options = {}) {
   if (role === 'assistant') {
     const provider = document.createElement('div');
     provider.className = 'provider-line';
-    provider.textContent = 'Provider: Imachui Gen AI (' + (selectedMode === 'combine' ? 'ChatGPT + DeepSeek' : selectedMode === 'chatgpt' ? 'ChatGPT' : 'DeepSeek') + ')';
+    provider.textContent = 'Provider: ' + (selectedMode === 'chatgpt' ? 'ChatGPT' : 'DeepSeek');
     body.append(provider);
   }
 
@@ -293,7 +288,6 @@ function addMessage(role, content, options = {}) {
   return article;
 }
 
-// Image resize function (kept from previous version)
 function resizeImage(file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -320,7 +314,6 @@ async function extractFile(file) {
   return { type: 'text', data: await file.text() };
 }
 
-// Paste functionality
 promptInput.addEventListener('paste', (event) => {
   const items = (event.clipboardData || event.originalEvent.clipboardData).items;
   for (const item of items) {
@@ -375,7 +368,7 @@ async function sendMessage(raw) {
   addMessage('user', text || 'Please review my attachment(s).', { images: messageContent.filter(c => c.type === 'image').map(c => c.image) });
   currentMessages.push({ role: 'user', content: messageContent });
 
-  const chat = chats.find(c => c.id === activeChatId);
+  const chat = activeChat();
   if (chat) {
     chat.messages.push({ role: 'user', content: messageContent });
     if (chat.title === 'New conversation') chat.title = (text || fileSnapshot[0]?.name || 'Attachment').slice(0, 40);
@@ -395,7 +388,7 @@ async function sendMessage(raw) {
       body: JSON.stringify({
         message: text,
         messages: currentMessages.slice(-20),
-        mode: selectedMode // IPAPADALA ANG NAPILING MODE
+        mode: selectedMode // IPAPADALA ANG NAPILING MODE (chatgpt o deepseek)
       })
     });
 
@@ -407,7 +400,7 @@ async function sendMessage(raw) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let fullAnswer = '';
-    textElement.textContent = ''; // Alisin ang typing indicator
+    textElement.textContent = ''; 
 
     while (true) {
       const { done, value } = await reader.read();
