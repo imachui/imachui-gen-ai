@@ -1,8 +1,7 @@
-// api/chat.js - Imachui Gen AI (Multi-Model Ensemble)
+// api/chat.js - Imachui Gen AI (Multi-Model Ensemble with Detailed Logging)
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText, streamText } from 'ai';
 
-// Napakahalaga para hindi mag-timeout sa Vercel (Hobby plan allows up to 60s)
 export const maxDuration = 60; 
 
 const ALLOWED_ORIGINS = new Set([
@@ -53,39 +52,38 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Missing API keys in Vercel Environment Variables." });
   }
 
-  // Kunin ang mode mula sa frontend (chatgpt, deepseek, o combine)
   const mode = req.body?.mode || 'combine';
   const incomingMessages = normalizeMessages(req.body || {});
-  const userMessage = req.body?.message || "";
 
-  if (!incomingMessages.length && !userMessage) {
+  if (!incomingMessages.length) {
     return res.status(400).json({ error: "Please enter a message first." });
   }
+
+  // I-set ang headers para sa streaming response
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
 
   try {
     const openai = createOpenAI({ apiKey: openaiKey });
     const deepseek = createOpenAI({ baseURL: 'https://api.deepseek.com', apiKey: deepseekKey });
 
-    // I-set ang headers para sa streaming response
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache');
-
     if (mode === 'chatgpt') {
+      console.log("[Imachui] ChatGPT mode selected");
       const result = await streamText({ model: openai('gpt-4o-mini'), messages: incomingMessages });
       for await (const chunk of result.textStream) res.write(chunk);
       return res.end();
     }
 
     if (mode === 'deepseek') {
+      console.log("[Imachui] DeepSeek mode selected");
       const result = await streamText({ model: deepseek('deepseek-chat'), messages: incomingMessages });
       for await (const chunk of result.textStream) res.write(chunk);
       return res.end();
     }
 
     // --- COMBINE BOTH (ENSEMBLE) ---
-    console.log("Starting Ensemble Reasoning...");
+    console.log("[Imachui] Ensemble mode started");
 
-    // 1. Tanungin ang DALAWANG AI nang sabay (Parallel)
     const [gptResult, dsResult] = await Promise.allSettled([
       generateText({ 
         model: openai('gpt-4o-mini'), 
@@ -99,12 +97,12 @@ export default async function handler(req, res) {
       })
     ]);
 
-    const gptAnswer = gptResult.status === 'fulfilled' ? gptResult.value.text : "ChatGPT failed to respond.";
-    const dsAnswer = dsResult.status === 'fulfilled' ? dsResult.value.text : "DeepSeek failed to respond.";
+    const gptAnswer = gptResult.status === 'fulfilled' ? gptResult.value.text : `[ChatGPT Error: ${String(gptResult.reason?.message || gptResult.reason).slice(0, 100)}]`;
+    const dsAnswer = dsResult.status === 'fulfilled' ? dsResult.value.text : `[DeepSeek Error: ${String(dsResult.reason?.message || dsResult.reason).slice(0, 100)}]`;
 
-    console.log("Both AI responded. Starting Synthesis...");
+    console.log("[Imachui] GPT Answer length:", gptAnswer.length);
+    console.log("[Imachui] DeepSeek Answer length:", dsAnswer.length);
 
-    // 2. Pag-isahin ang sagot gamit si ChatGPT bilang "Judge"
     const synthesisPrompt = `
       Ikaw ay isang ekspertong tagahusga (synthesizer). Pag-aralan ang dalawang sagot sa ibaba mula sa dalawang magkaibang AI.
       Gawin mong isang pinagsama-samang, pinakamahusay, at kumpletong sagot ang mga ito.
@@ -121,9 +119,9 @@ export default async function handler(req, res) {
     `;
 
     const finalResult = streamText({
-      model: openai('gpt-4o-mini'), // Mabilis na model para sa synthesis
+      model: openai('gpt-4o-mini'),
       messages: [{ role: 'user', content: synthesisPrompt }],
-      temperature: 0.3, // Mas factual at diretso
+      temperature: 0.3,
     });
 
     for await (const chunk of finalResult.textStream) {
@@ -132,10 +130,11 @@ export default async function handler(req, res) {
     return res.end();
 
   } catch (error) {
-    console.error("Global chat error:", String(error?.message || error).slice(0, 500));
+    console.error("[Imachui] Global Error:", String(error?.message || error).slice(0, 300));
     if (!res.headersSent) {
       return res.status(502).json({ error: `Chat error: ${String(error?.message || error).slice(0, 300)}` });
     } else {
+      res.write(`\n\n[System Error: ${String(error?.message || error).slice(0, 100)}]`);
       res.end();
     }
   }
