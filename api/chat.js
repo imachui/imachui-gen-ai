@@ -1,6 +1,6 @@
-// api/chat.js - Imachui Gen AI (Multi-Model Ensemble with Detailed Logging)
+// api/chat.js - Imachui Gen AI (Simplified Single-Model Selection)
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateText, streamText } from 'ai';
+import { streamText } from 'ai';
 
 export const maxDuration = 60; 
 
@@ -52,85 +52,44 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Missing API keys in Vercel Environment Variables." });
   }
 
-  const mode = req.body?.mode || 'combine';
+  // Kunin ang napiling mode mula sa frontend (chatgpt o deepseek)
+  const mode = req.body?.mode || 'chatgpt';
   const incomingMessages = normalizeMessages(req.body || {});
 
   if (!incomingMessages.length) {
     return res.status(400).json({ error: "Please enter a message first." });
   }
 
-  // I-set ang headers para sa streaming response
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
   try {
-    const openai = createOpenAI({ apiKey: openaiKey });
-    const deepseek = createOpenAI({ baseURL: 'https://api.deepseek.com', apiKey: deepseekKey });
-
     if (mode === 'chatgpt') {
       console.log("[Imachui] ChatGPT mode selected");
-      const result = await streamText({ model: openai('gpt-4o-mini'), messages: incomingMessages });
+      const openai = createOpenAI({ apiKey: openaiKey });
+      const result = await streamText({ 
+        model: openai('gpt-4o-mini'), 
+        messages: incomingMessages 
+      });
       for await (const chunk of result.textStream) res.write(chunk);
       return res.end();
     }
 
     if (mode === 'deepseek') {
       console.log("[Imachui] DeepSeek mode selected");
-      const result = await streamText({ model: deepseek('deepseek-chat'), messages: incomingMessages });
+      const deepseek = createOpenAI({ baseURL: 'https://api.deepseek.com', apiKey: deepseekKey });
+      const result = await streamText({ 
+        model: deepseek('deepseek-chat'), 
+        messages: incomingMessages 
+      });
       for await (const chunk of result.textStream) res.write(chunk);
       return res.end();
     }
 
-    // --- COMBINE BOTH (ENSEMBLE) ---
-    console.log("[Imachui] Ensemble mode started");
-
-    const [gptResult, dsResult] = await Promise.allSettled([
-      generateText({ 
-        model: openai('gpt-4o-mini'), 
-        system: "You are a helpful AI assistant. Answer accurately and concisely.",
-        messages: incomingMessages 
-      }),
-      generateText({ 
-        model: deepseek('deepseek-chat'), 
-        system: "You are a helpful AI assistant. Answer accurately and concisely.",
-        messages: incomingMessages 
-      })
-    ]);
-
-    const gptAnswer = gptResult.status === 'fulfilled' ? gptResult.value.text : `[ChatGPT Error: ${String(gptResult.reason?.message || gptResult.reason).slice(0, 100)}]`;
-    const dsAnswer = dsResult.status === 'fulfilled' ? dsResult.value.text : `[DeepSeek Error: ${String(dsResult.reason?.message || dsResult.reason).slice(0, 100)}]`;
-
-    console.log("[Imachui] GPT Answer length:", gptAnswer.length);
-    console.log("[Imachui] DeepSeek Answer length:", dsAnswer.length);
-
-    const synthesisPrompt = `
-      Ikaw ay isang ekspertong tagahusga (synthesizer). Pag-aralan ang dalawang sagot sa ibaba mula sa dalawang magkaibang AI.
-      Gawin mong isang pinagsama-samang, pinakamahusay, at kumpletong sagot ang mga ito.
-      Alisin ang mga paulit-ulit. Kung may kontradiksyon, piliin ang pinaka-tama at lohikal.
-      Huwag banggitin na may dalawang AI na sumagot, diretso lang sa pinal na sagot.
-
-      --- SAGOT MULA SA CHATGPT ---
-      ${gptAnswer}
-
-      --- SAGOT MULA SA DEEPSEEK ---
-      ${dsAnswer}
-
-      --- PINAGSAMANG SAGOT ---
-    `;
-
-    const finalResult = streamText({
-      model: openai('gpt-4o-mini'),
-      messages: [{ role: 'user', content: synthesisPrompt }],
-      temperature: 0.3,
-    });
-
-    for await (const chunk of finalResult.textStream) {
-      res.write(chunk);
-    }
-    return res.end();
+    return res.status(400).json({ error: "Invalid mode selected." });
 
   } catch (error) {
-    console.error("[Imachui] Global Error:", String(error?.message || error).slice(0, 300));
+    console.error("[Imachui] Error:", String(error?.message || error).slice(0, 300));
     if (!res.headersSent) {
       return res.status(502).json({ error: `Chat error: ${String(error?.message || error).slice(0, 300)}` });
     } else {
