@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI by Imachui (Foolproof Multimodal Fix)
+// api/chat.js - Imachui Gen AI by Imachui (Final Multimodal Fix)
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
@@ -21,7 +21,6 @@ function setCors(req, res) {
 function normalizeMessages(body) {
   const incoming = Array.isArray(body.messages) ? body.messages : [];
   
-  // Ito ang magic: kinukuha natin ang messages at kinoconvert ang lumang image_url format
   const messages = incoming
     .filter(m =>
       m &&
@@ -31,33 +30,24 @@ function normalizeMessages(body) {
     .slice(-50) 
     .map(m => {
       let content = m.content;
-      
-      // Kung array (multimodal), i-convert ang lumang image_url format
       if (Array.isArray(content)) {
         content = content.map(item => {
-          // Tanggapin ang LUMANG format mula sa browser cache
+          // I-convert ang lumang image_url format kung sakaling naka-cache pa ang lumang frontend
           if (item.type === 'image_url') {
             const url = item.image_url?.url || item.image_url;
-            return { type: 'image', image: url }; // I-convert sa tamang format
+            return { type: 'image', image: url }; 
           }
           return item;
         });
       }
-      
-      return {
-        role: m.role,
-        content: content 
-      };
+      return { role: m.role, content: content };
     });
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (message) {
     const last = messages[messages.length - 1];
     if (!last || last.role !== "user" || last.content !== message) {
-      messages.push({
-        role: "user",
-        content: message 
-      });
+      messages.push({ role: "user", content: message });
     }
   }
   return messages;
@@ -89,26 +79,63 @@ export default async function handler(req, res) {
       }
     });
 
-    const modelId = 'nvidia/nemotron-3.5-super-vl:free'; 
-    
-    const result = await streamText({
-      model: openrouter(modelId),
-      system: "You are Imachui Gen AI by Imachui. You can see images and read text. Reply in the language the user uses or requests, including Filipino/Tagalog and Cebuano. Be helpful, clear, and accurate. Describe images in detail if asked. Admit uncertainty when needed; do not invent facts or sources. For coding tasks, provide complete, working code with explanations.",
-      messages: messages,
-      temperature: 0.5,
-      maxTokens: 4000, 
+    // Mga libreng modelong susubukan natin
+    const models = [
+      'meta-llama/llama-3.2-11b-vision-instruct:free', // Pangunahing Vision Model
+      'qwen/qwen-2-vl-7b-instruct:free',              // Fallback Vision Model
+      'meta-llama/llama-3.3-70b-instruct:free'        // Fallback Text-Only Model
+    ];
+
+    let lastError = null;
+
+    for (const modelId of models) {
+      try {
+        console.log(`[Imachui Gen AI] Trying model: ${modelId}`);
+        
+        const result = await streamText({
+          model: openrouter(modelId),
+          system: "You are Imachui Gen AI by Imachui. You can see images and read text. Reply in the language the user uses or requests, including Filipino/Tagalog and Cebuano. Be helpful, clear, and accurate. Describe images in detail if asked. Admit uncertainty when needed; do not invent facts or sources. For coding tasks, provide complete, working code with explanations.",
+          messages: messages,
+          temperature: 0.5,
+          maxTokens: 4000, 
+        });
+
+        // I-set ang headers para sa streaming
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache');
+
+        let hasData = false;
+        for await (const chunk of result.textStream) {
+          hasData = true;
+          res.write(chunk);
+        }
+
+        if (!hasData) {
+          throw new Error(`Model ${modelId} returned empty stream.`);
+        }
+
+        res.end();
+        return; // Tapos na, huwag nang ituloy ang loop
+
+      } catch (error) {
+        console.error(`[Imachui Gen AI] ${modelId} error:`, String(error?.message || error).slice(0, 300));
+        lastError = error;
+        // Kung nag-stream na tayo, hindi na tayo makakapagbalik ng JSON error
+        if (res.headersSent) {
+          res.end();
+          return;
+        }
+        // Kung hindi pa, ituloy ang loop sa susunod na modelo
+      }
+    }
+
+    // Kung lahat ng modelo ay nabigo
+    return res.status(502).json({
+      error: `Chat error: ${String(lastError?.message || "All models failed.").slice(0, 500)}`
     });
 
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache');
-
-    for await (const chunk of result.textStream) {
-      res.write(chunk);
-    }
-    res.end();
-
   } catch (error) {
-    console.error("Chat error:", String(error?.message || error).slice(0, 500));
+    console.error("Global chat error:", String(error?.message || error).slice(0, 500));
     if (!res.headersSent) {
       return res.status(502).json({
         error: `Chat error: ${String(error?.message || error).slice(0, 500)}`
