@@ -1,6 +1,6 @@
-// api/chat.js - Imachui Gen AI (4 Providers with Auto-Fallback)
+// api/chat.js - Imachui Gen AI (Multi-Provider + Combine All Mode)
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { generateText, streamText } from 'ai';
 
 export const maxDuration = 60;
 
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST for chat requests." });
 
-  const mode = req.body?.mode || 'gemini';
+  const mode = req.body?.mode || 'combine';
   const incomingMessages = normalizeMessages(req.body || {});
 
   if (!incomingMessages.length) {
@@ -55,7 +55,6 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
-  // --- PROVIDER CONFIGURATIONS (FIXED MODEL NAMES) ---
   const providers = {
     gemini: {
       client: createOpenAI({
@@ -63,7 +62,7 @@ export default async function handler(req, res) {
         apiKey: process.env.GEMINI_API_KEY,
         headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
       }),
-      model: 'gemini-1.5-flash' // Tamang model name
+      model: 'gemini-1.5-flash'
     },
     nvidia: {
       client: createOpenAI({
@@ -71,7 +70,7 @@ export default async function handler(req, res) {
         apiKey: process.env.NVIDIA_API_KEY,
         headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
       }),
-      model: 'meta/llama-3.1-8b-instruct' // Mas mabilis at stable na modelo
+      model: 'meta/llama-3.1-8b-instruct'
     },
     openrouter: {
       client: createOpenAI({
@@ -91,13 +90,6 @@ export default async function handler(req, res) {
     }
   };
 
-  const provider = providers[mode];
-
-  if (!provider) {
-    return res.status(400).json({ error: `Unknown mode: ${mode}` });
-  }
-
-  // Helper function para sa streaming at empty check
   async function streamAndCheck(client, model, messages, res) {
     const result = await streamText({ model: client(model), messages });
     let hasData = false;
@@ -105,29 +97,78 @@ export default async function handler(req, res) {
       hasData = true;
       res.write(chunk);
     }
-    // Kung walang data na dumating, i-throw ang error para mag-fallback
     if (!hasData) throw new Error("Empty stream from provider");
+  }
+
+  // --- COMBINE ALL MODE ---
+  if (mode === 'combine') {
+    console.log("[Imachui] Combine All mode started");
+    
+    const [gemini, nvidia, openrouter, deepseek] = await Promise.allSettled([
+      generateText({ model: providers.gemini.client(providers.gemini.model), messages: incomingMessages }),
+      generateText({ model: providers.nvidia.client(providers.nvidia.model), messages: incomingMessages }),
+      generateText({ model: providers.openrouter.client(providers.openrouter.model), messages: incomingMessages }),
+      generateText({ model: providers.deepseek.client(providers.deepseek.model), messages: incomingMessages })
+    ]);
+
+    const answers = [
+      gemini.status === 'fulfilled' ? gemini.value.text : null,
+      nvidia.status === 'fulfilled' ? nvidia.value.text : null,
+      openrouter.status === 'fulfilled' ? openrouter.value.text : null,
+      deepseek.status === 'fulfilled' ? deepseek.value.text : null
+    ].filter(Boolean); // Remove failed/empty answers
+
+    if (!answers.length) {
+      return res.status(502).json({ error: "All providers failed." });
+    }
+
+    const synthesisPrompt = `
+      You are an expert AI synthesizer. Analyze the following answers from multiple AI models and combine them into one comprehensive, accurate, and well-structured response. Remove redundancies. If there are contradictions, choose the most logical and factual one. Do not mention that multiple AIs responded. Just provide the final synthesized answer.
+      
+      --- ANSWERS FROM MULTIPLE AI MODELS ---
+      ${answers.map((a, i) => `[AI Model ${i+1}]:\n${a}`).join('\n\n')}
+      
+      --- FINAL SYNTHESIZED ANSWER ---
+    `;
+
+    try {
+      const result = await streamText({
+        model: providers.deepseek.client(providers.deepseek.model),
+        messages: [{ role: 'user', content: synthesisPrompt }],
+        temperature: 0.3,
+      });
+      for await (const chunk of result.textStream) res.write(chunk);
+      return res.end();
+    } catch (error) {
+      console.error("Synthesis failed, returning best individual answer:", error);
+      // Fallback: return the longest individual answer if synthesis fails
+      const bestAnswer = answers.sort((a, b) => b.length - a.length)[0];
+      res.write(bestAnswer);
+      return res.end();
+    }
+  }
+
+  // --- INDIVIDUAL MODES ---
+  const provider = providers[mode];
+  if (!provider) {
+    return res.status(400).json({ error: `Unknown mode: ${mode}` });
   }
 
   try {
     console.log(`[Imachui] ${mode} mode selected`);
-
     await streamAndCheck(provider.client, provider.model, incomingMessages, res);
     return res.end();
-
   } catch (error) {
     console.error(`[Imachui] ${mode} failed, falling back to DeepSeek. Error:`, error.message);
     res.write(`[System Note: ${mode} is currently unavailable. Falling back to DeepSeek...]\n\n`);
-
     try {
       await streamAndCheck(providers.deepseek.client, providers.deepseek.model, incomingMessages, res);
       return res.end();
     } catch (fallbackError) {
-      console.error("[Imachui] DeepSeek fallback also failed:", fallbackError.message);
       if (!res.headersSent) {
         return res.status(502).json({ error: `All providers failed: ${fallbackError.message}` });
       }
-      res.write(`\n\n[System Error: All providers failed. Please try again later.]`);
+      res.write(`\n\n[System Error: All providers failed.]`);
       return res.end();
     }
   }
