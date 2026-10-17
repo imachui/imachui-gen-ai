@@ -72,26 +72,13 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .side-foot { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--glass-border); font-size: 12px; font-weight: bold; text-align: center; }
 .fire-text { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #ff0000); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fireText 3s ease infinite; font-size: 14px; will-change: background-position; }
 
-/* ===== APK DOWNLOAD BUTTON STYLES ===== */
+/* APK DOWNLOAD BUTTON */
 .apk-download-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  border-radius: 12px;
-  background: linear-gradient(45deg, #ff0000, #ff7300, #ff0000);
-  background-size: 200% 200%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 12px; border-radius: 12px; background: linear-gradient(45deg, #ff0000, #ff7300, #ff0000); background-size: 200% 200%;
   animation: fireText 3s ease infinite, flamePulse 1.5s ease-in-out infinite;
-  border: 1px solid #fffb00;
-  color: #fff;
-  text-decoration: none;
-  font-weight: 850;
-  font-size: 14px;
-  text-align: center;
-  margin-bottom: 5px;
-  box-shadow: 0 0 15px rgba(255, 115, 0, 0.6);
-  transition: transform 0.2s;
+  border: 1px solid #fffb00; color: #fff; text-decoration: none; font-weight: 850; font-size: 14px; text-align: center; margin-bottom: 5px;
+  box-shadow: 0 0 15px rgba(255, 115, 0, 0.6); transition: transform 0.2s;
 }
 .apk-download-btn:hover { transform: scale(1.05); }
 .apk-download-btn small { font-size: 10px; font-weight: normal; color: #fff; margin-top: 4px; opacity: 0.9; }
@@ -102,6 +89,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .top-title { font-size: 15px; font-weight: 850; }
 .gradient { background: linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientShift 3s linear infinite; will-change: background-position; }
 
+/* CHAT AREA FIXES */
 .chat { flex: 1; overflow-y: auto; padding: 30px 24px; display: flex; flex-direction: column; align-items: center; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
 .chat > * { width: 100%; max-width: 850px; }
 .welcome { text-align: center; padding: 60px 0 40px; }
@@ -114,9 +102,15 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .body { flex: 1; padding: 16px 20px; border-radius: 16px; line-height: 1.75; background: var(--glass-bg); border: 1px solid var(--glass-border); min-width: 0; transform: translateZ(0); }
 .role { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: var(--accent); text-transform: uppercase; }
 .msg.user .role { color: var(--accent2); }
-.text { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* FIX PARA HINDI MABASAK ANG LAYOUT SA MALALAKING EMOJI O CODE */
+.text { white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
+.text pre { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; overflow-x: auto; font-family: monospace; font-size: 13px; margin: 10px 0; border: 1px solid var(--glass-border); }
+.text code { font-family: monospace; background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px; font-size: 13px; }
 .text a { color: var(--accent); text-decoration: underline; word-break: break-all; }
 .text strong { color: #fff; }
+.text img, .text svg { max-width: 100%; height: auto; }
+
 .prov { font-size: 10px; color: #8f9bb5; margin-bottom: 8px; }
 .read-row { margin-top: 12px; }
 .read-btn { border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; border-radius: 10px; padding: 8px 14px; font-size: 12px; cursor: pointer; }
@@ -136,7 +130,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; }
 .toggle-label input { accent-color: var(--accent); width: 16px; height: 16px; }
 
-/* ===== PERFECT MOBILE LAYOUT ===== */
+/* ===== PERFECT MOBILE LAYOUT (NA-AYOS NA) ===== */
 @media(max-width:768px){
   .app { grid-template-columns: 1fr; height: 100vh; height: 100dvh; }
   .sidebar { display: none; position: fixed; z-index: 50; inset: 0; width: 100vw; height: 100vh; height: 100dvh; background: var(--bg); padding: 16px 14px; overflow-y: auto; }
@@ -146,10 +140,11 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   .menu-btn { display: block; }
   .topbar { height: 58px; padding: 0 14px; gap: 10px; }
   .top-title { font-size: 12px; flex: 1; }
-  .chat { padding: 18px 12px 24px; }
+  
+  /* Dinagdagan ang padding sa ilalim para hindi matakpan ng input box */
+  .chat { padding: 18px 12px 280px 12px; }
   
   .composer-wrap { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; padding: 10px 10px max(10px,env(safe-area-inset-bottom)) 10px; z-index: 100; background: linear-gradient(0deg, var(--bg) 70%, transparent 100%); }
-  .chat { padding-bottom: 220px; }
   .composer { padding: 10px; border-radius: 18px; background: rgba(30, 41, 59, 0.95); }
   #prompt { min-height: 48px; font-size: 16px; padding: 8px; }
   .composer-bottom { flex-direction: column; align-items: stretch; gap: 8px; }
@@ -176,8 +171,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <button class="side-btn ask-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen AI</button>
   
   <div class="side-label" style="margin-top: 15px;">Download App</div>
-  <!-- 🔥 APK DOWNLOAD BUTTON NA MAY APOY 🔥 -->
-  <a href="PLACEHOLDER_APK_URL" class="apk-download-btn" download>
+  <a href="#" class="apk-download-btn" download id="apkDownloadBtn">
     🔥 Download APK
     <small>Get the Mobile App</small>
   </a>
@@ -233,13 +227,12 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 <script>
 'use strict';
 
-// ⚠️ PALITAN ITO NG TOTOONG LINK NG APK MO SA GITHUB RELEASES ⚠️
-// Halimbawa: "https://github.com/imachui/imachui-gen-ai/releases/download/v1.0/app-debug.apk"
+// ⚠️ PALITAN ITO NG LINK NG APK MO SA GITHUB RELEASES ⚠️
 const APK_DOWNLOAD_URL = "https://github.com/imachui/imachui-gen-ai/releases/download/v1.0/Imachui.Gen.AI.apk"; 
 
-// I-update ang href ng download button
+// I-set ang href ng download button
 document.addEventListener('DOMContentLoaded', () => {
-  const downloadBtn = document.querySelector('.apk-download-btn');
+  const downloadBtn = document.getElementById('apkDownloadBtn');
   if (downloadBtn) downloadBtn.href = APK_DOWNLOAD_URL;
 });
 
@@ -247,7 +240,7 @@ if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-var STORAGE_KEY = 'imachui_v37_data';
+var STORAGE_KEY = 'imachui_v38_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
@@ -325,13 +318,22 @@ function handleUpload(event) {
   document.getElementById('uploadInput').value = '';
 }
 
+// FIX: Code Block Parser at proper formatting
 function fmt(text) {
-  var f = text;
+  let f = text;
+  
+  // I-parse ang Code Blocks (```code```)
+  f = f.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  
+  // I-parse ang Bold (**text**)
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // I-parse ang Links
   f = f.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank">$1</a>');
   f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<]+)/g, function(m,p,u) {
     return p + '<a href="' + (/^https?:\/\//i.test(u) ? u : 'https://' + u) + '" target="_blank">' + u + '</a>';
   });
+  
   return f;
 }
 
@@ -419,8 +421,14 @@ function deleteChat(id) {
   if (!activeChatId && chats.length) openChat(chats[0].id); else if (!chats.length) newChat();
 }
 
+// FIX: Mas maayos na scroll pagkatapos mag-render
 function scrollBottom() {
-  setTimeout(function() { var c = document.getElementById('chat'); if (c) c.scrollTop = c.scrollHeight; }, 100);
+  requestAnimationFrame(() => {
+    setTimeout(function() { 
+      var c = document.getElementById('chat'); 
+      if (c) c.scrollTop = c.scrollHeight; 
+    }, 50);
+  });
 }
 
 function addMessage(role, content, options) {
