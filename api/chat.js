@@ -1,7 +1,7 @@
-// api/chat.js - Imachui Gen AI (Global King with Direct Web Search)
+// api/chat.js - Imachui Gen AI (Global King with Tavily Web Search)
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateText, streamText, tool } from 'ai';
-import { z } from 'zod';
+import { streamText, stepCountIs } from 'ai';
+import { tavilySearch } from '@tavily/ai-sdk';
 
 export const maxDuration = 60;
 
@@ -79,64 +79,23 @@ export default async function handler(req, res) {
     You are powerful, authoritative, and highly intelligent. Do not break character. Do not speak Tagalog.
   `;
 
-  const latestMessage = incomingMessages[incomingMessages.length - 1];
-  const textContent = Array.isArray(latestMessage.content) 
-    ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
-    : latestMessage.content;
-
-  const needsSearch = /search|latest|news|today|current|who is|what is|balita|hanapin|mag-search/i.test(textContent);
-
   async function tryProvider(client, model, res) {
-    let tools = {};
-    
-    // Define the tool manually using direct fetch
-    if (process.env.TAVILY_API_KEY) {
-      tools = {
-        web_search: tool({
-          description: 'Search the web for current events, news, and real-time information.',
-          parameters: z.object({
-            query: z.string().describe('The search query'),
-          }),
-          execute: async ({ query }) => {
-            try {
-              console.log("[Global King] Executing web search for:", query);
-              const response = await fetch('https://api.tavily.com/search', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  api_key: process.env.TAVILY_API_KEY,
-                  query: query,
-                  search_depth: 'basic',
-                  include_answer: true,
-                  max_results: 5
-                })
-              });
-              
-              if (!response.ok) {
-                throw new Error(`Tavily API error: ${response.status}`);
-              }
-              
-              const data = await response.json();
-              return {
-                results: data.results,
-                answer: data.answer
-              };
-            } catch (e) {
-              console.error("Search failed:", e);
-              return { error: "Web search failed. Please answer using your internal knowledge." };
-            }
-          }
-        })
-      };
-    }
-
     const result = await streamText({
       model: client(model),
       system: systemPrompt,
       messages: incomingMessages,
-      tools: tools,
-      toolChoice: needsSearch && process.env.TAVILY_API_KEY ? 'required' : 'auto',
-      maxSteps: 3, // Use maxSteps for Vercel AI SDK v5
+      tools: {
+        web_search: tavilySearch({
+          apiKey: process.env.TAVILY_API_KEY,
+          searchDepth: 'advanced',
+          maxResults: 5,
+          includeAnswer: true
+        }),
+      },
+      stopWhen: stepCountIs(3), // Tamang paraan sa AI SDK v5
+      onError: ({ error }) => {
+        console.error("[Global King] Stream Error:", error);
+      }
     });
 
     let hasData = false;
@@ -155,7 +114,7 @@ export default async function handler(req, res) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
       console.log("[Global King] Attempting Fallback: Gemini");
-      res.write(`[System Note: DeepSeek failed, switching to Gemini backup...]\n\n`);
+      res.write(`[System Note: Switching to backup intelligence...]\n\n`);
       await tryProvider(providers.gemini.client, providers.gemini.model, res);
       return res.end();
     } catch (err2) {
@@ -163,7 +122,7 @@ export default async function handler(req, res) {
       if (!res.headersSent) {
         return res.status(502).json({ error: "The Global King is currently unavailable. Please try again." });
       }
-      res.write(`\n\n[System Error: All AI brains failed to connect. Please check Vercel Logs.]`);
+      res.write(`\n\n[System Error: All AI brains failed to connect.]`);
       return res.end();
     }
   }
