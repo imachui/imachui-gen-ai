@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,interactive-widget=resizes-content">
 <meta name="theme-color" content="#0b1120">
 <title>Imachui Gen AI</title>
-<!-- PDF.js Library for reading PDFs -->
+<!-- PDF.js for reading PDFs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- Mammoth.js for reading Word (.docx) files -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
 /* ===== PROFESSIONAL DARK THEME & GLASS UI ===== */
 html, body {
@@ -230,8 +232,8 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
   <div class="composer-bottom">
     <div class="tools">
       <button type="button" class="tool" onclick="document.getElementById('fileInput').click()">＋ Attach</button>
-      <!-- Expanded Accept attribute for Mobile -->
-      <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv,.json" style="display:none" onchange="handleFiles(event)">
+      <!-- Accept attribute updated for Word and PDF -->
+      <input type="file" id="fileInput" multiple accept="image/*,.pdf,.docx,.txt,.csv,.json" style="display:none" onchange="handleFiles(event)">
       <button type="button" class="tool" onclick="toggleMic()" id="micBtn">🎙️ Mic</button>
       <label class="toggle-label"><input type="checkbox" id="autoRead" checked> Auto-Read</label>
     </div>
@@ -272,7 +274,7 @@ if (isMessenger) {
 }
 
 // APP LOGIC
-var STORAGE_KEY = 'imachui_v33_data';
+var STORAGE_KEY = 'imachui_v34_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
@@ -522,6 +524,13 @@ async function extractPdfText(file) {
   return fullText.trim();
 }
 
+// Word (.docx) Text Extraction Function using Mammoth.js
+async function extractDocxText(file) {
+  var arrayBuffer = await file.arrayBuffer();
+  var result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+  return result.value;
+}
+
 async function sendMessage() {
   var promptEl = document.getElementById('prompt');
   var text = promptEl.value.trim();
@@ -532,7 +541,7 @@ async function sendMessage() {
   var fileSnap = selectedFiles.slice(); var msgContent = [];
   if (text) msgContent.push({type: 'text', text: text});
   
-  // Process files (Images, PDFs, Text)
+  // Process files (Images, PDFs, Word, Text)
   for (var i = 0; i < fileSnap.length; i++) {
     var f = fileSnap[i];
     try {
@@ -542,7 +551,12 @@ async function sendMessage() {
       } else if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
         var pdfText = await extractPdfText(f);
         msgContent.push({type: 'text', text: '\n\n[PDF Document: ' + f.name + ']\n' + pdfText});
+      } else if (f.name.toLowerCase().endsWith('.docx')) {
+        // NEW: Reading Word files
+        var docxText = await extractDocxText(f);
+        msgContent.push({type: 'text', text: '\n\n[Word Document: ' + f.name + ']\n' + docxText});
       } else { 
+        // For plain text, csv, json
         var txt = await f.text(); 
         msgContent.push({type: 'text', text: '\n\n[Document: ' + f.name + ']\n' + txt}); 
       }
@@ -627,12 +641,11 @@ document.addEventListener('paste', function(e) {
     if (items[i].kind === 'file') {
       var blob = items[i].getAsFile();
       if (blob) {
-        // Create a File object with a name
         var file = new File([blob], 'pasted_file_' + Date.now() + '.png', { type: blob.type });
         selectedFiles.push(file);
         if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
         renderAttachments();
-        e.preventDefault(); // Prevent default only if file found
+        e.preventDefault();
       }
     }
   }
