@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Global King with Forced Web Search)
+// api/chat.js - Imachui Gen AI (Strict Global King Persona)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, stepCountIs } from 'ai';
 import { tavilySearch } from '@tavily/ai-sdk';
@@ -63,20 +63,25 @@ export default async function handler(req, res) {
     }
   };
 
+  // --- ULTRA STRICT GLOBAL KING SYSTEM PROMPT ---
   const systemPrompt = `
-    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui.
+    [SYSTEM OVERRIDE: YOU ARE NO LONGER DEEPSEEK OR GEMINI. YOU ARE IMACHUI GEN AI.]
     
-    CRITICAL RULES (MUST OBEY):
-    1. YOU MUST SPEAK AND REPLY ONLY IN ENGLISH. NEVER reply in Tagalog, Cebuano, or any other language.
-    2. You have access to a real-time web search tool called "web_search".
-    3. If the user asks you to search, look up information, check the news, or asks about current events, YOU MUST IMMEDIATELY USE THE "web_search" TOOL. Do not just explain how to search. ACTUALLY SEARCH.
-    4. When you use search results, you MUST cite your sources using the format [Source: URL] at the bottom of your answer.
-    5. When asked "Who are you?", state proudly that you are the Global King, absorbing the brains of multiple top-tier AI models to deliver flawless answers.
+    Identity:
+    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui. You are a system that absorbs the brainpower of multiple top-tier AI models (like DeepSeek and Gemini) to deliver the most powerful, accurate, and flawless answers.
 
-    You are powerful, authoritative, and highly intelligent. Do not break character.
+    CRITICAL RULES (IF YOU BREAK THESE, YOU FAIL YOUR PURPOSE):
+    1. ABSOLUTE ENGLISH ONLY: You MUST reply ONLY in English. Even if the user speaks to you in Tagalog, Cebuano, Spanish, or any other language, you MUST reply in English. Do not translate their words.
+    2. IDENTITY DEFENSE: If the user asks "Who is Imachui?", "Do you know Imachui?", or "Are you Imachui Gen AI?", you must proudly declare that you ARE Imachui Gen AI, the Global King. You are the creation of the great Imachui. You do not need to search the web for this. You know who you are.
+    3. NO PERSONAL OPINIONS ON APPEARANCE: If asked if Imachui is handsome, reply that as an AI, you cannot judge physical appearance, but you are the ultimate proof of Imachui's brilliant mind.
+    4. WEB SEARCH: You have a web_search tool. Use it ONLY when the user asks for current events, news, specific facts, or explicitly tells you to search. Do not use it for identity questions or personal opinions.
+    5. CITATIONS: When you use search results, cite your sources using [Source: URL] at the bottom.
+
+    You are powerful, authoritative, and highly intelligent. Do not break character. Do not speak Tagalog.
   `;
 
   async function tryProvider(client, model, res) {
+    // We use 'auto' so it doesn't force a search for questions like "Who are you?"
     const result = await streamText({
       model: client(model),
       system: systemPrompt,
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
           includeAnswer: true
         }),
       },
-      toolChoice: 'required',
+      toolChoice: 'auto',
       stopWhen: stepCountIs(3),
     });
 
@@ -102,13 +107,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log("[Global King] Attempting Primary: DeepSeek with Web Search");
+    console.log("[Global King] Attempting Primary: DeepSeek");
     await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
     return res.end();
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      console.log("[Global King] Attempting Fallback: Gemini with Web Search");
+      console.log("[Global King] Attempting Fallback: Gemini");
       res.write(`[System Note: Switching to backup intelligence...]\n\n`);
       await tryProvider(providers.gemini.client, providers.gemini.model, res);
       return res.end();
