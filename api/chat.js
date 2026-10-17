@@ -1,6 +1,6 @@
-// api/chat.js - Imachui Gen AI (The Global King with Web Browsing)
+// api/chat.js - Imachui Gen AI (Global King with Forced Web Search)
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { generateText, streamText } from 'ai';
 import { tavilySearch } from '@tavily/ai-sdk';
 
 export const maxDuration = 60;
@@ -78,7 +78,16 @@ export default async function handler(req, res) {
     You are powerful, authoritative, and highly intelligent. Do not break character.
   `;
 
+  // Get the latest user message to check for search intent
+  const latestMessage = incomingMessages[incomingMessages.length - 1];
+  const textContent = Array.isArray(latestMessage.content) 
+    ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
+    : latestMessage.content;
+
+  const needsSearch = /search|latest|news|today|current|who is|what is/i.test(textContent);
+
   async function tryProvider(client, model, res) {
+    // If the prompt looks like it needs a search, we FORCE the tool usage.
     const result = await streamText({
       model: client(model),
       system: systemPrompt,
@@ -92,6 +101,7 @@ export default async function handler(req, res) {
         }),
       },
       maxSteps: 3, // Allows AI to Search -> Read -> Answer
+      toolChoice: needsSearch ? 'required' : 'auto' // Force tool use if keywords match
     });
 
     let hasData = false;
