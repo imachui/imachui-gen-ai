@@ -2,36 +2,66 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,interactive-widget=resizes-content">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="theme-color" content="#0b1120">
 <title>Imachui Gen AI</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-/* ... (I-paste mo dito ang lahat ng CSS mula sa binigay ko kanina, pareho lang ito) ... */
-/* GLASSMORPHISM & ANIMATIONS */
-html, body { background-color: #0b1120; margin: 0; padding: 0; height: 100%; overflow: hidden; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
-:root { color-scheme: dark; --bg: #0b1120; --glass-bg: rgba(30, 41, 59, 0.45); --glass-border: rgba(255, 255, 255, 0.12); --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --accent2: #818cf8; }
-* { box-sizing: border-box; touch-action: manipulation; }
+/* ===== 60FPS PERFORMANCE OPTIMIZATIONS ===== */
+html, body {
+  background-color: #0b1120;
+  margin: 0; padding: 0; height: 100%; overflow: hidden;
+  overscroll-behavior: none; 
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #0b1120;
+  --glass-bg: rgba(30, 41, 59, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --accent2: #818cf8;
+}
+
+* { box-sizing: border-box; }
 body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: var(--text); position: fixed; width: 100%; }
-button { font: inherit; cursor: pointer; border: none; outline: none; }
-.glass { background: var(--glass-bg); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid var(--glass-border); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1); }
+button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-appearance: none; }
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* ===== ANIMATIONS ===== */
 @keyframes pulseGlow { 0% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); transform: scale(1); } 50% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.9); transform: scale(1.05); } 100% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); transform: scale(1); } }
 @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-@keyframes textPulse { 0% { text-shadow: 0 0 5px rgba(56, 189, 248, 0.3); color: #e2e8f0; } 50% { text-shadow: 0 0 15px rgba(56, 189, 248, 0.8); color: #ffffff; } 100% { text-shadow: 0 0 5px rgba(56, 189, 248, 0.3); color: #e2e8f0; } }
+@keyframes textPulse { 0% { opacity: 0.8; } 50% { opacity: 1; text-shadow: 0 0 15px rgba(56, 189, 248, 0.8); } 100% { opacity: 0.8; } }
 @keyframes fireText { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-@keyframes pulseBtn { 0%, 100% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.1); } 50% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); } }
+@keyframes flamePulse { 0% { filter: drop-shadow(0 0 5px #ff7300); } 50% { filter: drop-shadow(0 0 15px #ff0000); } 100% { filter: drop-shadow(0 0 5px #ff7300); } }
 
+/* ===== LAYOUT ===== */
 .app { height: 100vh; height: 100dvh; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; background-color: var(--bg); }
 .sidebar { padding: 24px 20px; display: flex; flex-direction: column; gap: 14px; border-right: 1px solid var(--glass-border); overflow-y: auto; height: 100vh; height: 100dvh; }
 .back-btn { display: none; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); color: #fff; padding: 12px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; font-weight: 600; }
 .brand { display: flex; align-items: center; gap: 12px; padding-bottom: 15px; }
-.brand-icon { width: 48px; height: 48px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #38bdf8, #818cf8, #0b1120); display: grid; place-items: center; font-weight: 900; font-size: 24px; color: #fff; flex-shrink: 0; animation: pulseGlow 2s infinite ease-in-out; }
+.brand-icon { width: 48px; height: 48px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #38bdf8, #818cf8, #0b1120); display: grid; place-items: center; font-weight: 900; font-size: 24px; color: #fff; flex-shrink: 0; animation: pulseGlow 2s infinite ease-in-out; will-change: transform, box-shadow; }
 .brand-name { font-weight: 850; font-size: 16px; animation: textPulse 2s infinite ease-in-out; }
 .brand-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
-.side-btn { width: 100%; padding: 14px; border-radius: 14px; color: var(--text); text-align: left; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); cursor: pointer; }
-.ask-btn { animation: pulseBtn 3s infinite; }
+.side-btn { width: 100%; padding: 14px; border-radius: 14px; color: var(--text); text-align: left; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s; }
+.side-btn:active { background: rgba(255,255,255,0.1); }
 .side-label { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-top: 10px; }
-.history { display: flex; flex-direction: column; gap: 8px; max-height: 30vh; overflow-y: auto; }
+.history { display: flex; flex-direction: column; gap: 8px; max-height: 25vh; overflow-y: auto; }
 .history-row { display: flex; align-items: center; gap: 6px; border-radius: 10px; }
 .history-row.active { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
 .history-open { flex: 1; text-align: left; border: 0; background: transparent; color: #cbd2e4; padding: 12px 10px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
@@ -40,22 +70,48 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
 .backup-row { display: flex; gap: 6px; }
 .backup-row button { flex: 1; padding: 10px; font-size: 12px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; cursor: pointer; }
 .side-foot { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--glass-border); font-size: 12px; font-weight: bold; text-align: center; }
-.fire-text { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #ff0000); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fireText 3s ease infinite; font-size: 14px; }
+.fire-text { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #ff0000); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fireText 3s ease infinite; font-size: 14px; will-change: background-position; }
+
+/* ===== APK DOWNLOAD BUTTON STYLES ===== */
+.apk-download-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(45deg, #ff0000, #ff7300, #ff0000);
+  background-size: 200% 200%;
+  animation: fireText 3s ease infinite, flamePulse 1.5s ease-in-out infinite;
+  border: 1px solid #fffb00;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 850;
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 5px;
+  box-shadow: 0 0 15px rgba(255, 115, 0, 0.6);
+  transition: transform 0.2s;
+}
+.apk-download-btn:hover { transform: scale(1.05); }
+.apk-download-btn small { font-size: 10px; font-weight: normal; color: #fff; margin-top: 4px; opacity: 0.9; }
+
 .main { display: flex; flex-direction: column; overflow: hidden; height: 100vh; height: 100dvh; background-color: var(--bg); }
 .topbar { height: 70px; display: flex; align-items: center; gap: 12px; padding: 0 30px; border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
 .menu-btn { display: none; background: transparent; border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; padding: 8px 12px; font-size: 16px; cursor: pointer; }
-.top-title { font-size: 15px; font-weight: 850; animation: textPulse 2s infinite ease-in-out; }
-.gradient { background: linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientShift 3s linear infinite, textPulse 2s infinite alternate; }
-.chat { flex: 1; overflow-y: auto; padding: 30px 24px; display: flex; flex-direction: column; align-items: center; -webkit-overflow-scrolling: touch; transition: background 0.3s; }
-.chat.drag-over { background: rgba(56, 189, 248, 0.05); border: 2px dashed var(--accent); }
+.top-title { font-size: 15px; font-weight: 850; }
+.gradient { background: linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientShift 3s linear infinite; will-change: background-position; }
+
+.chat { flex: 1; overflow-y: auto; padding: 30px 24px; display: flex; flex-direction: column; align-items: center; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
 .chat > * { width: 100%; max-width: 850px; }
 .welcome { text-align: center; padding: 60px 0 40px; }
 .welcome h1 { font-size: clamp(28px, 4vw, 42px); margin: 0 0 15px; font-weight: 800; }
 .welcome p { color: var(--muted); font-size: 15px; max-width: 560px; margin: 0 auto; }
-.msg { display: flex; gap: 16px; margin: 24px 0; }
+
+.msg { display: flex; gap: 16px; margin: 24px 0; will-change: transform; }
 .avatar { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
 .msg.user .avatar { background: rgba(56, 189, 248, 0.2); }
-.body { flex: 1; padding: 16px 20px; border-radius: 16px; line-height: 1.75; background: var(--glass-bg); border: 1px solid var(--glass-border); min-width: 0; backdrop-filter: blur(10px); }
+.body { flex: 1; padding: 16px 20px; border-radius: 16px; line-height: 1.75; background: var(--glass-bg); border: 1px solid var(--glass-border); min-width: 0; transform: translateZ(0); }
 .role { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: var(--accent); text-transform: uppercase; }
 .msg.user .role { color: var(--accent2); }
 .text { white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -68,6 +124,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
 .att-chip { font-size: 11px; color:#c9d1e6; border: 1px solid var(--glass-border); border-radius: 8px; padding: 6px 10px; background: rgba(255,255,255,0.03); }
 .att-img { max-width: 100%; max-height: 250px; border-radius: 12px; margin-top: 12px; }
 .typing { color: var(--accent); font-size: 13px; font-weight: 700; }
+
 .composer-wrap { padding: 20px 24px 30px; display: flex; justify-content: center; flex-shrink: 0; background: transparent; }
 .composer { width: 100%; max-width: 850px; padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 12px; }
 #prompt { width: 100%; min-height: 60px; max-height: 200px; resize: vertical; border: 0; outline: 0; color: #fff; background: transparent; padding: 8px 12px; line-height: 1.6; font-size: 15px; }
@@ -77,6 +134,9 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
 .tool { border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px 14px; background: rgba(255,255,255,0.05); color: #fff; font-size: 12px; cursor: pointer; }
 .send { border: 0; border-radius: 12px; padding: 12px 24px; color: #05070a; background: linear-gradient(135deg, var(--accent), var(--accent2)); font-weight: 850; font-size: 14px; cursor: pointer; }
 .toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.toggle-label input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* ===== PERFECT MOBILE LAYOUT ===== */
 @media(max-width:768px){
   .app { grid-template-columns: 1fr; height: 100vh; height: 100dvh; }
   .sidebar { display: none; position: fixed; z-index: 50; inset: 0; width: 100vw; height: 100vh; height: 100dvh; background: var(--bg); padding: 16px 14px; overflow-y: auto; }
@@ -87,9 +147,10 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
   .topbar { height: 58px; padding: 0 14px; gap: 10px; }
   .top-title { font-size: 12px; flex: 1; }
   .chat { padding: 18px 12px 24px; }
+  
   .composer-wrap { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; padding: 10px 10px max(10px,env(safe-area-inset-bottom)) 10px; z-index: 100; background: linear-gradient(0deg, var(--bg) 70%, transparent 100%); }
   .chat { padding-bottom: 220px; }
-  .composer { padding: 10px; border-radius: 18px; background: rgba(30, 41, 59, 0.9); }
+  .composer { padding: 10px; border-radius: 18px; background: rgba(30, 41, 59, 0.95); }
   #prompt { min-height: 48px; font-size: 16px; padding: 8px; }
   .composer-bottom { flex-direction: column; align-items: stretch; gap: 8px; }
   .tools { justify-content: space-between; width: 100%; }
@@ -113,15 +174,29 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
   <button class="side-btn" onclick="newChat();closeSidebar()">＋ New Conversation</button>
   <div class="side-label">Workspace</div>
   <button class="side-btn ask-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen AI</button>
+  
+  <div class="side-label" style="margin-top: 15px;">Download App</div>
+  <!-- 🔥 APK DOWNLOAD BUTTON NA MAY APOY 🔥 -->
+  <a href="PLACEHOLDER_APK_URL" class="apk-download-btn" download>
+    🔥 Download APK
+    <small>Get the Mobile App</small>
+  </a>
+
   <div class="side-label">Recent Conversations</div>
   <div class="history" id="history"></div>
+  
   <div class="status" id="status">Loading...</div>
+  
   <div class="backup-row">
     <button id="downloadBtn" onclick="downloadBackup()">💾 Download</button>
     <button id="uploadBtn" onclick="document.getElementById('uploadInput').click()">📂 Upload</button>
   </div>
   <input type="file" id="uploadInput" accept=".json" style="display:none" onchange="handleUpload(event)">
-  <div class="side-foot">Imachui Gen AI<br><span class="fire-text">The Supreme Intelligence.</span></div>
+  
+  <div class="side-foot">
+    Imachui Gen AI<br>
+    <span class="fire-text">The Supreme Intelligence.</span>
+  </div>
 </aside>
 
 <main class="main">
@@ -158,11 +233,21 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
 <script>
 'use strict';
 
+// ⚠️ PALITAN ITO NG TOTOONG LINK NG APK MO SA GITHUB RELEASES ⚠️
+// Halimbawa: "https://github.com/imachui/imachui-gen-ai/releases/download/v1.0/app-debug.apk"
+const APK_DOWNLOAD_URL = "https://github.com/imachui/imachui-gen-ai/releases/download/v1.0/app-debug.apk"; 
+
+// I-update ang href ng download button
+document.addEventListener('DOMContentLoaded', () => {
+  const downloadBtn = document.querySelector('.apk-download-btn');
+  if (downloadBtn) downloadBtn.href = APK_DOWNLOAD_URL;
+});
+
 if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-var STORAGE_KEY = 'imachui_v35_data';
+var STORAGE_KEY = 'imachui_v37_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
@@ -203,7 +288,7 @@ function updateStatus() {
   var el = document.getElementById('status');
   if (!el) return;
   if (storageOK) { el.textContent = '✅ Saved ' + chats.length + ' chats'; el.style.color = '#38bdf8'; }
-  else { el.textContent = '⚠️ Webview Storage Limited'; el.style.color = '#ff8d9a'; }
+  else { el.textContent = '❌ Storage not available'; el.style.color = '#ff8d9a'; }
 }
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
@@ -412,6 +497,7 @@ async function extractPdfText(file) {
     var pageText = textContent.items.map(function(item) { return item.str; }).join(' ');
     fullText += '[Page ' + i + ']\n' + pageText + '\n\n';
   }
+  if (pdf.numPages > 5) fullText += '\n[...Remaining pages omitted to prevent crash...]';
   return fullText.trim();
 }
 
@@ -439,6 +525,7 @@ async function sendMessage() {
         msgContent.push({type: 'text', text: '\n\n[Document: ' + f.name + ']\n' + txt}); 
       }
     } catch(e) { 
+      console.error(e); 
       msgContent.push({type: 'text', text: '\n\n[Error reading file: ' + f.name + ']'});
     }
   }
@@ -479,12 +566,7 @@ async function sendMessage() {
     var rd = document.createElement('button'); rd.className = 'read-btn'; rd.textContent = '🔊 Read Aloud';
     rd.onclick = function() { if (synth.speaking) { synth.cancel(); rd.textContent = '🔊 Read Aloud'; } else speak(te.textContent, rd); };
     rr.appendChild(rd); am.querySelector('.body').appendChild(rr);
-    
-    // Trigger voice immediately without setTimeout to satisfy WebView
-    if (document.getElementById('autoRead').checked) { 
-      speak(te.textContent, rd); 
-    }
-    
+    if (document.getElementById('autoRead').checked) { setTimeout(function() { speak(te.textContent, rd); }, 300); }
     currentMessages.push({role: 'assistant', content: full});
     if (chat) { chat.messages.push({role: 'assistant', content: full}); chat.updated = Date.now(); save(); }
   } catch(e) {
@@ -494,6 +576,39 @@ async function sendMessage() {
     if (window.innerWidth > 768) promptEl.focus();
   }
 }
+
+var chatArea = document.getElementById('chat');
+chatArea.addEventListener('dragover', function(e) { e.preventDefault(); chatArea.classList.add('drag-over'); });
+chatArea.addEventListener('dragleave', function(e) { e.preventDefault(); chatArea.classList.remove('drag-over'); });
+chatArea.addEventListener('drop', function(e) {
+  e.preventDefault(); chatArea.classList.remove('drag-over');
+  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    var files = Array.from(e.dataTransfer.files);
+    files.forEach(function(f) { 
+      if (f.size > 4 * 1024 * 1024) { alert('⚠️ File is too large: ' + f.name); return; }
+      selectedFiles.push(f); 
+    });
+    if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
+    renderAttachments();
+  }
+});
+
+document.addEventListener('paste', function(e) {
+  var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].kind === 'file') {
+      var blob = items[i].getAsFile();
+      if (blob) {
+        if (blob.size > 4 * 1024 * 1024) { alert('⚠️ Pasted image is too large (Max 4MB).'); return; }
+        var file = new File([blob], 'pasted_file_' + Date.now() + '.png', { type: blob.type });
+        selectedFiles.push(file);
+        if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
+        renderAttachments();
+        e.preventDefault(); 
+      }
+    }
+  }
+});
 
 window.addEventListener('beforeunload', save);
 window.addEventListener('pagehide', save);
