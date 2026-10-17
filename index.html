@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,interactive-widget=resizes-content">
 <meta name="theme-color" content="#05070a">
-<title>Imachui Gen AI - King AI</title>
+<title>Imachui Gen AI - Global King</title>
 <style>
 :root{color-scheme:dark;--bg:#05070a;--text:#f3f5fb;--muted:#98a2b7;--accent:#8b7cff;--accent2:#42d9c8}
 *{box-sizing:border-box;touch-action:manipulation}
@@ -113,7 +113,7 @@ button{font:inherit;cursor:pointer}
   </div>
   <button class="side-btn" onclick="newChat();closeSidebar()">＋ New Conversation</button>
   <div class="side-label">Workspace</div>
-  <button class="side-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask King AI</button>
+  <button class="side-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen AI</button>
   <div class="side-label">Recent Conversations</div>
   <div class="history" id="history"></div>
   
@@ -131,19 +131,19 @@ button{font:inherit;cursor:pointer}
 <main class="main">
 <header class="topbar glass">
   <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-  <div class="top-title">IMACHUI GEN AI <span class="gradient">/ KING AI</span></div>
+  <div class="top-title">IMACHUI GEN AI <span class="gradient">/ GLOBAL KING</span></div>
 </header>
 <section class="chat" id="chat">
   <div class="welcome" id="welcome">
     <div class="brand-icon" style="margin:0 auto 20px;width:80px;height:80px;font-size:40px">✦</div>
     <h1>Welcome to <span class="gradient">Imachui Gen AI</span></h1>
-    <p>I am the King AI. I absorb the intelligence of multiple AI models to give you massive, powerful, and flawless answers.</p>
+    <p>I am the Global King. I absorb the intelligence of multiple AI models to give you massive, powerful, and flawless answers.</p>
   </div>
   <div id="messages"></div>
 </section>
 <div class="composer-wrap">
 <form class="composer glass" id="composer" onsubmit="event.preventDefault();sendMessage();">
-  <textarea id="prompt" rows="2" placeholder="Message the King AI..." maxlength="12000"></textarea>
+  <textarea id="prompt" rows="2" placeholder="Message the Global King..." maxlength="12000"></textarea>
   <div class="att-list" id="attachments"></div>
   <div class="composer-bottom">
     <div class="tools">
@@ -162,7 +162,7 @@ button{font:inherit;cursor:pointer}
 <script>
 'use strict';
 
-var STORAGE_KEY = 'imachui_v27_data';
+var STORAGE_KEY = 'imachui_v28_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
@@ -425,7 +425,7 @@ function addMessage(role, content, options) {
   if (role === 'assistant') {
     var p = document.createElement('div');
     p.className = 'prov';
-    p.textContent = '● Imachui Gen AI : King AI';
+    p.textContent = '● Imachui Gen AI : Global King';
     body.appendChild(p);
   }
   var t = document.createElement('div');
@@ -608,7 +608,6 @@ async function sendMessage() {
   }
 }
 
-// INIT
 window.addEventListener('beforeunload', save);
 window.addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') save(); });
