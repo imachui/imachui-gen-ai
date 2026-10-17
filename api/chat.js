@@ -1,7 +1,7 @@
-// api/chat.js - Imachui Gen AI (Global King with Tavily Web Search)
+// api/chat.js - Imachui Gen AI (Global King with Manual Web Search)
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, stepCountIs } from 'ai';
-import { tavilySearch } from '@tavily/ai-sdk';
+import { streamText, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
 
 export const maxDuration = 60;
 
@@ -79,20 +79,53 @@ export default async function handler(req, res) {
     You are powerful, authoritative, and highly intelligent. Do not break character. Do not speak Tagalog.
   `;
 
+  const latestMessage = incomingMessages[incomingMessages.length - 1];
+  const textContent = Array.isArray(latestMessage.content) 
+    ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
+    : latestMessage.content;
+
+  const needsSearch = /search|latest|news|today|current|who is|what is|balita|hanapin|mag-search/i.test(textContent);
+
   async function tryProvider(client, model, res) {
+    // Manual tool definition for Tavily
+    const tools = {
+      web_search: tool({
+        description: 'Search the web for current events, news, and real-time information.',
+        parameters: z.object({
+          query: z.string().describe('The search query'),
+        }),
+        execute: async ({ query }) => {
+          try {
+            console.log(`[Global King] Searching web for: ${query}`);
+            const response = await fetch('https://api.tavily.com/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                api_key: process.env.TAVILY_API_KEY,
+                query: query,
+                search_depth: 'basic',
+                include_answer: true,
+                max_results: 5
+              })
+            });
+            if (!response.ok) throw new Error(`Tavily status: ${response.status}`);
+            const data = await response.json();
+            return { results: data.results, answer: data.answer };
+          } catch (e) {
+            console.error("[Global King] Search Error:", e);
+            return { error: "Failed to fetch search results. Please answer using your knowledge and state that the search failed." };
+          }
+        }
+      })
+    };
+
     const result = await streamText({
       model: client(model),
       system: systemPrompt,
       messages: incomingMessages,
-      tools: {
-        web_search: tavilySearch({
-          apiKey: process.env.TAVILY_API_KEY,
-          searchDepth: 'advanced',
-          maxResults: 5,
-          includeAnswer: true
-        }),
-      },
-      stopWhen: stepCountIs(3), // Tamang paraan sa AI SDK v5
+      tools: tools,
+      toolChoice: needsSearch ? 'required' : 'auto',
+      stopWhen: stepCountIs(3),
       onError: ({ error }) => {
         console.error("[Global King] Stream Error:", error);
       }
