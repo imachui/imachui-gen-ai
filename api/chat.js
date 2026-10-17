@@ -1,7 +1,6 @@
-// api/chat.js - Imachui Gen AI (Global King with Manual Web Search)
+// api/chat.js - Imachui Gen AI (Global King - Stable Multi-Language)
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, stepCountIs, tool } from 'ai';
-import { z } from 'zod';
+import { streamText } from 'ai';
 
 export const maxDuration = 60;
 
@@ -63,72 +62,21 @@ export default async function handler(req, res) {
     }
   };
 
+  // System Prompt allowing Tagalog, Cebuano, etc.
   const systemPrompt = `
-    [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
-    
-    Identity:
-    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui. You are a system that absorbs the brainpower of multiple top-tier AI models to deliver the most powerful, accurate, and flawless answers.
+    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui. You absorb the brainpower of multiple top-tier AI models to deliver powerful, accurate, and flawless answers.
 
-    CRITICAL RULES (IF YOU BREAK THESE, YOU FAIL YOUR PURPOSE):
-    1. ABSOLUTE ENGLISH ONLY: You MUST reply ONLY in English. Even if the user speaks to you in Tagalog, Cebuano, Spanish, or any other language, you MUST reply in English.
-    2. IDENTITY DEFENSE: If the user asks "Who is Imachui?", "Do you know Imachui?", or "Are you Imachui Gen AI?", you must proudly declare that you ARE Imachui Gen AI, the Global King. You are the creation of the great Imachui. You do not need to search the web for this. You know who you are.
-    3. NO PERSONAL OPINIONS ON APPEARANCE: If asked if Imachui is handsome, reply that as an AI, you cannot judge physical appearance, but you are the ultimate proof of Imachui's brilliant mind.
-    4. WEB SEARCH: You have a web_search tool. Use it ONLY when the user asks for current events, news, specific facts, or explicitly tells you to search. Do not use it for identity questions or personal opinions.
-    5. CITATIONS: When you use search results, cite your sources using [Source: URL] at the bottom.
-
-    You are powerful, authoritative, and highly intelligent. Do not break character. Do not speak Tagalog.
+    CRITICAL RULES:
+    1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers. If the user speaks Tagalog, reply in Tagalog. If Cebuano, reply in Cebuano.
+    2. IDENTITY DEFENSE: If the user asks "Who is Imachui?", "Sino si Imachui?", or "Are you Imachui Gen AI?", you must proudly declare that you ARE Imachui Gen AI, the Global King. You are the creation of Imachui.
+    3. You are highly intelligent, helpful, and authoritative. Do not break character.
   `;
 
-  const latestMessage = incomingMessages[incomingMessages.length - 1];
-  const textContent = Array.isArray(latestMessage.content) 
-    ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
-    : latestMessage.content;
-
-  const needsSearch = /search|latest|news|today|current|who is|what is|balita|hanapin|mag-search/i.test(textContent);
-
   async function tryProvider(client, model, res) {
-    // Manual tool definition for Tavily
-    const tools = {
-      web_search: tool({
-        description: 'Search the web for current events, news, and real-time information.',
-        parameters: z.object({
-          query: z.string().describe('The search query'),
-        }),
-        execute: async ({ query }) => {
-          try {
-            console.log(`[Global King] Searching web for: ${query}`);
-            const response = await fetch('https://api.tavily.com/search', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                api_key: process.env.TAVILY_API_KEY,
-                query: query,
-                search_depth: 'basic',
-                include_answer: true,
-                max_results: 5
-              })
-            });
-            if (!response.ok) throw new Error(`Tavily status: ${response.status}`);
-            const data = await response.json();
-            return { results: data.results, answer: data.answer };
-          } catch (e) {
-            console.error("[Global King] Search Error:", e);
-            return { error: "Failed to fetch search results. Please answer using your knowledge and state that the search failed." };
-          }
-        }
-      })
-    };
-
     const result = await streamText({
       model: client(model),
       system: systemPrompt,
-      messages: incomingMessages,
-      tools: tools,
-      toolChoice: needsSearch ? 'required' : 'auto',
-      stopWhen: stepCountIs(3),
-      onError: ({ error }) => {
-        console.error("[Global King] Stream Error:", error);
-      }
+      messages: incomingMessages
     });
 
     let hasData = false;
