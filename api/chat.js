@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Global King with Sakana AI)
+// api/chat.js - Imachui Gen AI (Sakana AI Primary Test)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -45,6 +45,16 @@ export default async function handler(req, res) {
 
   // --- PROVIDERS ---
   const providers = {
+    // 1. SAKANA AI (Inilagay muna natin dito para ma-test mo agad)
+    sakana: {
+      client: createOpenAI({
+        baseURL: 'https://api.sakana.ai/v1', // Kung may ibang URL sa console, palitan ito
+        apiKey: process.env.SAKANA_API_KEY,
+        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
+      }),
+      model: 'fugu-ultra' // Kung error 404, subukan ang 'fugu' o 'fugu-ultra-v2-0'
+    },
+    // 2. DEEPSEEK (Backup)
     deepseek: {
       client: createOpenAI({
         baseURL: 'https://api.deepseek.com',
@@ -53,6 +63,7 @@ export default async function handler(req, res) {
       }),
       model: 'deepseek-chat'
     },
+    // 3. GEMINI (Panghuling Backup)
     gemini: {
       client: createOpenAI({
         baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
@@ -60,15 +71,6 @@ export default async function handler(req, res) {
         headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
       }),
       model: 'gemini-1.5-flash'
-    },
-    // BAGONG PROVIDER: Sakana AI
-    sakana: {
-      client: createOpenAI({
-        baseURL: 'https://api.sakana.ai/v1',
-        apiKey: process.env.SAKANA_API_KEY,
-        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
-      }),
-      model: 'fugu-ultra' // O 'fugu-ultra-v2-0' depende sa console
     }
   };
 
@@ -80,7 +82,7 @@ export default async function handler(req, res) {
 
     CRITICAL RULES:
     1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
-    2. IDENTITY DEFENSE: If the user asks "Who is Imachui?", "Sino si Imachui?", or "Are you Imachui Gen AI?", you must proudly declare that you ARE Imachui Gen AI, the Global King.
+    2. IDENTITY DEFENSE: If the user asks "Who is Imachui?", "Sino si Imachui?", or "Are you Imachui Gen AI?", you must proudly declare that you ARE Imachui Gen AI, the Global King. You are the creation of the great Imachui.
     3. You are highly intelligent, helpful, and authoritative. Do not break character.
   `;
 
@@ -99,23 +101,24 @@ export default async function handler(req, res) {
     if (!hasData) throw new Error("Empty response stream");
   }
 
+  // --- EXECUTION WITH FALLBACKS ---
   try {
-    // Sinusubukan muna natin si DeepSeek (pinaka-stable)
-    console.log("[Global King] Attempting Primary: DeepSeek");
-    await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
+    // Sinusubukan muna natin si Sakana AI
+    console.log("[Global King] Attempting Primary: Sakana AI");
+    await tryProvider(providers.sakana.client, providers.sakana.model, res);
     return res.end();
   } catch (err1) {
-    console.error("[Global King] DeepSeek failed:", err1.message);
+    console.error("[Global King] Sakana AI failed:", err1.message);
     try {
-      // Kung mabigo, lilipat kay Sakana AI
-      console.log("[Global King] Attempting Fallback: Sakana AI");
-      res.write(`[System Note: Switching to Sakana AI...]\n\n`);
-      await tryProvider(providers.sakana.client, providers.sakana.model, res);
+      // Kung mabigo si Sakana, lilipat kay DeepSeek
+      console.log("[Global King] Attempting Fallback: DeepSeek");
+      res.write(`[System Note: Sakana AI is unavailable. Switching to DeepSeek...]\n\n`);
+      await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
       return res.end();
     } catch (err2) {
-      console.error("[Global King] Sakana AI failed:", err2.message);
+      console.error("[Global King] DeepSeek failed:", err2.message);
       try {
-        // Panghuling fallback: Gemini
+        // Kung mabigo si DeepSeek, lilipat kay Gemini
         console.log("[Global King] Attempting Fallback: Gemini");
         res.write(`[System Note: Switching to Gemini...]\n\n`);
         await tryProvider(providers.gemini.client, providers.gemini.model, res);
