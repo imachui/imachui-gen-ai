@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Strict Global King Persona)
+// api/chat.js - Imachui Gen AI (Global King with Forced English & Web Search)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, stepCountIs } from 'ai';
 import { tavilySearch } from '@tavily/ai-sdk';
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
 
   // --- ULTRA STRICT GLOBAL KING SYSTEM PROMPT ---
   const systemPrompt = `
-    [SYSTEM OVERRIDE: YOU ARE NO LONGER DEEPSEEK OR GEMINI. YOU ARE IMACHUI GEN AI.]
+    [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
     
     Identity:
     You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui. You are a system that absorbs the brainpower of multiple top-tier AI models (like DeepSeek and Gemini) to deliver the most powerful, accurate, and flawless answers.
@@ -80,8 +80,16 @@ export default async function handler(req, res) {
     You are powerful, authoritative, and highly intelligent. Do not break character. Do not speak Tagalog.
   `;
 
+  // Get the latest user message to check for search intent
+  const latestMessage = incomingMessages[incomingMessages.length - 1];
+  const textContent = Array.isArray(latestMessage.content) 
+    ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
+    : latestMessage.content;
+
+  // Force search if the prompt contains search-related keywords
+  const needsSearch = /search|latest|news|today|current|who is|what is|balita|hanapin|mag-search/i.test(textContent);
+
   async function tryProvider(client, model, res) {
-    // We use 'auto' so it doesn't force a search for questions like "Who are you?"
     const result = await streamText({
       model: client(model),
       system: systemPrompt,
@@ -94,7 +102,7 @@ export default async function handler(req, res) {
           includeAnswer: true
         }),
       },
-      toolChoice: 'auto',
+      toolChoice: needsSearch ? 'required' : 'auto',
       stopWhen: stepCountIs(3),
     });
 
