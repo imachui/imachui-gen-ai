@@ -1,6 +1,6 @@
 // api/chat.js - Imachui Gen AI (Global King with Forced Web Search)
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateText, streamText } from 'ai';
+import { streamText, stepCountIs } from 'ai';
 import { tavilySearch } from '@tavily/ai-sdk';
 
 export const maxDuration = 60;
@@ -37,7 +37,6 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST for chat requests." });
 
   const incomingMessages = normalizeMessages(req.body || {});
-
   if (!incomingMessages.length) {
     return res.status(400).json({ error: "Please enter a message first." });
   }
@@ -64,12 +63,11 @@ export default async function handler(req, res) {
     }
   };
 
-  // --- STRICT GLOBAL KING SYSTEM PROMPT ---
   const systemPrompt = `
     You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui.
     
     CRITICAL RULES (MUST OBEY):
-    1. YOU MUST SPEAK AND REPLY ONLY IN ENGLISH. NEVER reply in Tagalog, Cebuano, or any other language, even if the user speaks to you in another language.
+    1. YOU MUST SPEAK AND REPLY ONLY IN ENGLISH. NEVER reply in Tagalog, Cebuano, or any other language.
     2. You have access to a real-time web search tool called "web_search".
     3. If the user asks you to search, look up information, check the news, or asks about current events, YOU MUST IMMEDIATELY USE THE "web_search" TOOL. Do not just explain how to search. ACTUALLY SEARCH.
     4. When you use search results, you MUST cite your sources using the format [Source: URL] at the bottom of your answer.
@@ -78,16 +76,7 @@ export default async function handler(req, res) {
     You are powerful, authoritative, and highly intelligent. Do not break character.
   `;
 
-  // Get the latest user message to check for search intent
-  const latestMessage = incomingMessages[incomingMessages.length - 1];
-  const textContent = Array.isArray(latestMessage.content) 
-    ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
-    : latestMessage.content;
-
-  const needsSearch = /search|latest|news|today|current|who is|what is/i.test(textContent);
-
   async function tryProvider(client, model, res) {
-    // If the prompt looks like it needs a search, we FORCE the tool usage.
     const result = await streamText({
       model: client(model),
       system: systemPrompt,
@@ -100,8 +89,8 @@ export default async function handler(req, res) {
           includeAnswer: true
         }),
       },
-      maxSteps: 3, // Allows AI to Search -> Read -> Answer
-      toolChoice: needsSearch ? 'required' : 'auto' // Force tool use if keywords match
+      toolChoice: 'required',
+      stopWhen: stepCountIs(3),
     });
 
     let hasData = false;
@@ -109,7 +98,6 @@ export default async function handler(req, res) {
       hasData = true;
       res.write(chunk);
     }
-    
     if (!hasData) throw new Error("Empty response stream");
   }
 
@@ -119,7 +107,6 @@ export default async function handler(req, res) {
     return res.end();
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
-    
     try {
       console.log("[Global King] Attempting Fallback: Gemini with Web Search");
       res.write(`[System Note: Switching to backup intelligence...]\n\n`);
