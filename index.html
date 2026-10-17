@@ -39,7 +39,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
-/* ===== INTENSE ANIMATIONS ===== */
+/* ===== ANIMATIONS ===== */
 @keyframes pulseGlow {
   0% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.4), 0 0 20px rgba(129, 140, 248, 0.2); transform: scale(1); }
   50% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.9), 0 0 60px rgba(129, 140, 248, 0.6); transform: scale(1.05); }
@@ -63,6 +63,20 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
 @keyframes pulseBtn {
   0%, 100% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.2); }
   50% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); border-color: rgba(56, 189, 248, 0.8); }
+}
+
+/* NEW: TWINKLING STAR ANIMATION FOR WELCOME TEXT */
+@keyframes twinkleStars {
+  0%, 100% { 
+    text-shadow: 0 0 4px #fff, 0 0 10px #38bdf8, 0 0 20px #818cf8;
+    filter: brightness(1);
+    opacity: 0.9;
+  }
+  50% { 
+    text-shadow: 0 0 8px #fff, 0 0 20px #38bdf8, 0 0 40px #818cf8, 0 0 60px #38bdf8;
+    filter: brightness(1.5);
+    opacity: 1;
+  }
 }
 
 /* ===== LAYOUT ===== */
@@ -112,7 +126,12 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
 .top-title { font-size: 15px; font-weight: 850; animation: textPulse 2s infinite ease-in-out; }
 .gradient { 
   background: linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8); background-size: 200% auto;
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientShift 3s linear infinite, textPulse 2s infinite alternate;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientShift 3s linear infinite;
+}
+
+/* APPLY TWINKLE ANIMATION HERE */
+.star-twinkle {
+  animation: twinkleStars 2s infinite ease-in-out alternate;
 }
 
 /* CHAT AREA & DRAG/DROP */
@@ -220,7 +239,8 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
 <section class="chat" id="chat">
   <div class="welcome" id="welcome">
     <div class="brand-icon" style="margin:0 auto 20px;width:80px;height:80px;font-size:40px">✦</div>
-    <h1>Welcome to <span class="gradient">Imachui Gen AI</span></h1>
+    <!-- Inapply ang star-twinkle class dito para kumislap parang bituin -->
+    <h1>Welcome to <span class="gradient star-twinkle">Imachui Gen AI</span></h1>
     <p>I am the Global King. I absorb the intelligence of multiple AI models to give you massive, powerful, and flawless answers.</p>
   </div>
   <div id="messages"></div>
@@ -232,7 +252,6 @@ button { font: inherit; cursor: pointer; border: none; outline: none; }
   <div class="composer-bottom">
     <div class="tools">
       <button type="button" class="tool" onclick="document.getElementById('fileInput').click()">＋ Attach</button>
-      <!-- Accept attribute updated for Word and PDF -->
       <input type="file" id="fileInput" multiple accept="image/*,.pdf,.docx,.txt,.csv,.json" style="display:none" onchange="handleFiles(event)">
       <button type="button" class="tool" onclick="toggleMic()" id="micBtn">🎙️ Mic</button>
       <label class="toggle-label"><input type="checkbox" id="autoRead" checked> Auto-Read</label>
@@ -274,7 +293,7 @@ if (isMessenger) {
 }
 
 // APP LOGIC
-var STORAGE_KEY = 'imachui_v34_data';
+var STORAGE_KEY = 'imachui_v36_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
@@ -493,19 +512,33 @@ function renderAttachments() {
   });
 }
 
+// FIXED: Better Image Resizing for Mobile
 function resizeImg(file) {
-  return new Promise(function(resolve) {
+  return new Promise(function(resolve, reject) {
     var r = new FileReader();
     r.onload = function(e) {
       var img = new Image();
       img.onload = function() {
-        var w = img.width, h = img.height; var max = 1024;
-        if (w > h && w > max) { h *= max / w; w = max; } else if (h > max) { w *= max / h; h = max; }
-        var c = document.createElement('canvas'); c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h); resolve(c.toDataURL('image/jpeg', 0.8));
+        var w = img.width, h = img.height; 
+        var max = 1024; // Max dimension
+        if (w > h && w > max) { h *= max / w; w = max; } 
+        else if (h > max) { w *= max / h; h = max; }
+        
+        var c = document.createElement('canvas'); 
+        c.width = w; c.height = h;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h); 
+        
+        try {
+          resolve(c.toDataURL('image/jpeg', 0.8));
+        } catch(err) {
+          reject(new Error('Image too large to process on this device.'));
+        }
       };
+      img.onerror = function() { reject(new Error('Could not load image.')); };
       img.src = e.target.result;
     };
+    r.onerror = function() { reject(new Error('Could not read file.')); };
     r.readAsDataURL(file);
   });
 }
@@ -524,7 +557,7 @@ async function extractPdfText(file) {
   return fullText.trim();
 }
 
-// Word (.docx) Text Extraction Function using Mammoth.js
+// Word (.docx) Text Extraction Function
 async function extractDocxText(file) {
   var arrayBuffer = await file.arrayBuffer();
   var result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
@@ -541,28 +574,35 @@ async function sendMessage() {
   var fileSnap = selectedFiles.slice(); var msgContent = [];
   if (text) msgContent.push({type: 'text', text: text});
   
-  // Process files (Images, PDFs, Word, Text)
+  // Process files with strict mobile error handling
   for (var i = 0; i < fileSnap.length; i++) {
     var f = fileSnap[i];
+    var fileSizeMB = (f.size / (1024 * 1024)).toFixed(2);
+    
+    // Warn if file is too large for mobile processing
+    if (f.size > 10 * 1024 * 1024) {
+      msgContent.push({type: 'text', text: '\n\n[Error: ' + f.name + ' is too large (' + fileSizeMB + 'MB). Max size is 10MB.]'});
+      continue;
+    }
+
     try {
-      if (f.type.indexOf('image/') === 0) { 
+      var name = f.name.toLowerCase();
+      if (f.type.indexOf('image/') === 0 || name.match(/\.(jpg|jpeg|png|webp|gif)$/)) { 
         var data = await resizeImg(f); 
         msgContent.push({type: 'image', image: data}); 
-      } else if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+      } else if (f.type === 'application/pdf' || name.endsWith('.pdf')) {
         var pdfText = await extractPdfText(f);
         msgContent.push({type: 'text', text: '\n\n[PDF Document: ' + f.name + ']\n' + pdfText});
-      } else if (f.name.toLowerCase().endsWith('.docx')) {
-        // NEW: Reading Word files
+      } else if (name.endsWith('.docx')) {
         var docxText = await extractDocxText(f);
         msgContent.push({type: 'text', text: '\n\n[Word Document: ' + f.name + ']\n' + docxText});
       } else { 
-        // For plain text, csv, json
         var txt = await f.text(); 
         msgContent.push({type: 'text', text: '\n\n[Document: ' + f.name + ']\n' + txt}); 
       }
     } catch(e) { 
       console.error(e); 
-      msgContent.push({type: 'text', text: '\n\n[Error reading file: ' + f.name + ']'});
+      msgContent.push({type: 'text', text: '\n\n[Error reading file ' + f.name + ': ' + (e.message || 'Unknown error') + ']'});
     }
   }
   
