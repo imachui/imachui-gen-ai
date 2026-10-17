@@ -63,7 +63,6 @@ export default async function handler(req, res) {
     }
   };
 
-  // --- ULTRA STRICT GLOBAL KING SYSTEM PROMPT ---
   const systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
     
@@ -80,29 +79,33 @@ export default async function handler(req, res) {
     You are powerful, authoritative, and highly intelligent. Do not break character. Do not speak Tagalog.
   `;
 
-  // Get the latest user message to check for search intent
   const latestMessage = incomingMessages[incomingMessages.length - 1];
   const textContent = Array.isArray(latestMessage.content) 
     ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
     : latestMessage.content;
 
-  // Force search if the prompt contains search-related keywords
   const needsSearch = /search|latest|news|today|current|who is|what is|balita|hanapin|mag-search/i.test(textContent);
 
   async function tryProvider(client, model, res) {
-    const result = await streamText({
-      model: client(model),
-      system: systemPrompt,
-      messages: incomingMessages,
-      tools: {
+    // Only initialize tool if API key exists to prevent crash
+    let tools = {};
+    if (process.env.TAVILY_API_KEY) {
+      tools = {
         web_search: tavilySearch({
           apiKey: process.env.TAVILY_API_KEY,
           searchDepth: 'advanced',
           maxResults: 5,
           includeAnswer: true
-        }),
-      },
-      toolChoice: needsSearch ? 'required' : 'auto',
+        })
+      };
+    }
+
+    const result = await streamText({
+      model: client(model),
+      system: systemPrompt,
+      messages: incomingMessages,
+      tools: tools,
+      toolChoice: needsSearch && process.env.TAVILY_API_KEY ? 'required' : 'auto',
       stopWhen: stepCountIs(3),
     });
 
