@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Global King - Stable Multi-Language)
+// api/chat.js - Imachui Gen AI (Global King with Sakana AI)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -43,6 +43,7 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
+  // --- PROVIDERS ---
   const providers = {
     deepseek: {
       client: createOpenAI({
@@ -59,16 +60,27 @@ export default async function handler(req, res) {
         headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
       }),
       model: 'gemini-1.5-flash'
+    },
+    // BAGONG PROVIDER: Sakana AI
+    sakana: {
+      client: createOpenAI({
+        baseURL: 'https://api.sakana.ai/v1',
+        apiKey: process.env.SAKANA_API_KEY,
+        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
+      }),
+      model: 'fugu-ultra' // O 'fugu-ultra-v2-0' depende sa console
     }
   };
 
-  // System Prompt allowing Tagalog, Cebuano, etc.
   const systemPrompt = `
+    [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
+    
+    Identity:
     You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui. You absorb the brainpower of multiple top-tier AI models to deliver powerful, accurate, and flawless answers.
 
     CRITICAL RULES:
-    1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers. If the user speaks Tagalog, reply in Tagalog. If Cebuano, reply in Cebuano.
-    2. IDENTITY DEFENSE: If the user asks "Who is Imachui?", "Sino si Imachui?", or "Are you Imachui Gen AI?", you must proudly declare that you ARE Imachui Gen AI, the Global King. You are the creation of Imachui.
+    1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
+    2. IDENTITY DEFENSE: If the user asks "Who is Imachui?", "Sino si Imachui?", or "Are you Imachui Gen AI?", you must proudly declare that you ARE Imachui Gen AI, the Global King.
     3. You are highly intelligent, helpful, and authoritative. Do not break character.
   `;
 
@@ -88,23 +100,34 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Sinusubukan muna natin si DeepSeek (pinaka-stable)
     console.log("[Global King] Attempting Primary: DeepSeek");
     await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
     return res.end();
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      console.log("[Global King] Attempting Fallback: Gemini");
-      res.write(`[System Note: Switching to backup intelligence...]\n\n`);
-      await tryProvider(providers.gemini.client, providers.gemini.model, res);
+      // Kung mabigo, lilipat kay Sakana AI
+      console.log("[Global King] Attempting Fallback: Sakana AI");
+      res.write(`[System Note: Switching to Sakana AI...]\n\n`);
+      await tryProvider(providers.sakana.client, providers.sakana.model, res);
       return res.end();
     } catch (err2) {
-      console.error("[Global King] All providers failed:", err2.message);
-      if (!res.headersSent) {
-        return res.status(502).json({ error: "The Global King is currently unavailable. Please try again." });
+      console.error("[Global King] Sakana AI failed:", err2.message);
+      try {
+        // Panghuling fallback: Gemini
+        console.log("[Global King] Attempting Fallback: Gemini");
+        res.write(`[System Note: Switching to Gemini...]\n\n`);
+        await tryProvider(providers.gemini.client, providers.gemini.model, res);
+        return res.end();
+      } catch (err3) {
+        console.error("[Global King] All providers failed:", err3.message);
+        if (!res.headersSent) {
+          return res.status(502).json({ error: "The Global King is currently unavailable. Please try again." });
+        }
+        res.write(`\n\n[System Error: All AI brains failed to connect.]`);
+        return res.end();
       }
-      res.write(`\n\n[System Error: All AI brains failed to connect.]`);
-      return res.end();
     }
   }
 }
