@@ -6,12 +6,22 @@
 <meta name="theme-color" content="#05070a">
 <title>Imachui Gen AI - Global King</title>
 <style>
+/* FIXED: Solid background color to prevent white screen on mobile overflow */
+html, body {
+  background-color: #05070a;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 :root{color-scheme:dark;--bg:#05070a;--text:#f3f5fb;--muted:#98a2b7;--accent:#8b7cff;--accent2:#42d9c8}
 *{box-sizing:border-box;touch-action:manipulation}
-body{margin:0;height:100vh;height:100dvh;background:radial-gradient(circle at 50% -20%,#1a1f35 0%,var(--bg) 70%);color:var(--text);font-family:Inter,system-ui,sans-serif;overflow:hidden;position:fixed;width:100%}
+body{height:100vh;height:100dvh;background:radial-gradient(circle at 50% -20%,#1a1f35 0%,var(--bg) 70%) #05070a;color:var(--text);font-family:Inter,system-ui,sans-serif;overflow:hidden;position:fixed;width:100%}
 button{font:inherit;cursor:pointer}
 .glass{background:rgba(20,25,40,.5);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08)}
-.app{height:100vh;height:100dvh;display:grid;grid-template-columns:280px 1fr;overflow:hidden}
+.app{height:100vh;height:100dvh;display:grid;grid-template-columns:280px 1fr;overflow:hidden;background-color:#05070a;}
 .sidebar{padding:24px 20px;display:flex;flex-direction:column;gap:14px;border-right:1px solid rgba(255,255,255,.08);overflow-y:auto;height:100vh;height:100dvh}
 .back-btn{display:none;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:12px;color:#fff;padding:12px;font-size:13px;text-align:left;cursor:pointer}
 .back-btn:hover{background:rgba(255,255,255,.05)}
@@ -33,7 +43,7 @@ button{font:inherit;cursor:pointer}
 .backup-row button{flex:1;padding:10px;font-size:12px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);color:#fff;cursor:pointer}
 .backup-row button:hover{background:rgba(139,124,255,.2)}
 .side-foot{margin-top:auto;padding-top:15px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:var(--muted)}
-.main{display:flex;flex-direction:column;overflow:hidden;height:100vh;height:100dvh}
+.main{display:flex;flex-direction:column;overflow:hidden;height:100vh;height:100dvh;background-color:#05070a;}
 .topbar{height:70px;display:flex;align-items:center;gap:12px;padding:0 30px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
 .menu-btn{display:none;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#fff;padding:8px 12px;font-size:16px;cursor:pointer}
 .top-title{font-size:14px;font-weight:850}
@@ -48,7 +58,7 @@ button{font:inherit;cursor:pointer}
 .msg{display:flex;gap:16px;margin:24px 0}
 .avatar{width:36px;height:36px;flex:0 0 36px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:grid;place-items:center;font-size:12px;font-weight:800}
 .msg.user .avatar{background:rgba(139,124,255,.2)}
-.body{flex:1;padding:16px 20px;border-radius:16px;line-height:1.75;background:rgba(20,25,40,.5);border:1px solid rgba(255,255,255,.08);min-width:0}
+.body{flex:1;padding:16px 20px;border-radius:16px;line-height:1.75;background:rgba(20,25,40,.7);border:1px solid rgba(255,255,255,.08);min-width:0}
 .role{font-size:12px;font-weight:800;margin-bottom:6px;color:#c9c4ff;text-transform:uppercase}
 .msg.user .role{color:#8fe9dd}
 .text{white-space:pre-wrap;overflow-wrap:anywhere}
@@ -62,8 +72,8 @@ button{font:inherit;cursor:pointer}
 .att-chip{font-size:11px;color:#c9d1e6;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:6px 10px;background:rgba(255,255,255,.03)}
 .att-img{max-width:100%;max-height:250px;border-radius:12px;margin-top:12px}
 .typing{color:#c9c4ff;font-size:13px;font-weight:700}
-.composer-wrap{padding:20px 24px 30px;display:flex;justify-content:center;flex-shrink:0}
-.composer{width:100%;max-width:850px;padding:16px;border-radius:24px;display:flex;flex-direction:column;gap:12px;background:rgba(20,25,40,.5);border:1px solid rgba(255,255,255,.08)}
+.composer-wrap{padding:20px 24px 30px;display:flex;justify-content:center;flex-shrink:0;background:transparent;}
+.composer{width:100%;max-width:850px;padding:16px;border-radius:24px;display:flex;flex-direction:column;gap:12px;background:rgba(20,25,40,.7);border:1px solid rgba(255,255,255,.08)}
 #prompt{width:100%;min-height:60px;max-height:200px;resize:vertical;border:0;outline:0;color:#fff;background:transparent;padding:8px 12px;line-height:1.6;font-size:15px}
 #prompt::placeholder{color:#6b7385}
 .composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
@@ -77,18 +87,18 @@ button{font:inherit;cursor:pointer}
 
 /* ===== MOBILE ===== */
 @media(max-width:768px){
-  .app{grid-template-columns:1fr;height:100vh;height:100dvh}
+  .app{grid-template-columns:1fr;height:100vh;height:100dvh;background-color:#05070a;}
   .sidebar{display:none;position:fixed;z-index:50;inset:0;width:100vw;height:100vh;height:100dvh;background:#0a0e18;padding:16px 14px;overflow-y:auto}
   .sidebar.open{display:flex}
   .sidebar.open ~ .main{display:none}
   .back-btn{display:block}
   .menu-btn{display:block}
-  .topbar{height:58px;padding:0 14px;gap:10px}
+  .topbar{height:58px;padding:0 14px;gap:10px;background:rgba(20,25,40,.5);}
   .top-title{font-size:12px;flex:1}
   .chat{padding:18px 12px 24px}
   .composer-wrap{position:fixed;bottom:0;left:0;right:0;width:100%;padding:10px 10px max(10px,env(safe-area-inset-bottom)) 10px;z-index:100;background:linear-gradient(0deg,#05070a 70%,transparent 100%)}
   .chat{padding-bottom:220px}
-  .composer{padding:10px;border-radius:18px}
+  .composer{padding:10px;border-radius:18px;background:rgba(20,25,40,.9);}
   #prompt{min-height:48px;font-size:16px;padding:8px}
   .composer-bottom{flex-direction:column;align-items:stretch;gap:8px}
   .tools{justify-content:space-between;width:100%}
@@ -97,7 +107,7 @@ button{font:inherit;cursor:pointer}
   .send{width:100%;padding:14px;font-size:16px;font-weight:900}
   .msg{gap:10px;margin:16px 0}
   .avatar{width:32px;height:32px;flex:0 0 32px;font-size:11px}
-  .body{padding:12px 14px;font-size:14px}
+  .body{padding:12px 14px;font-size:14px;background:rgba(20,25,40,.8);}
   .welcome h1{font-size:28px}
   .welcome p{font-size:13px}
 }
@@ -162,7 +172,7 @@ button{font:inherit;cursor:pointer}
 <script>
 'use strict';
 
-var STORAGE_KEY = 'imachui_v28_data';
+var STORAGE_KEY = 'imachui_v29_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
