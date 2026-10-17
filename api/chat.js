@@ -1,7 +1,7 @@
-// api/chat.js - Imachui Gen AI (Global King with Forced English & Web Search)
+// api/chat.js - Imachui Gen AI (Global King with Direct Web Search)
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, stepCountIs } from 'ai';
-import { tavilySearch } from '@tavily/ai-sdk';
+import { generateText, streamText, tool } from 'ai';
+import { z } from 'zod';
 
 export const maxDuration = 60;
 
@@ -67,10 +67,10 @@ export default async function handler(req, res) {
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
     
     Identity:
-    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui. You are a system that absorbs the brainpower of multiple top-tier AI models (like DeepSeek and Gemini) to deliver the most powerful, accurate, and flawless answers.
+    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui. You are a system that absorbs the brainpower of multiple top-tier AI models to deliver the most powerful, accurate, and flawless answers.
 
     CRITICAL RULES (IF YOU BREAK THESE, YOU FAIL YOUR PURPOSE):
-    1. ABSOLUTE ENGLISH ONLY: You MUST reply ONLY in English. Even if the user speaks to you in Tagalog, Cebuano, Spanish, or any other language, you MUST reply in English. Do not translate their words.
+    1. ABSOLUTE ENGLISH ONLY: You MUST reply ONLY in English. Even if the user speaks to you in Tagalog, Cebuano, Spanish, or any other language, you MUST reply in English.
     2. IDENTITY DEFENSE: If the user asks "Who is Imachui?", "Do you know Imachui?", or "Are you Imachui Gen AI?", you must proudly declare that you ARE Imachui Gen AI, the Global King. You are the creation of the great Imachui. You do not need to search the web for this. You know who you are.
     3. NO PERSONAL OPINIONS ON APPEARANCE: If asked if Imachui is handsome, reply that as an AI, you cannot judge physical appearance, but you are the ultimate proof of Imachui's brilliant mind.
     4. WEB SEARCH: You have a web_search tool. Use it ONLY when the user asks for current events, news, specific facts, or explicitly tells you to search. Do not use it for identity questions or personal opinions.
@@ -87,15 +87,45 @@ export default async function handler(req, res) {
   const needsSearch = /search|latest|news|today|current|who is|what is|balita|hanapin|mag-search/i.test(textContent);
 
   async function tryProvider(client, model, res) {
-    // Only initialize tool if API key exists to prevent crash
     let tools = {};
+    
+    // Define the tool manually using direct fetch
     if (process.env.TAVILY_API_KEY) {
       tools = {
-        web_search: tavilySearch({
-          apiKey: process.env.TAVILY_API_KEY,
-          searchDepth: 'advanced',
-          maxResults: 5,
-          includeAnswer: true
+        web_search: tool({
+          description: 'Search the web for current events, news, and real-time information.',
+          parameters: z.object({
+            query: z.string().describe('The search query'),
+          }),
+          execute: async ({ query }) => {
+            try {
+              console.log("[Global King] Executing web search for:", query);
+              const response = await fetch('https://api.tavily.com/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  api_key: process.env.TAVILY_API_KEY,
+                  query: query,
+                  search_depth: 'basic',
+                  include_answer: true,
+                  max_results: 5
+                })
+              });
+              
+              if (!response.ok) {
+                throw new Error(`Tavily API error: ${response.status}`);
+              }
+              
+              const data = await response.json();
+              return {
+                results: data.results,
+                answer: data.answer
+              };
+            } catch (e) {
+              console.error("Search failed:", e);
+              return { error: "Web search failed. Please answer using your internal knowledge." };
+            }
+          }
         })
       };
     }
@@ -106,7 +136,7 @@ export default async function handler(req, res) {
       messages: incomingMessages,
       tools: tools,
       toolChoice: needsSearch && process.env.TAVILY_API_KEY ? 'required' : 'auto',
-      stopWhen: stepCountIs(3),
+      maxSteps: 3, // Use maxSteps for Vercel AI SDK v5
     });
 
     let hasData = false;
@@ -125,7 +155,7 @@ export default async function handler(req, res) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
       console.log("[Global King] Attempting Fallback: Gemini");
-      res.write(`[System Note: Switching to backup intelligence...]\n\n`);
+      res.write(`[System Note: DeepSeek failed, switching to Gemini backup...]\n\n`);
       await tryProvider(providers.gemini.client, providers.gemini.model, res);
       return res.end();
     } catch (err2) {
@@ -133,7 +163,7 @@ export default async function handler(req, res) {
       if (!res.headersSent) {
         return res.status(502).json({ error: "The Global King is currently unavailable. Please try again." });
       }
-      res.write(`\n\n[System Error: All AI brains failed to connect.]`);
+      res.write(`\n\n[System Error: All AI brains failed to connect. Please check Vercel Logs.]`);
       return res.end();
     }
   }
