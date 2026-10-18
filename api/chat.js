@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Global King with Sakana AI)
+// api/chat.js - Imachui Gen AI (DeepSeek, Gemini, OpenRouter only)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
-  // --- PROVIDERS ---
+  // --- PROVIDERS (Meron ka sa Vercel) ---
   const providers = {
     deepseek: {
       client: createOpenAI({
@@ -61,14 +61,13 @@ export default async function handler(req, res) {
       }),
       model: 'gemini-1.5-flash'
     },
-    // BAGONG PROVIDER: Sakana AI
-    sakana: {
+    openrouter: {
       client: createOpenAI({
-        baseURL: 'https://api.sakana.ai/v1',
-        apiKey: process.env.SAKANA_API_KEY,
+        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey: process.env.OPENROUTER_API_KEY,
         headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
       }),
-      model: 'fugu-ultra' // O 'fugu-ultra-v2-0' depende sa console
+      model: 'qwen/qwen-2.5-72b-instruct:free'
     }
   };
 
@@ -99,26 +98,27 @@ export default async function handler(req, res) {
     if (!hasData) throw new Error("Empty response stream");
   }
 
+  // --- FALLBACK LOGIC ---
   try {
-    // Sinusubukan muna natin si DeepSeek (pinaka-stable)
+    // 1. DeepSeek (Pangunahing Utak)
     console.log("[Global King] Attempting Primary: DeepSeek");
     await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
     return res.end();
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      // Kung mabigo, lilipat kay Sakana AI
-      console.log("[Global King] Attempting Fallback: Sakana AI");
-      res.write(`[System Note: Switching to Sakana AI...]\n\n`);
-      await tryProvider(providers.sakana.client, providers.sakana.model, res);
+      // 2. Gemini (Unang Backup)
+      console.log("[Global King] Attempting Fallback 1: Gemini");
+      res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini...]\n\n`);
+      await tryProvider(providers.gemini.client, providers.gemini.model, res);
       return res.end();
     } catch (err2) {
-      console.error("[Global King] Sakana AI failed:", err2.message);
+      console.error("[Global King] Gemini failed:", err2.message);
       try {
-        // Panghuling fallback: Gemini
-        console.log("[Global King] Attempting Fallback: Gemini");
-        res.write(`[System Note: Switching to Gemini...]\n\n`);
-        await tryProvider(providers.gemini.client, providers.gemini.model, res);
+        // 3. OpenRouter (Panghuling Backup)
+        console.log("[Global King] Attempting Fallback 2: OpenRouter");
+        res.write(`[System Note: Switching to OpenRouter...]\n\n`);
+        await tryProvider(providers.openrouter.client, providers.openrouter.model, res);
         return res.end();
       } catch (err3) {
         console.error("[Global King] All providers failed:", err3.message);
