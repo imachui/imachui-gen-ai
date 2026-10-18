@@ -135,8 +135,8 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   position: relative;
   color: #fff;
   font-weight: 900;
-  text-shadow: 0 0 15px rgba(56, 189, 248, 0.9); /* Base glow */
-  animation: glitch-skew 0.4s infinite linear alternate-reverse; /* Sobrang bilis ng skew */
+  text-shadow: 0 0 15px rgba(56, 189, 248, 0.9);
+  animation: glitch-skew 0.4s infinite linear alternate-reverse;
 }
 .glitch-text::before,
 .glitch-text::after {
@@ -151,12 +151,12 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 }
 .glitch-text::before {
   left: 6px;
-  text-shadow: -6px 0 #ff00c1, 0 0 20px #ff00c1; /* Malakas na Magenta */
-  animation: glitch-anim-1 0.3s infinite linear alternate-reverse; /* Sobrang bilis */
+  text-shadow: -6px 0 #ff00c1, 0 0 20px #ff00c1;
+  animation: glitch-anim-1 0.3s infinite linear alternate-reverse;
 }
 .glitch-text::after {
   left: -6px;
-  text-shadow: 6px 0 #00fff9, 0 0 20px #00fff9; /* Malakas na Cyan */
+  text-shadow: 6px 0 #00fff9, 0 0 20px #00fff9;
   animation: glitch-anim-2 0.3s infinite linear alternate-reverse;
 }
 
@@ -177,15 +177,20 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .side-btn { width: 100%; padding: 14px; border-radius: 14px; color: var(--text); text-align: left; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s; font-weight: 500; }
 .side-btn:active { background: rgba(255,255,255,0.1); }
 .side-label { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-top: 10px; font-weight: 600; }
-.history { display: flex; flex-direction: column; gap: 8px; max-height: 25vh; overflow-y: auto; }
-.history-row { display: flex; align-items: center; gap: 6px; border-radius: 10px; }
+
+/* FIX: Dinagdagan ng flex-shrink: 0 at min-height para hindi mawala */
+.history { display: flex; flex-direction: column; gap: 8px; max-height: 25vh; min-height: 60px; overflow-y: auto; flex-shrink: 0; margin-bottom: 5px; }
+.history-row { display: flex; align-items: center; gap: 6px; border-radius: 10px; padding: 2px; }
 .history-row.active { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
-.history-open { flex: 1; text-align: left; border: 0; background: transparent; color: #cbd2e4; padding: 12px 10px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-.del-btn { border: 0; background: transparent; color: #a4abc0; padding: 8px; font-size: 14px; cursor: pointer; }
-.status { font-size: 11px; padding: 8px; border-radius: 8px; text-align: center; background: rgba(56, 189, 248, 0.15); color: var(--accent); border: 1px solid rgba(56, 189, 248, 0.3); font-weight: 500; }
-.backup-row { display: flex; gap: 6px; }
+.history-open { flex: 1; text-align: left; border: 0; background: transparent; color: #cbd2e4; padding: 10px 8px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+/* FIX: Mas kitang-kita ang delete button */
+.del-btn { border: 0; background: transparent; color: #ff8d9a; padding: 8px; font-size: 18px; font-weight: bold; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+.del-btn:hover { opacity: 1; }
+
+.status { font-size: 11px; padding: 8px; border-radius: 8px; text-align: center; background: rgba(56, 189, 248, 0.15); color: var(--accent); border: 1px solid rgba(56, 189, 248, 0.3); font-weight: 500; flex-shrink: 0; }
+.backup-row { display: flex; gap: 6px; flex-shrink: 0; }
 .backup-row button { flex: 1; padding: 10px; font-size: 12px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; cursor: pointer; font-weight: 500; }
-.side-foot { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--glass-border); font-size: 12px; font-weight: bold; text-align: center; }
+.side-foot { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--glass-border); font-size: 12px; font-weight: bold; text-align: center; flex-shrink: 0; }
 .fire-text { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #ff0000); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fireText 3s ease infinite; font-size: 14px; font-weight: 800; }
 
 .apk-download-btn {
@@ -193,7 +198,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   padding: 12px; border-radius: 12px; background: linear-gradient(45deg, #ff0000, #ff7300, #ff0000); background-size: 200% 200%;
   animation: fireText 3s ease infinite, flamePulse 1.5s ease-in-out infinite;
   border: 1px solid #fffb00; color: #fff; text-decoration: none; font-weight: 850; font-size: 14px; text-align: center; margin-bottom: 5px;
-  box-shadow: 0 0 15px rgba(255, 115, 0, 0.6); transition: transform 0.2s;
+  box-shadow: 0 0 15px rgba(255, 115, 0, 0.6); transition: transform 0.2s; flex-shrink: 0;
 }
 .apk-download-btn:hover { transform: scale(1.05); }
 .apk-download-btn small { font-size: 10px; font-weight: normal; color: #fff; margin-top: 4px; opacity: 0.9; }
@@ -493,7 +498,7 @@ if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-var STORAGE_KEY = 'imachui_v45_data';
+var STORAGE_KEY = 'imachui_v46_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
@@ -574,19 +579,15 @@ function handleUpload(event) {
 // ===== MAXIMUM GLITCH FORMATTER =====
 function fmt(text) {
   let f = text;
-  
   f = f.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   f = f.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank">$1</a>');
   f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<]+)/g, function(m,p,u) {
     return p + '<a href="' + (/^https?:\/\//i.test(u) ? u : 'https://' + u) + '" target="_blank">' + u + '</a>';
   });
-
-  // Mas agresibong regex para sa Glitch
   f = f.replace(/\b(Imachui|Nerts V|NertsV|Nerts)\b/gi, function(match) {
     return `<span class="glitch-text" data-text="${match}">${match}</span>`;
   });
-
   return f;
 }
 
@@ -635,19 +636,41 @@ function newChat() {
   setTimeout(function() { document.getElementById('prompt').focus(); }, 100);
 }
 
+// FIX: INAYOS ANG RENDER HISTORY PARA SIGURADONG LALABAS ANG MGA CHATS AT DELETE BUTTON
 function renderHistory() {
   var h = document.getElementById('history');
   h.innerHTML = '';
+  
+  if (!chats.length) {
+    var empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.style.cssText = 'color: var(--muted); font-size: 12px; padding: 10px; text-align: center; font-style: italic;';
+    empty.textContent = 'No conversations yet.';
+    h.appendChild(empty);
+    return;
+  }
+
   chats.slice(0, 30).forEach(function(chat) {
     var row = document.createElement('div');
     row.className = 'history-row' + (chat.id === activeChatId ? ' active' : '');
+    
     var open = document.createElement('button');
-    open.className = 'history-open'; open.textContent = chat.title || 'New conversation';
+    open.className = 'history-open'; 
+    open.textContent = chat.title || 'New conversation';
     open.onclick = function() { openChat(chat.id); };
+    
     var del = document.createElement('button');
-    del.className = 'del-btn'; del.textContent = '×';
-    del.onclick = function(ev) { ev.stopPropagation(); deleteChat(chat.id); };
-    row.appendChild(open); row.appendChild(del); h.appendChild(row);
+    del.className = 'del-btn'; 
+    del.textContent = '×';
+    del.title = 'Delete conversation';
+    del.onclick = function(ev) { 
+      ev.stopPropagation(); 
+      deleteChat(chat.id); 
+    };
+    
+    row.appendChild(open); 
+    row.appendChild(del); 
+    h.appendChild(row);
   });
 }
 
