@@ -99,29 +99,44 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 @keyframes fireText { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 @keyframes flamePulse { 0% { filter: drop-shadow(0 0 5px #ff7300); } 50% { filter: drop-shadow(0 0 15px #ff0000); } 100% { filter: drop-shadow(0 0 5px #ff7300); } }
 
-/* ===== NEW GLITCH EFFECT ===== */
+/* ===== MAXIMUM EXTREME GLITCH EFFECT ===== */
 @keyframes glitch-skew {
   0% { transform: skew(0deg); }
-  20% { transform: skew(-2deg); }
-  40% { transform: skew(2deg); }
-  60% { transform: skew(-1deg); }
-  80% { transform: skew(1deg); }
+  10% { transform: skew(-15deg); }
+  20% { transform: skew(15deg); }
+  30% { transform: skew(-5deg); }
+  40% { transform: skew(5deg); }
+  50% { transform: skew(-10deg); }
+  60% { transform: skew(10deg); }
+  70% { transform: skew(-2deg); }
+  80% { transform: skew(2deg); }
+  90% { transform: skew(-20deg); }
   100% { transform: skew(0deg); }
 }
-@keyframes glitch-anim {
-  0% { clip: rect(10px, 9999px, 50px, 0); }
-  20% { clip: rect(40px, 9999px, 10px, 0); }
-  40% { clip: rect(20px, 9999px, 80px, 0); }
-  60% { clip: rect(60px, 9999px, 30px, 0); }
-  80% { clip: rect(30px, 9999px, 70px, 0); }
-  100% { clip: rect(50px, 9999px, 20px, 0); }
+@keyframes glitch-anim-1 {
+  0% { clip: rect(10px, 9999px, 50px, 0); transform: translateX(-6px); }
+  20% { clip: rect(80px, 9999px, 10px, 0); transform: translateX(6px); }
+  40% { clip: rect(20px, 9999px, 90px, 0); transform: translateX(-4px); }
+  60% { clip: rect(60px, 9999px, 30px, 0); transform: translateX(4px); }
+  80% { clip: rect(30px, 9999px, 70px, 0); transform: translateX(-6px); }
+  100% { clip: rect(50px, 9999px, 20px, 0); transform: translateX(6px); }
+}
+@keyframes glitch-anim-2 {
+  0% { clip: rect(50px, 9999px, 10px, 0); transform: translateX(6px); }
+  20% { clip: rect(10px, 9999px, 80px, 0); transform: translateX(-6px); }
+  40% { clip: rect(90px, 9999px, 20px, 0); transform: translateX(4px); }
+  60% { clip: rect(30px, 9999px, 60px, 0); transform: translateX(-4px); }
+  80% { clip: rect(70px, 9999px, 30px, 0); transform: translateX(6px); }
+  100% { clip: rect(20px, 9999px, 50px, 0); transform: translateX(-6px); }
 }
 
 .glitch-text {
   display: inline-block;
   position: relative;
   color: #fff;
-  animation: glitch-skew 2s infinite linear alternate-reverse;
+  font-weight: 900;
+  text-shadow: 0 0 15px rgba(56, 189, 248, 0.9); /* Base glow */
+  animation: glitch-skew 0.4s infinite linear alternate-reverse; /* Sobrang bilis ng skew */
 }
 .glitch-text::before,
 .glitch-text::after {
@@ -132,22 +147,20 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   width: 100%;
   height: 100%;
   background: transparent;
+  opacity: 0.9;
 }
 .glitch-text::before {
-  left: 2px;
-  text-shadow: -2px 0 #ff00c1;
-  clip: rect(44px, 450px, 56px, 0);
-  animation: glitch-anim 3s infinite linear alternate-reverse;
+  left: 6px;
+  text-shadow: -6px 0 #ff00c1, 0 0 20px #ff00c1; /* Malakas na Magenta */
+  animation: glitch-anim-1 0.3s infinite linear alternate-reverse; /* Sobrang bilis */
 }
 .glitch-text::after {
-  left: -2px;
-  text-shadow: -2px 0 #00fff9, 2px 2px #ff00c1;
-  clip: rect(44px, 450px, 56px, 0);
-  animation: glitch-anim 2.5s infinite linear alternate-reverse;
-  animation-delay: 0.2s;
+  left: -6px;
+  text-shadow: 6px 0 #00fff9, 0 0 20px #00fff9; /* Malakas na Cyan */
+  animation: glitch-anim-2 0.3s infinite linear alternate-reverse;
 }
 
-/* ===== NEW SHIMMER & GLOW ANIMATION FOR TITLE ===== */
+/* ===== WELCOME TITLE DESIGN ===== */
 @keyframes shineGlow {
   0% { background-position: 0% center; filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.6)) drop-shadow(0 0 20px rgba(129, 140, 248, 0.4)); }
   50% { background-position: 100% center; filter: drop-shadow(0 0 15px rgba(56, 189, 248, 1)) drop-shadow(0 0 30px rgba(129, 140, 248, 0.8)); }
@@ -207,7 +220,6 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .chat > * { width: 100%; max-width: 850px; }
 .welcome { text-align: center; padding: 50px 0 40px; }
 
-/* ===== NEW WELCOME TITLE DESIGN ===== */
 .welcome-title-container {
   display: flex;
   flex-direction: column;
@@ -224,7 +236,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   margin-bottom: 8px;
 }
 .welcome-main-title {
-  font-size: clamp(36px, 6vw, 64px); /* Mas malaki */
+  font-size: clamp(36px, 6vw, 64px);
   font-weight: 900;
   line-height: 1.1;
   text-transform: uppercase;
@@ -239,7 +251,6 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 
 .welcome p { color: var(--muted); font-size: 15px; max-width: 560px; margin: 0 auto; line-height: 1.5; letter-spacing: -0.01em; }
 
-/* ===== MAINTENANCE BANNER (iOS STYLE) ===== */
 .maintenance-banner {
   display: flex;
   align-items: center;
@@ -286,7 +297,6 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   letter-spacing: -0.01em;
 }
 
-/* CHAT BUBBLES */
 .msg { display: flex; gap: 16px; margin: 24px 0; }
 .avatar { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
 .msg.user .avatar { background: rgba(56, 189, 248, 0.2); }
@@ -483,7 +493,7 @@ if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-var STORAGE_KEY = 'imachui_v44_data';
+var STORAGE_KEY = 'imachui_v45_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
@@ -561,11 +571,10 @@ function handleUpload(event) {
   document.getElementById('uploadInput').value = '';
 }
 
-// ===== MODIFIED FORMATTER WITH GLITCH EFFECT =====
+// ===== MAXIMUM GLITCH FORMATTER =====
 function fmt(text) {
   let f = text;
   
-  // Markdown parsing (Code blocks, bold, links)
   f = f.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   f = f.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank">$1</a>');
@@ -573,8 +582,7 @@ function fmt(text) {
     return p + '<a href="' + (/^https?:\/\//i.test(u) ? u : 'https://' + u) + '" target="_blank">' + u + '</a>';
   });
 
-  // GLITCH EFFECT: Search for "Imachui", "Nerts V", or "Nerts"
-  // \b ensures it only matches whole words (not inside another word)
+  // Mas agresibong regex para sa Glitch
   f = f.replace(/\b(Imachui|Nerts V|NertsV|Nerts)\b/gi, function(match) {
     return `<span class="glitch-text" data-text="${match}">${match}</span>`;
   });
