@@ -16,7 +16,6 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   touch-action: manipulation;
-  /* APPLE / iOS FONT STACK */
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -100,20 +99,59 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 @keyframes fireText { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 @keyframes flamePulse { 0% { filter: drop-shadow(0 0 5px #ff7300); } 50% { filter: drop-shadow(0 0 15px #ff0000); } 100% { filter: drop-shadow(0 0 5px #ff7300); } }
 
+/* ===== NEW GLITCH EFFECT ===== */
+@keyframes glitch-skew {
+  0% { transform: skew(0deg); }
+  20% { transform: skew(-2deg); }
+  40% { transform: skew(2deg); }
+  60% { transform: skew(-1deg); }
+  80% { transform: skew(1deg); }
+  100% { transform: skew(0deg); }
+}
+@keyframes glitch-anim {
+  0% { clip: rect(10px, 9999px, 50px, 0); }
+  20% { clip: rect(40px, 9999px, 10px, 0); }
+  40% { clip: rect(20px, 9999px, 80px, 0); }
+  60% { clip: rect(60px, 9999px, 30px, 0); }
+  80% { clip: rect(30px, 9999px, 70px, 0); }
+  100% { clip: rect(50px, 9999px, 20px, 0); }
+}
+
+.glitch-text {
+  display: inline-block;
+  position: relative;
+  color: #fff;
+  animation: glitch-skew 2s infinite linear alternate-reverse;
+}
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+.glitch-text::before {
+  left: 2px;
+  text-shadow: -2px 0 #ff00c1;
+  clip: rect(44px, 450px, 56px, 0);
+  animation: glitch-anim 3s infinite linear alternate-reverse;
+}
+.glitch-text::after {
+  left: -2px;
+  text-shadow: -2px 0 #00fff9, 2px 2px #ff00c1;
+  clip: rect(44px, 450px, 56px, 0);
+  animation: glitch-anim 2.5s infinite linear alternate-reverse;
+  animation-delay: 0.2s;
+}
+
 /* ===== NEW SHIMMER & GLOW ANIMATION FOR TITLE ===== */
 @keyframes shineGlow {
-  0% { 
-    background-position: 0% center; 
-    filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.6)) drop-shadow(0 0 20px rgba(129, 140, 248, 0.4)); 
-  }
-  50% { 
-    background-position: 100% center; 
-    filter: drop-shadow(0 0 15px rgba(56, 189, 248, 1)) drop-shadow(0 0 30px rgba(129, 140, 248, 0.8)); 
-  }
-  100% { 
-    background-position: 200% center; 
-    filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.6)) drop-shadow(0 0 20px rgba(129, 140, 248, 0.4)); 
-  }
+  0% { background-position: 0% center; filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.6)) drop-shadow(0 0 20px rgba(129, 140, 248, 0.4)); }
+  50% { background-position: 100% center; filter: drop-shadow(0 0 15px rgba(56, 189, 248, 1)) drop-shadow(0 0 30px rgba(129, 140, 248, 0.8)); }
+  100% { background-position: 200% center; filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.6)) drop-shadow(0 0 20px rgba(129, 140, 248, 0.4)); }
 }
 
 .app { height: 100vh; height: 100dvh; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; background-color: var(--bg); }
@@ -191,7 +229,6 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   line-height: 1.1;
   text-transform: uppercase;
   letter-spacing: -0.02em;
-  /* Shimmer and Glow Effect */
   background: linear-gradient(90deg, #38bdf8, #ffffff, #818cf8, #ffffff, #38bdf8);
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -294,7 +331,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   .chat { padding: 18px 12px 280px 12px; }
   .maintenance-banner { flex-direction: column; text-align: center; padding: 20px 15px; }
   .maintenance-text { text-align: center; }
-  .welcome-main-title { font-size: 38px; } /* Responsive title size */
+  .welcome-main-title { font-size: 38px; }
   .composer-wrap { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; padding: 10px 10px max(10px,env(safe-area-inset-bottom)) 10px; z-index: 100; background: linear-gradient(0deg, var(--bg) 70%, transparent 100%); }
   .composer { padding: 10px; border-radius: 18px; background: rgba(30, 41, 59, 0.95); }
   #prompt { min-height: 48px; font-size: 16px; padding: 8px; }
@@ -371,7 +408,6 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <div class="welcome" id="welcome">
     <div class="brand-icon" style="margin:0 auto 20px;width:80px;height:80px;font-size:40px">✦</div>
     
-    <!-- BAGONG WELCOME TITLE DESIGN -->
     <div class="welcome-title-container">
       <span class="welcome-subtitle">Welcome to</span>
       <span class="welcome-main-title">Imachui Gen AI Beta Test</span>
@@ -379,7 +415,6 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
     
     <p>I am the Global King. I absorb the intelligence of multiple AI models to give you massive, powerful, and flawless answers.</p>
     
-    <!-- iOS STYLE MAINTENANCE BANNER -->
     <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="maintenance-banner">
       <div class="maintenance-icon">🚀</div>
       <div class="maintenance-text">
@@ -448,7 +483,7 @@ if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-var STORAGE_KEY = 'imachui_v43_data';
+var STORAGE_KEY = 'imachui_v44_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
@@ -526,14 +561,24 @@ function handleUpload(event) {
   document.getElementById('uploadInput').value = '';
 }
 
+// ===== MODIFIED FORMATTER WITH GLITCH EFFECT =====
 function fmt(text) {
   let f = text;
+  
+  // Markdown parsing (Code blocks, bold, links)
   f = f.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   f = f.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank">$1</a>');
   f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<]+)/g, function(m,p,u) {
     return p + '<a href="' + (/^https?:\/\//i.test(u) ? u : 'https://' + u) + '" target="_blank">' + u + '</a>';
   });
+
+  // GLITCH EFFECT: Search for "Imachui", "Nerts V", or "Nerts"
+  // \b ensures it only matches whole words (not inside another word)
+  f = f.replace(/\b(Imachui|Nerts V|NertsV|Nerts)\b/gi, function(match) {
+    return `<span class="glitch-text" data-text="${match}">${match}</span>`;
+  });
+
   return f;
 }
 
