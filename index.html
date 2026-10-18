@@ -7,14 +7,17 @@
 <title>Imachui Gen AI</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-/* ===== 60FPS PERFORMANCE OPTIMIZATIONS ===== */
+/* ===== iOS / APPLE TYPOGRAPHY & 60FPS PERFORMANCE ===== */
 html, body {
   background-color: #0b1120;
   margin: 0; padding: 0; height: 100%; overflow: hidden;
   overscroll-behavior: none; 
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   touch-action: manipulation;
+  /* APPLE / iOS FONT STACK */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 :root {
@@ -29,7 +32,7 @@ html, body {
 }
 
 * { box-sizing: border-box; }
-body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: var(--text); position: fixed; width: 100%; }
+body { color: var(--text); position: fixed; width: 100%; }
 button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-appearance: none; }
 
 /* ===== FACEBOOK/MESSENGER WARNING OVERLAY ===== */
@@ -60,8 +63,8 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   margin-bottom: 15px;
   animation: pulseGlow 1.5s infinite alternate;
 }
-#fb-warning-overlay h2 { margin: 0 0 10px; font-size: 22px; color: #ff8d9a; }
-#fb-warning-overlay p { margin: 0 0 20px; font-size: 14px; color: #cbd5e1; line-height: 1.6; }
+#fb-warning-overlay h2 { margin: 0 0 10px; font-size: 22px; color: #ff8d9a; letter-spacing: -0.02em; }
+#fb-warning-overlay p { margin: 0 0 20px; font-size: 14px; color: #cbd5e1; line-height: 1.5; letter-spacing: -0.01em; }
 #fb-warning-overlay .btn-open {
   width: 100%;
   padding: 16px;
@@ -102,23 +105,22 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .back-btn { display: none; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); color: #fff; padding: 12px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; font-weight: 600; }
 .brand { display: flex; align-items: center; gap: 12px; padding-bottom: 15px; }
 .brand-icon { width: 48px; height: 48px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #38bdf8, #818cf8, #0b1120); display: grid; place-items: center; font-weight: 900; font-size: 24px; color: #fff; flex-shrink: 0; animation: pulseGlow 2s infinite ease-in-out; }
-.brand-name { font-weight: 850; font-size: 16px; animation: textPulse 2s infinite ease-in-out; }
+.brand-name { font-weight: 850; font-size: 16px; animation: textPulse 2s infinite ease-in-out; letter-spacing: -0.02em; }
 .brand-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
-.side-btn { width: 100%; padding: 14px; border-radius: 14px; color: var(--text); text-align: left; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s; }
+.side-btn { width: 100%; padding: 14px; border-radius: 14px; color: var(--text); text-align: left; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s; font-weight: 500; }
 .side-btn:active { background: rgba(255,255,255,0.1); }
-.side-label { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-top: 10px; }
+.side-label { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-top: 10px; font-weight: 600; }
 .history { display: flex; flex-direction: column; gap: 8px; max-height: 25vh; overflow-y: auto; }
 .history-row { display: flex; align-items: center; gap: 6px; border-radius: 10px; }
 .history-row.active { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
 .history-open { flex: 1; text-align: left; border: 0; background: transparent; color: #cbd2e4; padding: 12px 10px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .del-btn { border: 0; background: transparent; color: #a4abc0; padding: 8px; font-size: 14px; cursor: pointer; }
-.status { font-size: 11px; padding: 8px; border-radius: 8px; text-align: center; background: rgba(56, 189, 248, 0.15); color: var(--accent); border: 1px solid rgba(56, 189, 248, 0.3); }
+.status { font-size: 11px; padding: 8px; border-radius: 8px; text-align: center; background: rgba(56, 189, 248, 0.15); color: var(--accent); border: 1px solid rgba(56, 189, 248, 0.3); font-weight: 500; }
 .backup-row { display: flex; gap: 6px; }
-.backup-row button { flex: 1; padding: 10px; font-size: 12px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; cursor: pointer; }
+.backup-row button { flex: 1; padding: 10px; font-size: 12px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; cursor: pointer; font-weight: 500; }
 .side-foot { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--glass-border); font-size: 12px; font-weight: bold; text-align: center; }
-.fire-text { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #ff0000); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fireText 3s ease infinite; font-size: 14px; }
+.fire-text { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #ff0000); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fireText 3s ease infinite; font-size: 14px; font-weight: 800; }
 
-/* APK DOWNLOAD BUTTON */
 .apk-download-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 12px; border-radius: 12px; background: linear-gradient(45deg, #ff0000, #ff7300, #ff0000); background-size: 200% 200%;
@@ -129,13 +131,12 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .apk-download-btn:hover { transform: scale(1.05); }
 .apk-download-btn small { font-size: 10px; font-weight: normal; color: #fff; margin-top: 4px; opacity: 0.9; }
 
-/* LAUNCHER BUTTON */
 .launcher-btn {
   display: flex; align-items: center; justify-content: center;
   margin-left: auto; padding: 10px 16px; border-radius: 12px;
   background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
   color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 850;
-  transition: all 0.3s ease; box-shadow: 0 0 10px rgba(56, 189, 248, 0.1);
+  transition: all 0.3s ease; box-shadow: 0 0 10px rgba(56, 189, 248, 0.1); letter-spacing: -0.01em;
 }
 .launcher-btn:hover {
   background: rgba(56, 189, 248, 0.2); border-color: var(--accent);
@@ -145,39 +146,48 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .main { display: flex; flex-direction: column; overflow: hidden; height: 100vh; height: 100dvh; background-color: var(--bg); }
 .topbar { height: 70px; display: flex; align-items: center; gap: 12px; padding: 0 30px; border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
 .menu-btn { display: none; background: transparent; border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; padding: 8px 12px; font-size: 16px; cursor: pointer; }
-.top-title { font-size: 15px; font-weight: 850; }
+.top-title { font-size: 15px; font-weight: 850; letter-spacing: -0.02em; }
 .gradient { background: linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientShift 3s linear infinite; }
 
 .chat { flex: 1; overflow-y: auto; padding: 30px 24px; display: flex; flex-direction: column; align-items: center; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
 .chat > * { width: 100%; max-width: 850px; }
 .welcome { text-align: center; padding: 60px 0 40px; }
-.welcome h1 { font-size: clamp(28px, 4vw, 42px); margin: 0 0 15px; font-weight: 800; }
-.welcome p { color: var(--muted); font-size: 15px; max-width: 560px; margin: 0 auto; }
 
-/* ===== MAINTENANCE BANNER ===== */
+/* ALL CAPS WELCOME TITLE */
+.welcome h1 { 
+  font-size: clamp(24px, 3.5vw, 38px); 
+  margin: 0 0 15px; 
+  font-weight: 800; 
+  text-transform: uppercase; 
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.welcome p { color: var(--muted); font-size: 15px; max-width: 560px; margin: 0 auto; line-height: 1.5; letter-spacing: -0.01em; }
+
+/* ===== MAINTENANCE BANNER (iOS STYLE) ===== */
 .maintenance-banner {
   display: flex;
   align-items: center;
-  gap: 15px;
-  max-width: 600px;
+  gap: 16px;
+  max-width: 620px;
   margin: 30px auto 0;
-  padding: 16px 20px;
-  background: rgba(56, 189, 248, 0.08);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  border-radius: 16px;
+  padding: 18px 22px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
   text-decoration: none;
   color: var(--text);
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 .maintenance-banner:hover {
-  background: rgba(56, 189, 248, 0.15);
+  background: rgba(30, 41, 59, 0.9);
   border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(56, 189, 248, 0.2);
 }
 .maintenance-icon {
-  font-size: 32px;
+  font-size: 36px;
   flex-shrink: 0;
   animation: pulseGlow 2s infinite alternate;
 }
@@ -185,32 +195,38 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   display: flex;
   flex-direction: column;
   text-align: left;
-  font-size: 13px;
-  line-height: 1.5;
 }
 .maintenance-text strong {
   color: var(--accent);
-  font-size: 14px;
-  margin-bottom: 4px;
+  font-size: 13px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
 }
 .maintenance-text span {
   color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
 }
 
+/* CHAT BUBBLES */
 .msg { display: flex; gap: 16px; margin: 24px 0; }
 .avatar { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
 .msg.user .avatar { background: rgba(56, 189, 248, 0.2); }
-.body { flex: 1; padding: 16px 20px; border-radius: 16px; line-height: 1.75; background: var(--glass-bg); border: 1px solid var(--glass-border); min-width: 0; }
-.role { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: var(--accent); text-transform: uppercase; }
+.body { flex: 1; padding: 16px 20px; border-radius: 16px; line-height: 1.6; background: var(--glass-bg); border: 1px solid var(--glass-border); min-width: 0; letter-spacing: -0.01em; }
+.role { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
 .msg.user .role { color: var(--accent2); }
-.text { white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
-.text pre { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; overflow-x: auto; font-family: monospace; font-size: 13px; margin: 10px 0; border: 1px solid var(--glass-border); }
-.text code { font-family: monospace; background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px; font-size: 13px; }
-.text a { color: var(--accent); text-decoration: underline; word-break: break-all; }
-.text strong { color: #fff; }
-.prov { font-size: 10px; color: #8f9bb5; margin-bottom: 8px; }
+.text { white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; max-width: 100%; font-size: 15px; }
+.text pre { background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; overflow-x: auto; font-family: "SF Mono", monospace; font-size: 13px; margin: 10px 0; border: 1px solid var(--glass-border); }
+.text code { font-family: "SF Mono", monospace; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+.text a { color: var(--accent); text-decoration: none; word-break: break-all; border-bottom: 1px solid var(--accent); }
+.text a:hover { border-bottom: 1px solid transparent; }
+.text strong { color: #fff; font-weight: 700; }
+.prov { font-size: 10px; color: #8f9bb5; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
 .read-row { margin-top: 12px; }
-.read-btn { border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; border-radius: 10px; padding: 8px 14px; font-size: 12px; cursor: pointer; }
+.read-btn { border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; border-radius: 10px; padding: 8px 14px; font-size: 12px; cursor: pointer; font-weight: 500; }
 .att-list { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .att-chip { font-size: 11px; color:#c9d1e6; border: 1px solid var(--glass-border); border-radius: 8px; padding: 6px 10px; background: rgba(255,255,255,0.03); }
 .att-img { max-width: 100%; max-height: 250px; border-radius: 12px; margin-top: 12px; }
@@ -218,13 +234,13 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 
 .composer-wrap { padding: 20px 24px 30px; display: flex; justify-content: center; flex-shrink: 0; background: transparent; }
 .composer { width: 100%; max-width: 850px; padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 12px; }
-#prompt { width: 100%; min-height: 60px; max-height: 200px; resize: vertical; border: 0; outline: 0; color: #fff; background: transparent; padding: 8px 12px; line-height: 1.6; font-size: 15px; }
+#prompt { width: 100%; min-height: 60px; max-height: 200px; resize: vertical; border: 0; outline: 0; color: #fff; background: transparent; padding: 8px 12px; line-height: 1.5; font-size: 15px; letter-spacing: -0.01em; font-family: inherit; }
 #prompt::placeholder { color: #6b7385; }
 .composer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--glass-border); }
 .tools, .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.tool { border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px 14px; background: rgba(255,255,255,0.05); color: #fff; font-size: 12px; cursor: pointer; }
-.send { border: 0; border-radius: 12px; padding: 12px 24px; color: #05070a; background: linear-gradient(135deg, var(--accent), var(--accent2)); font-weight: 850; font-size: 14px; cursor: pointer; }
-.toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.tool { border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px 14px; background: rgba(255,255,255,0.05); color: #fff; font-size: 12px; cursor: pointer; font-weight: 500; }
+.send { border: 0; border-radius: 12px; padding: 12px 24px; color: #05070a; background: linear-gradient(135deg, var(--accent), var(--accent2)); font-weight: 850; font-size: 14px; cursor: pointer; letter-spacing: -0.01em;}
+.toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; font-weight: 500; }
 .toggle-label input { accent-color: var(--accent); width: 16px; height: 16px; }
 
 @media(max-width:768px){
@@ -238,7 +254,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   .top-title { font-size: 12px; flex: 1; }
   .launcher-btn { padding: 8px 12px; font-size: 11px; }
   .chat { padding: 18px 12px 280px 12px; }
-  .maintenance-banner { flex-direction: column; text-align: center; padding: 15px; }
+  .maintenance-banner { flex-direction: column; text-align: center; padding: 20px 15px; }
   .maintenance-text { text-align: center; }
   .composer-wrap { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; padding: 10px 10px max(10px,env(safe-area-inset-bottom)) 10px; z-index: 100; background: linear-gradient(0deg, var(--bg) 70%, transparent 100%); }
   .composer { padding: 10px; border-radius: 18px; background: rgba(30, 41, 59, 0.95); }
@@ -316,10 +332,11 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <div class="welcome" id="welcome">
     <div class="brand-icon" style="margin:0 auto 20px;width:80px;height:80px;font-size:40px">✦</div>
     
-    <!-- BAGONG WELCOME TEXT AT MAINTENANCE BANNER -->
-    <h1>Welcome to <span class="gradient">Imachui Gen AI BETA TEST</span></h1>
+    <!-- ALL CAPS TITLE -->
+    <h1>WELCOME TO <span class="gradient">IMACHUI GEN AI BETA TEST</span></h1>
     <p>I am the Global King. I absorb the intelligence of multiple AI models to give you massive, powerful, and flawless answers.</p>
     
+    <!-- iOS STYLE MAINTENANCE BANNER -->
     <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="maintenance-banner">
       <div class="maintenance-icon">🚀</div>
       <div class="maintenance-text">
@@ -327,7 +344,6 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
         <span>If Imachui Gen AI is temporarily unavailable, please proceed to the Imachui Global AI Launcher. It features a wide collection of alternative AI models to ensure you always have access to assistance.</span>
       </div>
     </a>
-    <!-- END NG BAGONG SECTION -->
 
   </div>
   <div id="messages"></div>
@@ -389,7 +405,7 @@ if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-var STORAGE_KEY = 'imachui_v41_data';
+var STORAGE_KEY = 'imachui_v42_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
