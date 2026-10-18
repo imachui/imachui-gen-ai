@@ -118,6 +118,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .side-foot { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--glass-border); font-size: 12px; font-weight: bold; text-align: center; }
 .fire-text { background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #ff0000); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fireText 3s ease infinite; font-size: 14px; }
 
+/* APK DOWNLOAD BUTTON */
 .apk-download-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 12px; border-radius: 12px; background: linear-gradient(45deg, #ff0000, #ff7300, #ff0000); background-size: 200% 200%;
@@ -127,6 +128,19 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 }
 .apk-download-btn:hover { transform: scale(1.05); }
 .apk-download-btn small { font-size: 10px; font-weight: normal; color: #fff; margin-top: 4px; opacity: 0.9; }
+
+/* ===== NEW LAUNCHER BUTTON ===== */
+.launcher-btn {
+  display: flex; align-items: center; justify-content: center;
+  margin-left: auto; padding: 10px 16px; border-radius: 12px;
+  background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 850;
+  transition: all 0.3s ease; box-shadow: 0 0 10px rgba(56, 189, 248, 0.1);
+}
+.launcher-btn:hover {
+  background: rgba(56, 189, 248, 0.2); border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); color: #fff;
+}
 
 .main { display: flex; flex-direction: column; overflow: hidden; height: 100vh; height: 100dvh; background-color: var(--bg); }
 .topbar { height: 70px; display: flex; align-items: center; gap: 12px; padding: 0 30px; border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
@@ -179,6 +193,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   .menu-btn { display: block; }
   .topbar { height: 58px; padding: 0 14px; gap: 10px; }
   .top-title { font-size: 12px; flex: 1; }
+  .launcher-btn { padding: 8px 12px; font-size: 11px; }
   .chat { padding: 18px 12px 280px 12px; }
   .composer-wrap { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; padding: 10px 10px max(10px,env(safe-area-inset-bottom)) 10px; z-index: 100; background: linear-gradient(0deg, var(--bg) 70%, transparent 100%); }
   .composer { padding: 10px; border-radius: 18px; background: rgba(30, 41, 59, 0.95); }
@@ -219,6 +234,10 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <div class="side-label">Workspace</div>
   <button class="side-btn ask-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen AI</button>
   
+  <!-- 🔥 LAUNCHER BUTTON SA SIDEBAR 🔥 -->
+  <div class="side-label" style="margin-top: 15px;">Explore</div>
+  <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="side-btn" style="display:block; text-align:center; color:#38bdf8; border-color:#38bdf8; background:rgba(56,189,248,0.1); font-weight:bold;">🚀 AI Launcher</a>
+
   <div class="side-label" style="margin-top: 15px;">Download App</div>
   <a href="#" class="apk-download-btn" download id="apkDownloadBtn">
     🔥 Download APK
@@ -246,6 +265,9 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 <header class="topbar glass">
   <button class="menu-btn" onclick="toggleSidebar()">☰</button>
   <div class="top-title">IMACHUI GEN AI / <span class="gradient">GLOBAL KING</span></div>
+  
+  <!-- 🔥 LAUNCHER BUTTON SA TOPBAR 🔥 -->
+  <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="launcher-btn">🚀 AI Launcher</a>
 </header>
 <section class="chat" id="chat">
   <div class="welcome" id="welcome">
@@ -333,7 +355,7 @@ if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-var STORAGE_KEY = 'imachui_v39_data';
+var STORAGE_KEY = 'imachui_v40_data';
 var chats = [];
 var activeChatId = null;
 var currentMessages = [];
