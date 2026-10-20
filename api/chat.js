@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Auto Web Search + Google News & Wikipedia Fallback)
+// api/chat.js - Imachui Gen AI (Bulletproof Google News & Wikipedia Fallback)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -29,28 +29,28 @@ function normalizeMessages(body) {
     });
 }
 
-// --- BAGONG SEARCH FUNCTION (SERPER -> GOOGLE NEWS -> WIKIPEDIA) ---
 async function searchWeb(query) {
   const apiKey = process.env.SERPER_API_KEY;
 
-  // 1. Unahin ang Serper (kung may credits pa)
+  // 1. Serper (Kung may credits pa)
   if (apiKey) {
     try {
       const response = await fetch("https://google.serper.dev/search", {
         method: "POST",
         headers: { "X-API-KEY": apiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ q: query, num: 3 })
+        body: JSON.stringify({ q: query, num: 3 }),
+        signal: AbortSignal.timeout(5000) // 5 seconds timeout
       });
       if (response.ok) {
         const data = await response.json();
         let results = "Here are the latest search results from the web:\n";
         if (data.answerBox) results += `Direct Answer: ${data.answerBox.answer || data.answerBox.snippet}\n`;
-        if (data.organic) {
+        if (data.organic && data.organic.length > 0) {
           data.organic.forEach((item, index) => {
             results += `[${index + 1}] ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}\n\n`;
           });
+          return results;
         }
-        return results;
       }
       console.warn("[Global King] Serper failed/limit reached. Using free fallbacks...");
     } catch (error) {
@@ -58,35 +58,50 @@ async function searchWeb(query) {
     }
   }
 
-  // 2. Fallback A: Google News RSS (Para sa mga balita)
-  const isNews = /balita|news|latest|ngayon|today|update|current/i.test(query);
+  // 2. Fallback: Google News RSS (Bulletproof Parser)
+  const isNews = /balita|news|latest|ngayon|today|update|current|kaganapan|isyu/i.test(query);
   if (isNews) {
     try {
       console.log("[Global King] Using Google News RSS fallback for:", query);
-      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-PH&gl=PH&ceid=PH:en`;
-      const res = await fetch(rssUrl);
+      // Nililinis natin ang query para gawing simple keyword search
+      const cleanQuery = query.replace(/anong|ang|sa|ng|ayaw|ako|mo|ba|po/gi, '').trim() || query;
+      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(cleanQuery)}&hl=en-PH&gl=PH&ceid=PH:en`;
+      const res = await fetch(rssUrl, { signal: AbortSignal.timeout(6000) });
       const xml = await res.text();
       
-      const itemRegex = /<item>[\s\S]*?<title>(.*?)<\/title>[\s\S]*?<link>(.*?)<\/link>[\s\S]*?<\/item>/g;
-      let match;
+      // Mas matibay na split parser (hindi na madaling mabigo)
+      const items = xml.split('<item>');
       let results = "Here are the latest news results:\n";
       let count = 0;
       
-      while ((match = itemRegex.exec(xml)) !== null && count < 3) {
-        results += `[${count + 1}] ${match[1].replace(/<!\[CDATA\[|\]\]>/g, '')}\nLink: ${match[2]}\n\n`;
-        count++;
+      for (let i = 1; i < items.length; i++) {
+        if (count >= 3) break;
+        const item = items[i];
+        const titleMatch = item.match(/<title>(.*?)<\/title>/);
+        const linkMatch = item.match(/<link>(.*?)<\/link>/);
+        
+        if (titleMatch && linkMatch) {
+          let title = titleMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
+          let link = linkMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim();
+          results += `[${count + 1}] ${title}\nLink: ${link}\n\n`;
+          count++;
+        }
       }
-      if (count > 0) return results;
+      if (count > 0) {
+        console.log(`[Global King] Successfully found ${count} news articles.`);
+        return results;
+      }
+      console.log("[Global King] Google News RSS returned 0 items.");
     } catch (e) {
       console.error("[Global King] Google News RSS failed:", e.message);
     }
   }
 
-  // 3. Fallback B: Wikipedia API (Para sa general knowledge)
+  // 3. Fallback: Wikipedia
   try {
     console.log("[Global King] Using Wikipedia fallback for:", query);
     const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&srlimit=3`;
-    const res = await fetch(wikiUrl);
+    const res = await fetch(wikiUrl, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const data = await res.json();
       if (data.query && data.query.search && data.query.search.length > 0) {
@@ -165,7 +180,7 @@ export default async function handler(req, res) {
     1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
     2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
     3. You are highly intelligent, helpful, and authoritative. Do not break character.
-    4. If web search results are provided below, USE THEM to answer the user's question accurately.
+    4. If web search results are provided below, USE THEM to answer the user's question accurately. DO NOT say you have no access if search results are provided.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
