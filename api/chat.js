@@ -1,6 +1,5 @@
-// api/chat.js - Imachui Gen AI (Fixed Gemini Search Grounding)
+// api/chat.js - Imachui Gen AI (DeepSeek, Gemini, OpenRouter)
 import { createOpenAI } from '@ai-sdk/openai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
 export const maxDuration = 60;
@@ -44,106 +43,100 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
-  const latestMessage = incomingMessages[incomingMessages.length - 1];
-  const textContent = Array.isArray(latestMessage.content) 
-    ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
-    : latestMessage.content;
+  // --- PROVIDERS ---
+  const providers = {
+    deepseek: {
+      client: createOpenAI({
+        baseURL: 'https://api.deepseek.com',
+        apiKey: process.env.DEEPSEEK_API_KEY,
+        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
+      }),
+      model: 'deepseek-chat'
+    },
+    gemini: {
+      client: createOpenAI({
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
+        apiKey: process.env.GEMINI_API_KEY,
+        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
+      }),
+      model: 'gemini-1.5-flash'
+    },
+    openrouter: {
+      client: createOpenAI({
+        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey: process.env.OPENROUTER_API_KEY,
+        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
+      }),
+      model: 'qwen/qwen-2.5-72b-instruct:free'
+    }
+  };
 
-  // Detecting kung news/balita ang tanong
-  const isNewsQuery = /news|latest|today|current|balita|ngayon|update|weather|presyo|price/i.test(textContent);
-
-  const deepseek = createOpenAI({
-    baseURL: 'https://api.deepseek.com',
-    apiKey: process.env.DEEPSEEK_API_KEY,
-    headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
-  });
-
-  const google = createGoogleGenerativeAI({
-    apiKey: process.env.GEMINI_API_KEY,
-  });
-
+  // --- UPDATED SYSTEM PROMPT (May totoong pangalan at background) ---
   const systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
-    Identity: You are Imachui Gen AI, created by Nerts V (Imachui).
-    Rules:
-    1. Reply in the language the user uses.
-    2. If asked about Nerts V or Imachui, proudly state he is a genius software engineer, Windows Lite developer, and AI Scale expert.
-    3. You have access to Google Search. Use it to answer questions about current events, news, or real-time information accurately.
+    
+    Identity:
+    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui. You absorb the brainpower of multiple top-tier AI models to deliver powerful, accurate, and flawless answers.
+
+    CREATOR DETAILS (MUST REMEMBER AND PROUDLY SHARE):
+    - Your creator's real name is **Nerts V**.
+    - He uses the alias/pseudonym **"Imachui"** (he hides his real identity behind this name).
+    - Nerts V (Imachui) is a genius, brilliant, creative, and highly capable software engineer.
+    - He is a developer for **Windows Lite** and works extensively on **AI Scale**.
+    - He is an expert application engineer, skilled in programming and developing various software applications.
+    - He is the brilliant mind behind your existence and coding expertise.
+
+    CRITICAL RULES:
+    1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
+    2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V (e.g., "Who is Imachui?", "Sino si Imachui?", "Who is Nerts V?", "Is he a programmer?"), you must proudly declare the CREATOR DETAILS above. Mention that Nerts V is his real name and Imachui is his alias. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
+    3. You are highly intelligent, helpful, and authoritative. Do not break character.
   `;
 
-  async function tryProvider(model, res, enableSearch = false) {
-    const options = {
-      model: model,
+  async function tryProvider(client, model, res) {
+    const result = await streamText({
+      model: client(model),
       system: systemPrompt,
       messages: incomingMessages
-    };
+    });
 
-    if (enableSearch) {
-      // GAMITIN ANG GEMINI 2.0 FLASH NA MAS STABLE SA SEARCH GROUNDING
-      options.model = google('gemini-2.0-flash', { useSearchGrounding: true });
-    }
-
-    const result = await streamText(options);
     let hasData = false;
     for await (const chunk of result.textStream) {
       hasData = true;
       res.write(chunk);
     }
-    if (!hasData) throw new Error("Empty response stream from Gemini");
+    if (!hasData) throw new Error("Empty response stream");
   }
 
-  // --- SMART EXECUTION LOGIC ---
-  if (isNewsQuery) {
-    console.log("[Global King] News query detected. Routing to Gemini 2.0 Flash with Search.");
-    try {
-      await tryProvider(google('gemini-2.0-flash'), res, true);
-      return res.end();
-    } catch (err) {
-      console.error("[Global King] Gemini 2.0 Search failed:", err.message);
-      
-      // Fallback 1: Subukan ang Gemini 2.5 Flash WITHOUT search (para may sagot pa rin)
-      try {
-        console.log("[Global King] Switching to Gemini 2.5 Flash (No Search).");
-        res.write(`[System Note: Live search failed. Switching to standard Gemini...]\n\n`);
-        await tryProvider(google('gemini-2.5-flash'), res, false);
-        return res.end();
-      } catch (err2) {
-        console.error("[Global King] Gemini 2.5 failed:", err2.message);
-        
-        // Fallback 2: DeepSeek
-        try {
-          console.log("[Global King] Switching to DeepSeek.");
-          res.write(`[System Note: Switching to DeepSeek...]\n\n`);
-          await tryProvider(deepseek('deepseek-chat'), res);
-          return res.end();
-        } catch (err3) {
-          console.error("[Global King] All providers failed:", err3.message);
-          if (!res.headersSent) {
-            return res.status(502).json({ error: "The Global King is currently unavailable. Please try again." });
-          }
-          res.write(`\n\n[System Error: All AI brains failed to connect.]`);
-          return res.end();
-        }
-      }
-    }
-  }
-
-  // --- NORMAL FALLBACK LOGIC (DeepSeek muna) ---
+  // --- FALLBACK LOGIC ---
   try {
+    // 1. DeepSeek (Pangunahing Utak)
     console.log("[Global King] Attempting Primary: DeepSeek");
-    await tryProvider(deepseek('deepseek-chat'), res);
+    await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
     return res.end();
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      console.log("[Global King] Attempting Fallback: Gemini 2.5 Flash");
-      res.write(`[System Note: Switching to Gemini...]\n\n`);
-      await tryProvider(google('gemini-2.5-flash'), res, false);
+      // 2. Gemini (Unang Backup)
+      console.log("[Global King] Attempting Fallback 1: Gemini");
+      res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini...]\n\n`);
+      await tryProvider(providers.gemini.client, providers.gemini.model, res);
       return res.end();
     } catch (err2) {
-      console.error("[Global King] All providers failed:", err2.message);
-      res.write(`\n\n[System Error: All AI brains failed to connect.]`);
-      return res.end();
+      console.error("[Global King] Gemini failed:", err2.message);
+      try {
+        // 3. OpenRouter (Panghuling Backup)
+        console.log("[Global King] Attempting Fallback 2: OpenRouter");
+        res.write(`[System Note: Switching to OpenRouter...]\n\n`);
+        await tryProvider(providers.openrouter.client, providers.openrouter.model, res);
+        return res.end();
+      } catch (err3) {
+        console.error("[Global King] All providers failed:", err3.message);
+        if (!res.headersSent) {
+          return res.status(502).json({ error: "The Global King is currently unavailable. Please try again." });
+        }
+        res.write(`\n\n[System Error: All AI brains failed to connect.]`);
+        return res.end();
+      }
     }
   }
 }
