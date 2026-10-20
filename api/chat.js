@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Bulletproof Google News & Wikipedia Fallback)
+// api/chat.js - Imachui Gen AI (Bulletproof Fallback & Smart AI Prompt)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -39,7 +39,7 @@ async function searchWeb(query) {
         method: "POST",
         headers: { "X-API-KEY": apiKey, "Content-Type": "application/json" },
         body: JSON.stringify({ q: query, num: 3 }),
-        signal: AbortSignal.timeout(5000) // 5 seconds timeout
+        signal: AbortSignal.timeout(5000)
       });
       if (response.ok) {
         const data = await response.json();
@@ -58,20 +58,18 @@ async function searchWeb(query) {
     }
   }
 
-  // 2. Fallback: Google News RSS (Bulletproof Parser)
+  // 2. Fallback: Google News RSS 
   const isNews = /balita|news|latest|ngayon|today|update|current|kaganapan|isyu/i.test(query);
   if (isNews) {
     try {
       console.log("[Global King] Using Google News RSS fallback for:", query);
-      // Nililinis natin ang query para gawing simple keyword search
-      const cleanQuery = query.replace(/anong|ang|sa|ng|ayaw|ako|mo|ba|po/gi, '').trim() || query;
-      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(cleanQuery)}&hl=en-PH&gl=PH&ceid=PH:en`;
+      // Ipapasa na natin yung buong query, hahayaan natin si Google News ang mag-adjust
+      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-PH&gl=PH&ceid=PH:en`;
       const res = await fetch(rssUrl, { signal: AbortSignal.timeout(6000) });
       const xml = await res.text();
       
-      // Mas matibay na split parser (hindi na madaling mabigo)
       const items = xml.split('<item>');
-      let results = "Here are the latest news results:\n";
+      let results = "Here are the latest news results from the web:\n";
       let count = 0;
       
       for (let i = 1; i < items.length; i++) {
@@ -91,7 +89,6 @@ async function searchWeb(query) {
         console.log(`[Global King] Successfully found ${count} news articles.`);
         return results;
       }
-      console.log("[Global King] Google News RSS returned 0 items.");
     } catch (e) {
       console.error("[Global King] Google News RSS failed:", e.message);
     }
@@ -180,7 +177,8 @@ export default async function handler(req, res) {
     1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
     2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
     3. You are highly intelligent, helpful, and authoritative. Do not break character.
-    4. If web search results are provided below, USE THEM to answer the user's question accurately. DO NOT say you have no access if search results are provided.
+    4. If web search results are provided below, USE THEM to answer the user's question accurately.
+    5. SEARCH RELEVANCE CHECK: If the provided [WEB SEARCH RESULTS] are completely irrelevant to the user's question (e.g., the user asks for "ayaw sa pinas" and you get "music"), DO NOT pretend it is the answer. IGNORE the search results and tell the user: "Pasensya na, wala akong makitang eksaktong balita tungkol sa hinahanap mo, pero heto ang mga pangkalahatang isyu..." and give general knowledge. Be smart about this.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
