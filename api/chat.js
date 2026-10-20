@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Auto Web Search + Libreng Fallback)
+// api/chat.js - Imachui Gen AI (Auto Web Search + Matatag na Fallback)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -29,10 +29,11 @@ function normalizeMessages(body) {
     });
 }
 
-// --- BAGONG SEARCH FUNCTION (SERPER + DUCKDUCKGO FALLBACK) ---
+// --- BAGONG SEARCH FUNCTION (SERPER -> DUCKDUCKGO HTML -> SEARXNG) ---
 async function searchWeb(query) {
-  // 1. Subukan muna ang Serper (kung may credits pa)
   const apiKey = process.env.SERPER_API_KEY;
+
+  // 1. Unahin ang Serper (kung may credits pa)
   if (apiKey) {
     try {
       const response = await fetch("https://google.serper.dev/search", {
@@ -49,35 +50,68 @@ async function searchWeb(query) {
             results += `[${index + 1}] ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}\n\n`;
           });
         }
-        return results; // Kung successful, ibalik agad ang resulta
+        return results;
       }
+      console.warn("Serper returned error, switching to fallback...");
     } catch (error) {
-      console.error("Serper failed, switching to DuckDuckGo...", error.message);
+      console.error("Serper failed, switching to fallback...", error.message);
     }
   }
 
-  // 2. Fallback: DuckDuckGo (Libre, walang API key, walang limitasyon)
+  // 2. Fallback A: DuckDuckGo HTML Scraping (Totoong search results)
   try {
-    console.log("Using DuckDuckGo fallback for:", query);
-    const ddgResponse = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`);
-    if (ddgResponse.ok) {
-      const ddgData = await ddgResponse.json();
-      let fallbackResults = "Here are the latest search results from the web (Fallback):\n";
+    console.log("Using DuckDuckGo HTML fallback for:", query);
+    const ddgRes = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" }
+    });
+    if (ddgRes.ok) {
+      const html = await ddgRes.text();
+      const results = [];
+      // Simpleng regex parser para sa DuckDuckGo HTML results
+      const linkRegex = /<a rel="nofollow" class="result__a" href="([^"]+)">([^<]+)<\/a>/g;
+      const snippetRegex = /<a class="result__snippet" href="[^"]+">([^<]+)<\/a>/g;
       
-      if (ddgData.AbstractText) {
-        fallbackResults += `Direct Answer: ${ddgData.AbstractText}\n\n`;
+      let match;
+      let snippets = [];
+      while ((match = snippetRegex.exec(html)) !== null) {
+        snippets.push(match[1].replace(/<[^>]*>/g, ''));
       }
-      if (ddgData.RelatedTopics && ddgData.RelatedTopics.length > 0) {
-        ddgData.RelatedTopics.slice(0, 3).forEach((topic, index) => {
-          if (topic.Text) {
-            fallbackResults += `[${index + 1}] ${topic.Text}\nLink: ${topic.FirstURL || 'N/A'}\n\n`;
-          }
-        });
+      
+      let index = 0;
+      while ((match = linkRegex.exec(html)) !== null && index < 3) {
+        const link = decodeURIComponent(match[1]);
+        const title = match[2];
+        const snippet = snippets[index] || "No snippet available.";
+        results.push(`[${index + 1}] ${title}\nSnippet: ${snippet}\nLink: ${link}\n\n`);
+        index++;
       }
-      return fallbackResults;
+      
+      if (results.length > 0) {
+        return "Here are the latest search results from the web:\n" + results.join("");
+      }
     }
   } catch (error) {
-    console.error("DuckDuckGo fallback also failed:", error.message);
+    console.error("DuckDuckGo HTML fallback failed:", error.message);
+  }
+
+  // 3. Fallback B: SearXNG Public Instance (JSON format)
+  try {
+    console.log("Using SearXNG fallback for:", query);
+    const searxRes = await fetch(`https://searx.be/search?q=${encodeURIComponent(query)}&format=json`, {
+      headers: { "User-Agent": "Mozilla/5.0" }
+    });
+    if (searxRes.ok) {
+      const data = await searxRes.json();
+      if (data.results && data.results.length > 0) {
+        let results = "Here are the latest search results from the web:\n";
+        data.results.slice(0, 3).forEach((item, index) => {
+          results += `[${index + 1}] ${item.title}\nSnippet: ${item.content}\nLink: ${item.url}\n\n`;
+        });
+        return results;
+      }
+    }
+  } catch (error) {
+    console.error("SearXNG fallback failed:", error.message);
   }
 
   return "Web search is currently unavailable. Please answer based on your knowledge.";
@@ -98,7 +132,6 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
-  // --- PROVIDERS ---
   const providers = {
     deepseek: {
       client: createOpenAI({
@@ -147,7 +180,6 @@ export default async function handler(req, res) {
     4. If web search results are provided below, USE THEM to answer the user's question accurately.
   `;
 
-  // LAGING MAGHAHANAP SA WEB PARA SA HULING TANONG
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
   if (lastUserMsg) {
     const queryText = typeof lastUserMsg.content === 'string' 
@@ -176,7 +208,6 @@ export default async function handler(req, res) {
     if (!hasData) throw new Error("Empty response stream");
   }
 
-  // --- FALLBACK LOGIC ---
   try {
     console.log("[Global King] Attempting Primary: DeepSeek");
     await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
