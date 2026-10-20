@@ -1,7 +1,7 @@
-// api/chat.js - Imachui Gen AI (Auto Web Search + Purili Fallback)
+// api/chat.js - Imachui Gen AI (Auto Web Search + DuckDuckGo Scraper Fallback)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { purili } from '@purili/web-search'; // BAGONG IMPORT
+import * as DDG from 'duck-duck-scrape'; // BAGONG IMPORT
 
 export const maxDuration = 60;
 
@@ -30,7 +30,7 @@ function normalizeMessages(body) {
     });
 }
 
-// --- BAGONG SEARCH FUNCTION (SERPER -> PURILI) ---
+// --- BAGONG SEARCH FUNCTION (SERPER -> DUCK-DUCK-SCRAPE) ---
 async function searchWeb(query) {
   const apiKey = process.env.SERPER_API_KEY;
 
@@ -53,26 +53,26 @@ async function searchWeb(query) {
         }
         return results;
       }
-      console.warn("[Global King] Serper limit reached or failed, switching to Purili fallback...");
+      console.warn("[Global King] Serper limit reached or failed, switching to DuckDuckGo fallback...");
     } catch (error) {
       console.error("[Global King] Serper network error:", error.message);
     }
   }
 
-  // 2. Fallback: Purili (Libre at walang API Key)
+  // 2. Fallback: DuckDuckGo gamit ang duck-duck-scrape
   try {
-    console.log("Using Purili fallback for:", query);
-    const response = await purili.search(query);
+    console.log("Using duck-duck-scrape fallback for:", query);
+    const searchResults = await DDG.search(query, { safeSearch: DDG.SafeSearchType.STRICT });
     
-    if (response && response.results && response.results.length > 0) {
-      let results = "Here are the latest search results from the web:\n";
-      response.results.slice(0, 3).forEach((item, index) => {
-        results += `[${index + 1}] ${item.title}\nLink: ${item.url}\n\n`;
+    if (searchResults && searchResults.results && searchResults.results.length > 0) {
+      let results = "Here are the latest search results from the web (DuckDuckGo):\n";
+      searchResults.results.slice(0, 3).forEach((item, index) => {
+        results += `[${index + 1}] ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.url}\n\n`;
       });
       return results;
     }
   } catch (error) {
-    console.error("[Global King] Purili fallback failed:", error.message);
+    console.error("[Global King] duck-duck-scrape fallback failed:", error.message);
   }
 
   return "No live search results could be retrieved.";
