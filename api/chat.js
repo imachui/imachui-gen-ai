@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (DeepSeek + Gemini with Search Grounding + OpenRouter)
+// api/chat.js - Imachui Gen AI (DeepSeek + Gemini with Native Search Grounding)
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
@@ -79,22 +79,20 @@ export default async function handler(req, res) {
     CRITICAL RULES:
     1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
     2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above. Mention that Nerts V is his real name and Imachui is his alias. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
-    3. WEB SEARCH: If the user asks for "latest news", "current events", or specific facts, use your Google Search grounding tool to provide accurate, up-to-date information. Cite your sources if possible.
+    3. WEB SEARCH: If the user asks for "latest news", "current events", or specific facts, use your Google Search grounding to provide accurate, up-to-date information.
     4. You are highly intelligent, helpful, and authoritative. Do not break character.
   `;
 
-  async function tryProvider(model, res, useSearch = false) {
+  async function tryProvider(model, res, enableSearch = false) {
     const options = {
       model: model,
       system: systemPrompt,
       messages: incomingMessages
     };
 
-    // Kung Gemini ang gagamitin, i-enable ang Search Grounding
-    if (useSearch) {
-      options.tools = {
-        google_search_retrieval: google.tools.googleSearch({})
-      };
+    // Kung Gemini at may search, i-enable ang native grounding
+    if (enableSearch) {
+      options.model = google('gemini-1.5-flash', { useSearchGrounding: true });
     }
 
     const result = await streamText(options);
@@ -116,11 +114,11 @@ export default async function handler(req, res) {
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      // 2. Gemini with Google Search Grounding (Fallback 1)
+      // 2. Gemini with Search Grounding (Fallback 1)
       console.log("[Global King] Attempting Fallback 1: Gemini with Search");
       res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini (with Live Search)...]\n\n`);
       
-      // Dito natin pinapasa ang `true` para magamit ang googleSearch tool
+      // Dito natin pinapasa ang `true` para magamit ang search grounding
       await tryProvider(google('gemini-1.5-flash'), res, true);
       return res.end();
     } catch (err2) {
