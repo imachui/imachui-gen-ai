@@ -450,6 +450,13 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
       <button type="button" class="tool" onclick="document.getElementById('fileInput').click()">＋ Attach</button>
       <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv,.json" style="display:none" onchange="handleFiles(event)">
       <button type="button" class="tool" onclick="toggleMic()" id="micBtn">🎙️ Mic</button>
+      
+      <!-- BAGONG WEB SEARCH TOGGLE DITO -->
+      <label class="toggle-label" style="color: #38bdf8; font-weight: bold;">
+        <input type="checkbox" id="webSearchToggle"> 🌐 Web Search
+      </label>
+      <!-- END NG WEB SEARCH TOGGLE -->
+
       <label class="toggle-label"><input type="checkbox" id="autoRead" checked> Auto-Read</label>
     </div>
     <div class="actions"><button type="submit" class="send" id="sendBtn">Send ↑</button></div>
@@ -832,9 +839,17 @@ async function sendMessage() {
   
   try {
     var API_URL = location.hostname === 'imachui.github.io' ? 'https://imachui-gen-ai.vercel.app/api/chat' : '/api/chat';
+    
+    // KUNIN KUNG NAKA-CHECK ANG WEB SEARCH TOGGLE
+    var useSearch = document.getElementById('webSearchToggle') ? document.getElementById('webSearchToggle').checked : false;
+    
     var resp = await fetch(API_URL, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({message: text, messages: currentMessages.slice(-20)})
+      body: JSON.stringify({
+        message: text, 
+        messages: currentMessages.slice(-20),
+        useSearch: useSearch // IPASA SA BACKEND
+      })
     });
     if (!resp.ok) { var err = await resp.json().catch(function() { return {}; }); throw new Error(err.error || 'API error (' + resp.status + ')'); }
     var reader = resp.body.getReader(); var dec = new TextDecoder(); var full = '';
