@@ -1,5 +1,6 @@
-// api/chat.js - Imachui Gen AI (DeepSeek, Gemini, OpenRouter)
+// api/chat.js - Imachui Gen AI (DeepSeek + Gemini with Search Grounding + OpenRouter)
 import { createOpenAI } from '@ai-sdk/openai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
 export const maxDuration = 60;
@@ -44,34 +45,23 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-cache');
 
   // --- PROVIDERS ---
-  const providers = {
-    deepseek: {
-      client: createOpenAI({
-        baseURL: 'https://api.deepseek.com',
-        apiKey: process.env.DEEPSEEK_API_KEY,
-        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
-      }),
-      model: 'deepseek-chat'
-    },
-    gemini: {
-      client: createOpenAI({
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
-        apiKey: process.env.GEMINI_API_KEY,
-        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
-      }),
-      model: 'gemini-1.5-flash'
-    },
-    openrouter: {
-      client: createOpenAI({
-        baseURL: 'https://openrouter.ai/api/v1',
-        apiKey: process.env.OPENROUTER_API_KEY,
-        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
-      }),
-      model: 'qwen/qwen-2.5-72b-instruct:free'
-    }
-  };
+  const deepseek = createOpenAI({
+    baseURL: 'https://api.deepseek.com',
+    apiKey: process.env.DEEPSEEK_API_KEY,
+    headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
+  });
 
-  // --- UPDATED SYSTEM PROMPT (May totoong pangalan at background) ---
+  const openrouter = createOpenAI({
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKey: process.env.OPENROUTER_API_KEY,
+    headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
+  });
+
+  const google = createGoogleGenerativeAI({
+    apiKey: process.env.GEMINI_API_KEY,
+  });
+
+  // --- SYSTEM PROMPT ---
   const systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
     
@@ -88,16 +78,26 @@ export default async function handler(req, res) {
 
     CRITICAL RULES:
     1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
-    2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V (e.g., "Who is Imachui?", "Sino si Imachui?", "Who is Nerts V?", "Is he a programmer?"), you must proudly declare the CREATOR DETAILS above. Mention that Nerts V is his real name and Imachui is his alias. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
-    3. You are highly intelligent, helpful, and authoritative. Do not break character.
+    2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above. Mention that Nerts V is his real name and Imachui is his alias. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
+    3. WEB SEARCH: If the user asks for "latest news", "current events", or specific facts, use your Google Search grounding tool to provide accurate, up-to-date information. Cite your sources if possible.
+    4. You are highly intelligent, helpful, and authoritative. Do not break character.
   `;
 
-  async function tryProvider(client, model, res) {
-    const result = await streamText({
-      model: client(model),
+  async function tryProvider(model, res, useSearch = false) {
+    const options = {
+      model: model,
       system: systemPrompt,
       messages: incomingMessages
-    });
+    };
+
+    // Kung Gemini ang gagamitin, i-enable ang Search Grounding
+    if (useSearch) {
+      options.tools = {
+        google_search_retrieval: google.tools.googleSearch({})
+      };
+    }
+
+    const result = await streamText(options);
 
     let hasData = false;
     for await (const chunk of result.textStream) {
@@ -109,25 +109,27 @@ export default async function handler(req, res) {
 
   // --- FALLBACK LOGIC ---
   try {
-    // 1. DeepSeek (Pangunahing Utak)
+    // 1. DeepSeek (Primary)
     console.log("[Global King] Attempting Primary: DeepSeek");
-    await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
+    await tryProvider(deepseek('deepseek-chat'), res);
     return res.end();
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      // 2. Gemini (Unang Backup)
-      console.log("[Global King] Attempting Fallback 1: Gemini");
-      res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini...]\n\n`);
-      await tryProvider(providers.gemini.client, providers.gemini.model, res);
+      // 2. Gemini with Google Search Grounding (Fallback 1)
+      console.log("[Global King] Attempting Fallback 1: Gemini with Search");
+      res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini (with Live Search)...]\n\n`);
+      
+      // Dito natin pinapasa ang `true` para magamit ang googleSearch tool
+      await tryProvider(google('gemini-1.5-flash'), res, true);
       return res.end();
     } catch (err2) {
       console.error("[Global King] Gemini failed:", err2.message);
       try {
-        // 3. OpenRouter (Panghuling Backup)
+        // 3. OpenRouter (Fallback 2)
         console.log("[Global King] Attempting Fallback 2: OpenRouter");
         res.write(`[System Note: Switching to OpenRouter...]\n\n`);
-        await tryProvider(providers.openrouter.client, providers.openrouter.model, res);
+        await tryProvider(openrouter('qwen/qwen-2.5-72b-instruct:free'), res);
         return res.end();
       } catch (err3) {
         console.error("[Global King] All providers failed:", err3.message);
