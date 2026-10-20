@@ -1,7 +1,6 @@
-// api/chat.js - Imachui Gen AI (Auto Web Search + DuckDuckGo Scraper Fallback)
+// api/chat.js - Imachui Gen AI (Auto Web Search + Google News & Wikipedia Fallback)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import * as DDG from 'duck-duck-scrape'; // BAGONG IMPORT
 
 export const maxDuration = 60;
 
@@ -30,7 +29,7 @@ function normalizeMessages(body) {
     });
 }
 
-// --- BAGONG SEARCH FUNCTION (SERPER -> DUCK-DUCK-SCRAPE) ---
+// --- BAGONG SEARCH FUNCTION (SERPER -> GOOGLE NEWS -> WIKIPEDIA) ---
 async function searchWeb(query) {
   const apiKey = process.env.SERPER_API_KEY;
 
@@ -53,26 +52,54 @@ async function searchWeb(query) {
         }
         return results;
       }
-      console.warn("[Global King] Serper limit reached or failed, switching to DuckDuckGo fallback...");
+      console.warn("[Global King] Serper failed/limit reached. Using free fallbacks...");
     } catch (error) {
       console.error("[Global King] Serper network error:", error.message);
     }
   }
 
-  // 2. Fallback: DuckDuckGo gamit ang duck-duck-scrape
-  try {
-    console.log("Using duck-duck-scrape fallback for:", query);
-    const searchResults = await DDG.search(query, { safeSearch: DDG.SafeSearchType.STRICT });
-    
-    if (searchResults && searchResults.results && searchResults.results.length > 0) {
-      let results = "Here are the latest search results from the web (DuckDuckGo):\n";
-      searchResults.results.slice(0, 3).forEach((item, index) => {
-        results += `[${index + 1}] ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.url}\n\n`;
-      });
-      return results;
+  // 2. Fallback A: Google News RSS (Para sa mga balita)
+  const isNews = /balita|news|latest|ngayon|today|update|current/i.test(query);
+  if (isNews) {
+    try {
+      console.log("[Global King] Using Google News RSS fallback for:", query);
+      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-PH&gl=PH&ceid=PH:en`;
+      const res = await fetch(rssUrl);
+      const xml = await res.text();
+      
+      const itemRegex = /<item>[\s\S]*?<title>(.*?)<\/title>[\s\S]*?<link>(.*?)<\/link>[\s\S]*?<\/item>/g;
+      let match;
+      let results = "Here are the latest news results:\n";
+      let count = 0;
+      
+      while ((match = itemRegex.exec(xml)) !== null && count < 3) {
+        results += `[${count + 1}] ${match[1].replace(/<!\[CDATA\[|\]\]>/g, '')}\nLink: ${match[2]}\n\n`;
+        count++;
+      }
+      if (count > 0) return results;
+    } catch (e) {
+      console.error("[Global King] Google News RSS failed:", e.message);
     }
-  } catch (error) {
-    console.error("[Global King] duck-duck-scrape fallback failed:", error.message);
+  }
+
+  // 3. Fallback B: Wikipedia API (Para sa general knowledge)
+  try {
+    console.log("[Global King] Using Wikipedia fallback for:", query);
+    const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&srlimit=3`;
+    const res = await fetch(wikiUrl);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.query && data.query.search && data.query.search.length > 0) {
+        let results = "Here are general knowledge results from Wikipedia:\n";
+        data.query.search.forEach((item, index) => {
+          const cleanSnippet = item.snippet.replace(/<[^>]*>/g, '');
+          results += `[${index + 1}] ${item.title}\nSnippet: ${cleanSnippet}\nLink: https://en.wikipedia.org/wiki/${encodeURIComponent(item.title)}\n\n`;
+        });
+        return results;
+      }
+    }
+  } catch (e) {
+    console.error("[Global King] Wikipedia fallback failed:", e.message);
   }
 
   return "No live search results could be retrieved.";
