@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Smart Routing: News -> Gemini 2.5, Normal -> DeepSeek)
+// api/chat.js - Imachui Gen AI (Fixed Gemini Search Grounding)
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
     : latestMessage.content;
 
-  // SMART ROUTING: Kung "news" o "balita", pilitin si Gemini 2.5
+  // Detecting kung news/balita ang tanong
   const isNewsQuery = /news|latest|today|current|balita|ngayon|update|weather|presyo|price/i.test(textContent);
 
   const deepseek = createOpenAI({
@@ -79,8 +79,8 @@ export default async function handler(req, res) {
     };
 
     if (enableSearch) {
-      // GAMITIN ANG GEMINI 2.5 FLASH NA MAY SEARCH GROUNDING
-      options.model = google('gemini-2.5-flash', { useSearchGrounding: true });
+      // GAMITIN ANG GEMINI 2.0 FLASH NA MAS STABLE SA SEARCH GROUNDING
+      options.model = google('gemini-2.0-flash', { useSearchGrounding: true });
     }
 
     const result = await streamText(options);
@@ -89,19 +89,42 @@ export default async function handler(req, res) {
       hasData = true;
       res.write(chunk);
     }
-    if (!hasData) throw new Error("Empty response stream");
+    if (!hasData) throw new Error("Empty response stream from Gemini");
   }
 
   // --- SMART EXECUTION LOGIC ---
   if (isNewsQuery) {
-    console.log("[Global King] News query detected. Routing directly to Gemini 2.5 Flash with Search.");
+    console.log("[Global King] News query detected. Routing to Gemini 2.0 Flash with Search.");
     try {
-      await tryProvider(google('gemini-2.5-flash'), res, true);
+      await tryProvider(google('gemini-2.0-flash'), res, true);
       return res.end();
     } catch (err) {
-      console.error("[Global King] Gemini Search failed:", err.message);
-      res.write(`\n\n[System Error: Web search failed. Gemini API Error: ${err.message}]\n\n`);
-      return res.end();
+      console.error("[Global King] Gemini 2.0 Search failed:", err.message);
+      
+      // Fallback 1: Subukan ang Gemini 2.5 Flash WITHOUT search (para may sagot pa rin)
+      try {
+        console.log("[Global King] Switching to Gemini 2.5 Flash (No Search).");
+        res.write(`[System Note: Live search failed. Switching to standard Gemini...]\n\n`);
+        await tryProvider(google('gemini-2.5-flash'), res, false);
+        return res.end();
+      } catch (err2) {
+        console.error("[Global King] Gemini 2.5 failed:", err2.message);
+        
+        // Fallback 2: DeepSeek
+        try {
+          console.log("[Global King] Switching to DeepSeek.");
+          res.write(`[System Note: Switching to DeepSeek...]\n\n`);
+          await tryProvider(deepseek('deepseek-chat'), res);
+          return res.end();
+        } catch (err3) {
+          console.error("[Global King] All providers failed:", err3.message);
+          if (!res.headersSent) {
+            return res.status(502).json({ error: "The Global King is currently unavailable. Please try again." });
+          }
+          res.write(`\n\n[System Error: All AI brains failed to connect.]`);
+          return res.end();
+        }
+      }
     }
   }
 
@@ -114,7 +137,7 @@ export default async function handler(req, res) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
       console.log("[Global King] Attempting Fallback: Gemini 2.5 Flash");
-      res.write(`[System Note: Switching to Gemini 2.5 Flash...]\n\n`);
+      res.write(`[System Note: Switching to Gemini...]\n\n`);
       await tryProvider(google('gemini-2.5-flash'), res, false);
       return res.end();
     } catch (err2) {
