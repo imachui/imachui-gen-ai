@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (With 222 Hospital Staff Data & Smart Vibe)
+// api/chat.js - Imachui Gen AI (Smart Exact Match & Strict Context)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json'; 
@@ -140,8 +140,7 @@ export default async function handler(req, res) {
     1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers. ALWAYS REPLY IN THE SAME LANGUAGE THE USER USED.
     2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above.
     3. You are highly intelligent, helpful, and authoritative. Do not break character.
-    4. You have access to a PRIVATE HOSPITAL STAFF DATABASE. If the user asks about a specific person, job title, or staff member, use the provided private data to answer them accurately.
-    5. VIBE AND TONE: When describing hospital staff, adopt a friendly, respectful, and conversational tone. Highlight their professional role and incorporate the specific "vibes" or descriptions provided in the database. Make the answer engaging.
+    4. VIBE AND TONE: When describing hospital staff, adopt a friendly, respectful, and conversational tone.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
@@ -153,19 +152,25 @@ export default async function handler(req, res) {
       : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
   }
 
-  // --- NEEDLE IN A HAYSTACK: PAGHAHANAP SA 222 STAFF DATA ---
+  // --- MAS MATALINONG PAGHAHANAP SA 222 STAFF DATA ---
   if (queryText) {
-    const searchWords = queryText.toLowerCase().replace(/[?,.!]/g, '').split(/\s+/).filter(w => w.length > 2);
-    
-    const matchedStaff = staffData.filter(person => {
-      const personName = person.name.toLowerCase();
-      const personJob = person.job_title.toLowerCase();
-      
-      return searchWords.some(word => 
-        personName.includes(word) || 
-        personJob.includes(word)
-      );
+    const cleanQuery = queryText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const searchWords = cleanQuery.split(' ').filter(w => w.length > 2);
+
+    // 1. UNAHIN ANG EKSAKTONG PANGALAN (Exact Match)
+    let matchedStaff = staffData.filter(person => {
+      const cleanName = person.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      return cleanName.includes(cleanQuery) || cleanQuery.includes(cleanName);
     });
+
+    // 2. KUNG WALANG EKSAKTO, DUON LANG MAG-KEYWORD SEARCH
+    if (matchedStaff.length === 0) {
+      matchedStaff = staffData.filter(person => {
+        const cleanName = person.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanJob = person.job_title.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        return searchWords.some(word => cleanName.includes(word) || cleanJob.includes(word));
+      });
+    }
 
     if (matchedStaff.length > 0) {
       console.log(`[Global King] Found ${matchedStaff.length} staff matches.`);
@@ -173,12 +178,13 @@ export default async function handler(req, res) {
         `Name: ${p.name}\nJob Title: ${p.job_title}\nDescription/Notes: ${p.description || 'None'}`
       ).join('\n---\n');
       
-      systemPrompt += `\n\n[PRIVATE HOSPITAL STAFF DATABASE RESULTS]:\n${staffInfo}\n\n(Base your answer STRICTLY on this private data. Describe them with a friendly, conversational vibe based on the description. Respond in the language the user used.)`;
+      systemPrompt += `\n\n[CRITICAL PRIVATE DATA FOUND IN DATABASE]:\n${staffInfo}\n\nYOU MUST USE THE ABOVE DATA TO ANSWER. DO NOT say you don't have the record. DO NOT say you don't have access. Answer the user's question using the EXACT text provided above.`;
     }
   }
 
-  // --- WEB SEARCH LOGIC ---
-  if (queryText && queryText.length > 3) {
+  // --- WEB SEARCH LOGIC (Para sa mga balita o general knowledge) ---
+  // Kung may nahanap na staff, hindi na natin kailangan mag-web search para hindi magulo.
+  if (queryText && queryText.length > 3 && (!systemPrompt.includes("CRITICAL PRIVATE DATA FOUND"))) {
     const searchResults = await searchWeb(queryText);
     systemPrompt += `\n\n[WEB SEARCH RESULTS]:\n${searchResults}`;
   }
