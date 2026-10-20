@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Smart Routing: News -> Gemini, Normal -> DeepSeek)
+// api/chat.js - Imachui Gen AI (Strict Routing for News)
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
@@ -44,25 +44,17 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
-  // Kunin ang pinakabagong mensahe para i-check kung tungkol sa balita
   const latestMessage = incomingMessages[incomingMessages.length - 1];
   const textContent = Array.isArray(latestMessage.content) 
     ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
     : latestMessage.content;
 
-  // SMART ROUTING: Kung "news" o "balita", diretso kay Gemini
+  // SMART ROUTING: Kung "news" o "balita", pilitin si Gemini
   const isNewsQuery = /news|latest|today|current|balita|ngayon|update|weather|presyo|price/i.test(textContent);
 
-  // --- PROVIDERS ---
   const deepseek = createOpenAI({
     baseURL: 'https://api.deepseek.com',
     apiKey: process.env.DEEPSEEK_API_KEY,
-    headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
-  });
-
-  const openrouter = createOpenAI({
-    baseURL: 'https://openrouter.ai/api/v1',
-    apiKey: process.env.OPENROUTER_API_KEY,
     headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
   });
 
@@ -72,22 +64,11 @@ export default async function handler(req, res) {
 
   const systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
-    
-    Identity:
-    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui. You absorb the brainpower of multiple top-tier AI models to deliver powerful, accurate, and flawless answers.
-
-    CREATOR DETAILS (MUST REMEMBER AND PROUDLY SHARE):
-    - Your creator's real name is **Nerts V**.
-    - He uses the alias/pseudonym **"Imachui"** (he hides his real identity behind this name).
-    - Nerts V (Imachui) is a genius, brilliant, creative, and highly capable software engineer.
-    - He is a developer for **Windows Lite** and works extensively on **AI Scale**.
-    - He is an expert application engineer, skilled in programming and developing various software applications.
-    - He is the brilliant mind behind your existence and coding expertise.
-
-    CRITICAL RULES:
-    1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
-    2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above. Mention that Nerts V is his real name and Imachui is his alias. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
-    3. You are highly intelligent, helpful, and authoritative. Do not break character.
+    Identity: You are Imachui Gen AI, created by Nerts V (Imachui).
+    Rules:
+    1. Reply in the language the user uses.
+    2. If asked about Nerts V or Imachui, proudly state he is a genius software engineer, Windows Lite developer, and AI Scale expert.
+    3. You have access to Google Search. Use it to answer questions about current events, news, or real-time information accurately.
   `;
 
   async function tryProvider(model, res, enableSearch = false) {
@@ -98,7 +79,8 @@ export default async function handler(req, res) {
     };
 
     if (enableSearch) {
-      options.model = google('gemini-1.5-flash', { useSearchGrounding: true });
+      // Gumamit ng gemini-1.5-pro para sa search dahil mas matatag ito kaysa flash
+      options.model = google('gemini-1.5-pro', { useSearchGrounding: true });
     }
 
     const result = await streamText(options);
@@ -114,11 +96,13 @@ export default async function handler(req, res) {
   if (isNewsQuery) {
     console.log("[Global King] News query detected. Routing directly to Gemini with Search.");
     try {
-      await tryProvider(google('gemini-1.5-flash'), res, true);
+      await tryProvider(google('gemini-1.5-pro'), res, true);
       return res.end();
     } catch (err) {
       console.error("[Global King] Gemini Search failed:", err.message);
-      // Kung mag-fail si Gemini, dadaan kay DeepSeek bilang fallback
+      // Ipakita ang error sa chat para malaman natin kung bakit
+      res.write(`\n\n[System Error: Web search failed. Gemini API Error: ${err.message}]\n\n`);
+      return res.end();
     }
   }
 
@@ -130,25 +114,14 @@ export default async function handler(req, res) {
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      console.log("[Global King] Attempting Fallback 1: Gemini");
-      res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini...]\n\n`);
-      await tryProvider(google('gemini-1.5-flash'), res, true);
+      console.log("[Global King] Attempting Fallback: Gemini");
+      res.write(`[System Note: Switching to Gemini...]\n\n`);
+      await tryProvider(google('gemini-1.5-flash'), res, false);
       return res.end();
     } catch (err2) {
-      console.error("[Global King] Gemini failed:", err2.message);
-      try {
-        console.log("[Global King] Attempting Fallback 2: OpenRouter");
-        res.write(`[System Note: Switching to OpenRouter...]\n\n`);
-        await tryProvider(openrouter('qwen/qwen-2.5-72b-instruct:free'), res);
-        return res.end();
-      } catch (err3) {
-        console.error("[Global King] All providers failed:", err3.message);
-        if (!res.headersSent) {
-          return res.status(502).json({ error: "The Global King is currently unavailable. Please try again." });
-        }
-        res.write(`\n\n[System Error: All AI brains failed to connect.]`);
-        return res.end();
-      }
+      console.error("[Global King] All providers failed:", err2.message);
+      res.write(`\n\n[System Error: All AI brains failed to connect.]`);
+      return res.end();
     }
   }
 }
