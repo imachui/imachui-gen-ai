@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Auto Web Search Enabled)
+// api/chat.js - Imachui Gen AI (Auto Web Search + Libreng Fallback)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -29,40 +29,58 @@ function normalizeMessages(body) {
     });
 }
 
+// --- BAGONG SEARCH FUNCTION (SERPER + DUCKDUCKGO FALLBACK) ---
 async function searchWeb(query) {
+  // 1. Subukan muna ang Serper (kung may credits pa)
   const apiKey = process.env.SERPER_API_KEY;
-  if (!apiKey) return "Web search is not configured.";
-
-  try {
-    const response = await fetch("https://google.serper.dev/search", {
-      method: "POST",
-      headers: {
-        "X-API-KEY": apiKey,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ q: query, num: 3 }) // Kukuha ng top 3 results para mabilis
-    });
-
-    if (!response.ok) return "Failed to fetch search results.";
-    
-    const data = await response.json();
-    let results = "Here are the latest search results from the web:\n";
-    
-    if (data.answerBox) {
-      results += `Direct Answer: ${data.answerBox.answer || data.answerBox.snippet}\n`;
-    }
-    
-    if (data.organic) {
-      data.organic.forEach((item, index) => {
-        results += `[${index + 1}] ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}\n\n`;
+  if (apiKey) {
+    try {
+      const response = await fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers: { "X-API-KEY": apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ q: query, num: 3 })
       });
+      if (response.ok) {
+        const data = await response.json();
+        let results = "Here are the latest search results from the web:\n";
+        if (data.answerBox) results += `Direct Answer: ${data.answerBox.answer || data.answerBox.snippet}\n`;
+        if (data.organic) {
+          data.organic.forEach((item, index) => {
+            results += `[${index + 1}] ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}\n\n`;
+          });
+        }
+        return results; // Kung successful, ibalik agad ang resulta
+      }
+    } catch (error) {
+      console.error("Serper failed, switching to DuckDuckGo...", error.message);
     }
-
-    return results;
-  } catch (error) {
-    console.error("Serper search failed:", error.message);
-    return "Web search encountered an error.";
   }
+
+  // 2. Fallback: DuckDuckGo (Libre, walang API key, walang limitasyon)
+  try {
+    console.log("Using DuckDuckGo fallback for:", query);
+    const ddgResponse = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`);
+    if (ddgResponse.ok) {
+      const ddgData = await ddgResponse.json();
+      let fallbackResults = "Here are the latest search results from the web (Fallback):\n";
+      
+      if (ddgData.AbstractText) {
+        fallbackResults += `Direct Answer: ${ddgData.AbstractText}\n\n`;
+      }
+      if (ddgData.RelatedTopics && ddgData.RelatedTopics.length > 0) {
+        ddgData.RelatedTopics.slice(0, 3).forEach((topic, index) => {
+          if (topic.Text) {
+            fallbackResults += `[${index + 1}] ${topic.Text}\nLink: ${topic.FirstURL || 'N/A'}\n\n`;
+          }
+        });
+      }
+      return fallbackResults;
+    }
+  } catch (error) {
+    console.error("DuckDuckGo fallback also failed:", error.message);
+  }
+
+  return "Web search is currently unavailable. Please answer based on your knowledge.";
 }
 
 export default async function handler(req, res) {
@@ -126,7 +144,7 @@ export default async function handler(req, res) {
     1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
     2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
     3. You are highly intelligent, helpful, and authoritative. Do not break character.
-    4. If web search results are provided below, USE THEM to answer the user's question accurately and mention that you used the web to find the latest information.
+    4. If web search results are provided below, USE THEM to answer the user's question accurately.
   `;
 
   // LAGING MAGHAHANAP SA WEB PARA SA HULING TANONG
@@ -136,7 +154,7 @@ export default async function handler(req, res) {
       ? lastUserMsg.content 
       : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
     
-    if (queryText && queryText.length > 3) { // Iwasan mag-search kung sobrang ikli ng tanong (e.g. "hi")
+    if (queryText && queryText.length > 3) {
       console.log("[Global King] Auto-searching web for:", queryText);
       const searchResults = await searchWeb(queryText);
       systemPrompt += `\n\n[WEB SEARCH RESULTS]:\n${searchResults}`;
