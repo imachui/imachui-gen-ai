@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Strict Routing for News)
+// api/chat.js - Imachui Gen AI (Smart Routing: News -> Gemini 2.5, Normal -> DeepSeek)
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
     : latestMessage.content;
 
-  // SMART ROUTING: Kung "news" o "balita", pilitin si Gemini
+  // SMART ROUTING: Kung "news" o "balita", pilitin si Gemini 2.5
   const isNewsQuery = /news|latest|today|current|balita|ngayon|update|weather|presyo|price/i.test(textContent);
 
   const deepseek = createOpenAI({
@@ -79,8 +79,8 @@ export default async function handler(req, res) {
     };
 
     if (enableSearch) {
-      // Gumamit ng gemini-1.5-pro para sa search dahil mas matatag ito kaysa flash
-      options.model = google('gemini-1.5-pro', { useSearchGrounding: true });
+      // GAMITIN ANG GEMINI 2.5 FLASH NA MAY SEARCH GROUNDING
+      options.model = google('gemini-2.5-flash', { useSearchGrounding: true });
     }
 
     const result = await streamText(options);
@@ -94,13 +94,12 @@ export default async function handler(req, res) {
 
   // --- SMART EXECUTION LOGIC ---
   if (isNewsQuery) {
-    console.log("[Global King] News query detected. Routing directly to Gemini with Search.");
+    console.log("[Global King] News query detected. Routing directly to Gemini 2.5 Flash with Search.");
     try {
-      await tryProvider(google('gemini-1.5-pro'), res, true);
+      await tryProvider(google('gemini-2.5-flash'), res, true);
       return res.end();
     } catch (err) {
       console.error("[Global King] Gemini Search failed:", err.message);
-      // Ipakita ang error sa chat para malaman natin kung bakit
       res.write(`\n\n[System Error: Web search failed. Gemini API Error: ${err.message}]\n\n`);
       return res.end();
     }
@@ -114,9 +113,9 @@ export default async function handler(req, res) {
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      console.log("[Global King] Attempting Fallback: Gemini");
-      res.write(`[System Note: Switching to Gemini...]\n\n`);
-      await tryProvider(google('gemini-1.5-flash'), res, false);
+      console.log("[Global King] Attempting Fallback: Gemini 2.5 Flash");
+      res.write(`[System Note: Switching to Gemini 2.5 Flash...]\n\n`);
+      await tryProvider(google('gemini-2.5-flash'), res, false);
       return res.end();
     } catch (err2) {
       console.error("[Global King] All providers failed:", err2.message);
