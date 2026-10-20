@@ -29,7 +29,7 @@ function normalizeMessages(body) {
     });
 }
 
-// --- BAGONG SEARCH FUNCTION (SERPER -> DUCKDUCKGO HTML -> SEARXNG) ---
+// --- BAGONG SEARCH FUNCTION (SERPER -> DUCKDUCKGO HTML PARSER) ---
 async function searchWeb(query) {
   const apiKey = process.env.SERPER_API_KEY;
 
@@ -52,69 +52,66 @@ async function searchWeb(query) {
         }
         return results;
       }
-      console.warn("Serper returned error, switching to fallback...");
+      console.warn("[Global King] Serper limit reached or failed, switching to DuckDuckGo fallback...");
     } catch (error) {
-      console.error("Serper failed, switching to fallback...", error.message);
+      console.error("[Global King] Serper network error:", error.message);
     }
   }
 
-  // 2. Fallback A: DuckDuckGo HTML Scraping (Totoong search results)
+  // 2. Fallback: DuckDuckGo HTML Parser (Libre at walang API Key)
   try {
     console.log("Using DuckDuckGo HTML fallback for:", query);
     const ddgRes = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" }
+      headers: { 
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9"
+      }
     });
+    
     if (ddgRes.ok) {
       const html = await ddgRes.text();
-      const results = [];
-      // Simpleng regex parser para sa DuckDuckGo HTML results
-      const linkRegex = /<a rel="nofollow" class="result__a" href="([^"]+)">([^<]+)<\/a>/g;
-      const snippetRegex = /<a class="result__snippet" href="[^"]+">([^<]+)<\/a>/g;
+      
+      // Regex na eksaktong tumutugma sa structure ng DuckDuckGo HTML
+      const resultBlockRe = /<a[^>]+class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?(?:<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>)?/g;
       
       let match;
-      let snippets = [];
-      while ((match = snippetRegex.exec(html)) !== null) {
-        snippets.push(match[1].replace(/<[^>]*>/g, ''));
-      }
-      
-      let index = 0;
-      while ((match = linkRegex.exec(html)) !== null && index < 3) {
-        const link = decodeURIComponent(match[1]);
-        const title = match[2];
-        const snippet = snippets[index] || "No snippet available.";
-        results.push(`[${index + 1}] ${title}\nSnippet: ${snippet}\nLink: ${link}\n\n`);
-        index++;
-      }
-      
-      if (results.length > 0) {
-        return "Here are the latest search results from the web:\n" + results.join("");
-      }
-    }
-  } catch (error) {
-    console.error("DuckDuckGo HTML fallback failed:", error.message);
-  }
+      let results = "Here are the latest search results from the web (DuckDuckGo):\n";
+      let count = 0;
 
-  // 3. Fallback B: SearXNG Public Instance (JSON format)
-  try {
-    console.log("Using SearXNG fallback for:", query);
-    const searxRes = await fetch(`https://searx.be/search?q=${encodeURIComponent(query)}&format=json`, {
-      headers: { "User-Agent": "Mozilla/5.0" }
-    });
-    if (searxRes.ok) {
-      const data = await searxRes.json();
-      if (data.results && data.results.length > 0) {
-        let results = "Here are the latest search results from the web:\n";
-        data.results.slice(0, 3).forEach((item, index) => {
-          results += `[${index + 1}] ${item.title}\nSnippet: ${item.content}\nLink: ${item.url}\n\n`;
-        });
+      while ((match = resultBlockRe.exec(html)) !== null && count < 3) {
+        let rawUrl = match[1] || '';
+        let rawTitle = match[2] || '';
+        let rawSnippet = match[3] || '';
+
+        // I-decode ang DuckDuckGo redirect link (halimbawa: //duckduckgo.com/l/?uddg=https%3A...)
+        if (rawUrl.includes('uddg=')) {
+          try {
+            const urlParams = new URLSearchParams(rawUrl.split('?')[1]);
+            rawUrl = decodeURIComponent(urlParams.get('uddg')) || rawUrl;
+          } catch (e) {
+            rawUrl = rawUrl.replace(/^\/\/duckduckgo\.com\/l\/\?uddg=/, 'https://duckduckgo.com/l/?uddg=');
+          }
+        }
+
+        // Linisin ang HTML tags
+        const title = rawTitle.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
+        const snippet = rawSnippet.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
+
+        if (title && rawUrl) {
+          results += `[${count + 1}] ${title}\nSnippet: ${snippet || 'No snippet available.'}\nLink: ${rawUrl}\n\n`;
+          count++;
+        }
+      }
+
+      if (count > 0) {
         return results;
       }
     }
   } catch (error) {
-    console.error("SearXNG fallback failed:", error.message);
+    console.error("[Global King] DuckDuckGo HTML parser failed:", error.message);
   }
 
-  return "Web search is currently unavailable. Please answer based on your knowledge.";
+  return "No live search results could be retrieved.";
 }
 
 export default async function handler(req, res) {
