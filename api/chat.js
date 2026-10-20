@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (DeepSeek, Gemini, OpenRouter)
+// api/chat.js - Imachui Gen AI (DeepSeek, Gemini, OpenRouter + Serper Web Search)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -29,6 +29,43 @@ function normalizeMessages(body) {
     });
 }
 
+// BAGONG FUNCTION PARA SA SERPER WEB SEARCH
+async function searchWeb(query) {
+  const apiKey = process.env.SERPER_API_KEY;
+  if (!apiKey) return "Web search is not configured.";
+
+  try {
+    const response = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": apiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ q: query, num: 5 }) // Kukuha ng top 5 results
+    });
+
+    if (!response.ok) return "Failed to fetch search results.";
+    
+    const data = await response.json();
+    let results = "Here are the latest search results from the web:\n";
+    
+    if (data.answerBox) {
+      results += `Direct Answer: ${data.answerBox.answer || data.answerBox.snippet}\n`;
+    }
+    
+    if (data.organic) {
+      data.organic.forEach((item, index) => {
+        results += `[${index + 1}] ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}\n\n`;
+      });
+    }
+
+    return results;
+  } catch (error) {
+    console.error("Serper search failed:", error.message);
+    return "Web search encountered an error.";
+  }
+}
+
 export default async function handler(req, res) {
   setCors(req, res);
 
@@ -36,6 +73,8 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST for chat requests." });
 
   const incomingMessages = normalizeMessages(req.body || {});
+  const useSearch = req.body.useSearch || false; // Kinukuha kung naka-on ang Web Search
+
   if (!incomingMessages.length) {
     return res.status(400).json({ error: "Please enter a message first." });
   }
@@ -71,8 +110,8 @@ export default async function handler(req, res) {
     }
   };
 
-  // --- UPDATED SYSTEM PROMPT (May totoong pangalan at background) ---
-  const systemPrompt = `
+  // --- DYNAMIC SYSTEM PROMPT ---
+  let systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
     
     Identity:
@@ -92,6 +131,22 @@ export default async function handler(req, res) {
     3. You are highly intelligent, helpful, and authoritative. Do not break character.
   `;
 
+  // Kung naka-on ang Web Search, maghanap muna bago mag-reply ang AI
+  if (useSearch) {
+    const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
+    if (lastUserMsg) {
+      const queryText = typeof lastUserMsg.content === 'string' 
+        ? lastUserMsg.content 
+        : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
+      
+      if (queryText) {
+        console.log("[Global King] Searching web for:", queryText);
+        const searchResults = await searchWeb(queryText);
+        systemPrompt += `\n\n[WEB SEARCH RESULTS - USE THIS TO ANSWER THE USER]:\n${searchResults}`;
+      }
+    }
+  }
+
   async function tryProvider(client, model, res) {
     const result = await streamText({
       model: client(model),
@@ -109,14 +164,12 @@ export default async function handler(req, res) {
 
   // --- FALLBACK LOGIC ---
   try {
-    // 1. DeepSeek (Pangunahing Utak)
     console.log("[Global King] Attempting Primary: DeepSeek");
     await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
     return res.end();
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      // 2. Gemini (Unang Backup)
       console.log("[Global King] Attempting Fallback 1: Gemini");
       res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini...]\n\n`);
       await tryProvider(providers.gemini.client, providers.gemini.model, res);
@@ -124,7 +177,6 @@ export default async function handler(req, res) {
     } catch (err2) {
       console.error("[Global King] Gemini failed:", err2.message);
       try {
-        // 3. OpenRouter (Panghuling Backup)
         console.log("[Global King] Attempting Fallback 2: OpenRouter");
         res.write(`[System Note: Switching to OpenRouter...]\n\n`);
         await tryProvider(providers.openrouter.client, providers.openrouter.model, res);
