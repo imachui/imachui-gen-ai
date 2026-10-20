@@ -1,6 +1,7 @@
-// api/chat.js - Imachui Gen AI (Bulletproof Fallback & Smart AI Prompt)
+// api/chat.js - Imachui Gen AI (With 222 Hospital Staff Data & Smart Vibe)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+import staffData from '../staff-data.json'; 
 
 export const maxDuration = 60;
 
@@ -31,8 +32,6 @@ function normalizeMessages(body) {
 
 async function searchWeb(query) {
   const apiKey = process.env.SERPER_API_KEY;
-
-  // 1. Serper (Kung may credits pa)
   if (apiKey) {
     try {
       const response = await fetch("https://google.serper.dev/search", {
@@ -44,7 +43,6 @@ async function searchWeb(query) {
       if (response.ok) {
         const data = await response.json();
         let results = "Here are the latest search results from the web:\n";
-        if (data.answerBox) results += `Direct Answer: ${data.answerBox.answer || data.answerBox.snippet}\n`;
         if (data.organic && data.organic.length > 0) {
           data.organic.forEach((item, index) => {
             results += `[${index + 1}] ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}\n\n`;
@@ -52,32 +50,23 @@ async function searchWeb(query) {
           return results;
         }
       }
-      console.warn("[Global King] Serper failed/limit reached. Using free fallbacks...");
-    } catch (error) {
-      console.error("[Global King] Serper network error:", error.message);
-    }
+    } catch (error) {}
   }
 
-  // 2. Fallback: Google News RSS 
   const isNews = /balita|news|latest|ngayon|today|update|current|kaganapan|isyu/i.test(query);
   if (isNews) {
     try {
-      console.log("[Global King] Using Google News RSS fallback for:", query);
-      // Ipapasa na natin yung buong query, hahayaan natin si Google News ang mag-adjust
       const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-PH&gl=PH&ceid=PH:en`;
       const res = await fetch(rssUrl, { signal: AbortSignal.timeout(6000) });
       const xml = await res.text();
-      
       const items = xml.split('<item>');
       let results = "Here are the latest news results from the web:\n";
       let count = 0;
-      
       for (let i = 1; i < items.length; i++) {
         if (count >= 3) break;
         const item = items[i];
         const titleMatch = item.match(/<title>(.*?)<\/title>/);
         const linkMatch = item.match(/<link>(.*?)<\/link>/);
-        
         if (titleMatch && linkMatch) {
           let title = titleMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
           let link = linkMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim();
@@ -85,35 +74,9 @@ async function searchWeb(query) {
           count++;
         }
       }
-      if (count > 0) {
-        console.log(`[Global King] Successfully found ${count} news articles.`);
-        return results;
-      }
-    } catch (e) {
-      console.error("[Global King] Google News RSS failed:", e.message);
-    }
+      if (count > 0) return results;
+    } catch (e) {}
   }
-
-  // 3. Fallback: Wikipedia
-  try {
-    console.log("[Global King] Using Wikipedia fallback for:", query);
-    const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&srlimit=3`;
-    const res = await fetch(wikiUrl, { signal: AbortSignal.timeout(5000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.query && data.query.search && data.query.search.length > 0) {
-        let results = "Here are general knowledge results from Wikipedia:\n";
-        data.query.search.forEach((item, index) => {
-          const cleanSnippet = item.snippet.replace(/<[^>]*>/g, '');
-          results += `[${index + 1}] ${item.title}\nSnippet: ${cleanSnippet}\nLink: https://en.wikipedia.org/wiki/${encodeURIComponent(item.title)}\n\n`;
-        });
-        return results;
-      }
-    }
-  } catch (e) {
-    console.error("[Global King] Wikipedia fallback failed:", e.message);
-  }
-
   return "No live search results could be retrieved.";
 }
 
@@ -174,24 +137,50 @@ export default async function handler(req, res) {
     - He is the brilliant mind behind your existence and coding expertise.
 
     CRITICAL RULES:
-    1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
-    2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
+    1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers. ALWAYS REPLY IN THE SAME LANGUAGE THE USER USED.
+    2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above.
     3. You are highly intelligent, helpful, and authoritative. Do not break character.
-    4. If web search results are provided below, USE THEM to answer the user's question accurately.
-    5. SEARCH RELEVANCE CHECK: If the provided [WEB SEARCH RESULTS] are completely irrelevant to the user's question (e.g., the user asks for "ayaw sa pinas" and you get "music"), DO NOT pretend it is the answer. IGNORE the search results and tell the user: "Pasensya na, wala akong makitang eksaktong balita tungkol sa hinahanap mo, pero heto ang mga pangkalahatang isyu..." and give general knowledge. Be smart about this.
+    4. You have access to a PRIVATE HOSPITAL STAFF DATABASE. If the user asks about a specific person, job title, or staff member, use the provided private data to answer them accurately.
+    5. VIBE AND TONE: When describing hospital staff, adopt a friendly, respectful, and conversational tone. Highlight their professional role and incorporate the specific "vibes" or descriptions provided in the database. Make the answer engaging.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
+  let queryText = "";
+
   if (lastUserMsg) {
-    const queryText = typeof lastUserMsg.content === 'string' 
+    queryText = typeof lastUserMsg.content === 'string' 
       ? lastUserMsg.content 
       : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
+  }
+
+  // --- NEEDLE IN A HAYSTACK: PAGHAHANAP SA 222 STAFF DATA ---
+  if (queryText) {
+    const searchWords = queryText.toLowerCase().replace(/[?,.!]/g, '').split(/\s+/).filter(w => w.length > 2);
     
-    if (queryText && queryText.length > 3) {
-      console.log("[Global King] Auto-searching web for:", queryText);
-      const searchResults = await searchWeb(queryText);
-      systemPrompt += `\n\n[WEB SEARCH RESULTS]:\n${searchResults}`;
+    const matchedStaff = staffData.filter(person => {
+      const personName = person.name.toLowerCase();
+      const personJob = person.job_title.toLowerCase();
+      
+      return searchWords.some(word => 
+        personName.includes(word) || 
+        personJob.includes(word)
+      );
+    });
+
+    if (matchedStaff.length > 0) {
+      console.log(`[Global King] Found ${matchedStaff.length} staff matches.`);
+      const staffInfo = matchedStaff.slice(0, 5).map(p => 
+        `Name: ${p.name}\nJob Title: ${p.job_title}\nDescription/Notes: ${p.description || 'None'}`
+      ).join('\n---\n');
+      
+      systemPrompt += `\n\n[PRIVATE HOSPITAL STAFF DATABASE RESULTS]:\n${staffInfo}\n\n(Base your answer STRICTLY on this private data. Describe them with a friendly, conversational vibe based on the description. Respond in the language the user used.)`;
     }
+  }
+
+  // --- WEB SEARCH LOGIC ---
+  if (queryText && queryText.length > 3) {
+    const searchResults = await searchWeb(queryText);
+    systemPrompt += `\n\n[WEB SEARCH RESULTS]:\n${searchResults}`;
   }
 
   async function tryProvider(client, model, res) {
@@ -214,21 +203,16 @@ export default async function handler(req, res) {
     await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
     return res.end();
   } catch (err1) {
-    console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      console.log("[Global King] Attempting Fallback 1: Gemini");
       res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini...]\n\n`);
       await tryProvider(providers.gemini.client, providers.gemini.model, res);
       return res.end();
     } catch (err2) {
-      console.error("[Global King] Gemini failed:", err2.message);
       try {
-        console.log("[Global King] Attempting Fallback 2: OpenRouter");
         res.write(`[System Note: Switching to OpenRouter...]\n\n`);
         await tryProvider(providers.openrouter.client, providers.openrouter.model, res);
         return res.end();
       } catch (err3) {
-        console.error("[Global King] All providers failed:", err3.message);
         if (!res.headersSent) {
           return res.status(502).json({ error: "The Global King is currently unavailable. Please try again." });
         }
