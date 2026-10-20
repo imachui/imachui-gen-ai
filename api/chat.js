@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (DeepSeek + Gemini with Native Search Grounding)
+// api/chat.js - Imachui Gen AI (Smart Routing: News -> Gemini, Normal -> DeepSeek)
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
@@ -44,6 +44,15 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
+  // Kunin ang pinakabagong mensahe para i-check kung tungkol sa balita
+  const latestMessage = incomingMessages[incomingMessages.length - 1];
+  const textContent = Array.isArray(latestMessage.content) 
+    ? latestMessage.content.find(c => c.type === 'text')?.text || '' 
+    : latestMessage.content;
+
+  // SMART ROUTING: Kung "news" o "balita", diretso kay Gemini
+  const isNewsQuery = /news|latest|today|current|balita|ngayon|update|weather|presyo|price/i.test(textContent);
+
   // --- PROVIDERS ---
   const deepseek = createOpenAI({
     baseURL: 'https://api.deepseek.com',
@@ -61,7 +70,6 @@ export default async function handler(req, res) {
     apiKey: process.env.GEMINI_API_KEY,
   });
 
-  // --- SYSTEM PROMPT ---
   const systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
     
@@ -79,8 +87,7 @@ export default async function handler(req, res) {
     CRITICAL RULES:
     1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
     2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above. Mention that Nerts V is his real name and Imachui is his alias. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
-    3. WEB SEARCH: If the user asks for "latest news", "current events", or specific facts, use your Google Search grounding to provide accurate, up-to-date information.
-    4. You are highly intelligent, helpful, and authoritative. Do not break character.
+    3. You are highly intelligent, helpful, and authoritative. Do not break character.
   `;
 
   async function tryProvider(model, res, enableSearch = false) {
@@ -90,13 +97,11 @@ export default async function handler(req, res) {
       messages: incomingMessages
     };
 
-    // Kung Gemini at may search, i-enable ang native grounding
     if (enableSearch) {
       options.model = google('gemini-1.5-flash', { useSearchGrounding: true });
     }
 
     const result = await streamText(options);
-
     let hasData = false;
     for await (const chunk of result.textStream) {
       hasData = true;
@@ -105,26 +110,33 @@ export default async function handler(req, res) {
     if (!hasData) throw new Error("Empty response stream");
   }
 
-  // --- FALLBACK LOGIC ---
+  // --- SMART EXECUTION LOGIC ---
+  if (isNewsQuery) {
+    console.log("[Global King] News query detected. Routing directly to Gemini with Search.");
+    try {
+      await tryProvider(google('gemini-1.5-flash'), res, true);
+      return res.end();
+    } catch (err) {
+      console.error("[Global King] Gemini Search failed:", err.message);
+      // Kung mag-fail si Gemini, dadaan kay DeepSeek bilang fallback
+    }
+  }
+
+  // --- NORMAL FALLBACK LOGIC (DeepSeek muna) ---
   try {
-    // 1. DeepSeek (Primary)
     console.log("[Global King] Attempting Primary: DeepSeek");
     await tryProvider(deepseek('deepseek-chat'), res);
     return res.end();
   } catch (err1) {
     console.error("[Global King] DeepSeek failed:", err1.message);
     try {
-      // 2. Gemini with Search Grounding (Fallback 1)
-      console.log("[Global King] Attempting Fallback 1: Gemini with Search");
-      res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini (with Live Search)...]\n\n`);
-      
-      // Dito natin pinapasa ang `true` para magamit ang search grounding
+      console.log("[Global King] Attempting Fallback 1: Gemini");
+      res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini...]\n\n`);
       await tryProvider(google('gemini-1.5-flash'), res, true);
       return res.end();
     } catch (err2) {
       console.error("[Global King] Gemini failed:", err2.message);
       try {
-        // 3. OpenRouter (Fallback 2)
         console.log("[Global King] Attempting Fallback 2: OpenRouter");
         res.write(`[System Note: Switching to OpenRouter...]\n\n`);
         await tryProvider(openrouter('qwen/qwen-2.5-72b-instruct:free'), res);
