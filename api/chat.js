@@ -1,6 +1,7 @@
-// api/chat.js - Imachui Gen AI (Auto Web Search + Matatag na Fallback)
+// api/chat.js - Imachui Gen AI (Auto Web Search + Purili Fallback)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+import { purili } from '@purili/web-search'; // BAGONG IMPORT
 
 export const maxDuration = 60;
 
@@ -29,7 +30,7 @@ function normalizeMessages(body) {
     });
 }
 
-// --- BAGONG SEARCH FUNCTION (SERPER -> DUCKDUCKGO HTML PARSER) ---
+// --- BAGONG SEARCH FUNCTION (SERPER -> PURILI) ---
 async function searchWeb(query) {
   const apiKey = process.env.SERPER_API_KEY;
 
@@ -52,63 +53,26 @@ async function searchWeb(query) {
         }
         return results;
       }
-      console.warn("[Global King] Serper limit reached or failed, switching to DuckDuckGo fallback...");
+      console.warn("[Global King] Serper limit reached or failed, switching to Purili fallback...");
     } catch (error) {
       console.error("[Global King] Serper network error:", error.message);
     }
   }
 
-  // 2. Fallback: DuckDuckGo HTML Parser (Libre at walang API Key)
+  // 2. Fallback: Purili (Libre at walang API Key)
   try {
-    console.log("Using DuckDuckGo HTML fallback for:", query);
-    const ddgRes = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
-      headers: { 
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9"
-      }
-    });
+    console.log("Using Purili fallback for:", query);
+    const response = await purili.search(query);
     
-    if (ddgRes.ok) {
-      const html = await ddgRes.text();
-      
-      // Regex na eksaktong tumutugma sa structure ng DuckDuckGo HTML
-      const resultBlockRe = /<a[^>]+class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?(?:<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>)?/g;
-      
-      let match;
-      let results = "Here are the latest search results from the web (DuckDuckGo):\n";
-      let count = 0;
-
-      while ((match = resultBlockRe.exec(html)) !== null && count < 3) {
-        let rawUrl = match[1] || '';
-        let rawTitle = match[2] || '';
-        let rawSnippet = match[3] || '';
-
-        // I-decode ang DuckDuckGo redirect link (halimbawa: //duckduckgo.com/l/?uddg=https%3A...)
-        if (rawUrl.includes('uddg=')) {
-          try {
-            const urlParams = new URLSearchParams(rawUrl.split('?')[1]);
-            rawUrl = decodeURIComponent(urlParams.get('uddg')) || rawUrl;
-          } catch (e) {
-            rawUrl = rawUrl.replace(/^\/\/duckduckgo\.com\/l\/\?uddg=/, 'https://duckduckgo.com/l/?uddg=');
-          }
-        }
-
-        // Linisin ang HTML tags
-        const title = rawTitle.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
-        const snippet = rawSnippet.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
-
-        if (title && rawUrl) {
-          results += `[${count + 1}] ${title}\nSnippet: ${snippet || 'No snippet available.'}\nLink: ${rawUrl}\n\n`;
-          count++;
-        }
-      }
-
-      if (count > 0) {
-        return results;
-      }
+    if (response && response.results && response.results.length > 0) {
+      let results = "Here are the latest search results from the web:\n";
+      response.results.slice(0, 3).forEach((item, index) => {
+        results += `[${index + 1}] ${item.title}\nLink: ${item.url}\n\n`;
+      });
+      return results;
     }
   } catch (error) {
-    console.error("[Global King] DuckDuckGo HTML parser failed:", error.message);
+    console.error("[Global King] Purili fallback failed:", error.message);
   }
 
   return "No live search results could be retrieved.";
