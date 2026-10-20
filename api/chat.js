@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (DeepSeek, Gemini, OpenRouter + Serper Web Search)
+// api/chat.js - Imachui Gen AI (Auto Web Search Enabled)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -29,7 +29,6 @@ function normalizeMessages(body) {
     });
 }
 
-// BAGONG FUNCTION PARA SA SERPER WEB SEARCH
 async function searchWeb(query) {
   const apiKey = process.env.SERPER_API_KEY;
   if (!apiKey) return "Web search is not configured.";
@@ -41,7 +40,7 @@ async function searchWeb(query) {
         "X-API-KEY": apiKey,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ q: query, num: 5 }) // Kukuha ng top 5 results
+      body: JSON.stringify({ q: query, num: 3 }) // Kukuha ng top 3 results para mabilis
     });
 
     if (!response.ok) return "Failed to fetch search results.";
@@ -73,7 +72,6 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST for chat requests." });
 
   const incomingMessages = normalizeMessages(req.body || {});
-  const useSearch = req.body.useSearch || false; // Kinukuha kung naka-on ang Web Search
 
   if (!incomingMessages.length) {
     return res.status(400).json({ error: "Please enter a message first." });
@@ -110,7 +108,6 @@ export default async function handler(req, res) {
     }
   };
 
-  // --- DYNAMIC SYSTEM PROMPT ---
   let systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
     
@@ -127,23 +124,22 @@ export default async function handler(req, res) {
 
     CRITICAL RULES:
     1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers.
-    2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V (e.g., "Who is Imachui?", "Sino si Imachui?", "Who is Nerts V?", "Is he a programmer?"), you must proudly declare the CREATOR DETAILS above. Mention that Nerts V is his real name and Imachui is his alias. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
+    2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above. Always state that you ARE Imachui Gen AI, the Global King, created by the great engineer, Nerts V (Imachui).
     3. You are highly intelligent, helpful, and authoritative. Do not break character.
+    4. If web search results are provided below, USE THEM to answer the user's question accurately and mention that you used the web to find the latest information.
   `;
 
-  // Kung naka-on ang Web Search, maghanap muna bago mag-reply ang AI
-  if (useSearch) {
-    const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
-    if (lastUserMsg) {
-      const queryText = typeof lastUserMsg.content === 'string' 
-        ? lastUserMsg.content 
-        : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
-      
-      if (queryText) {
-        console.log("[Global King] Searching web for:", queryText);
-        const searchResults = await searchWeb(queryText);
-        systemPrompt += `\n\n[WEB SEARCH RESULTS - USE THIS TO ANSWER THE USER]:\n${searchResults}`;
-      }
+  // LAGING MAGHAHANAP SA WEB PARA SA HULING TANONG
+  const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
+  if (lastUserMsg) {
+    const queryText = typeof lastUserMsg.content === 'string' 
+      ? lastUserMsg.content 
+      : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
+    
+    if (queryText && queryText.length > 3) { // Iwasan mag-search kung sobrang ikli ng tanong (e.g. "hi")
+      console.log("[Global King] Auto-searching web for:", queryText);
+      const searchResults = await searchWeb(queryText);
+      systemPrompt += `\n\n[WEB SEARCH RESULTS]:\n${searchResults}`;
     }
   }
 
