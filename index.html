@@ -178,12 +178,10 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .side-btn:active { background: rgba(255,255,255,0.1); }
 .side-label { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-top: 10px; font-weight: 600; }
 
-/* FIX: Dinagdagan ng flex-shrink: 0 at min-height para hindi mawala */
 .history { display: flex; flex-direction: column; gap: 8px; max-height: 25vh; min-height: 60px; overflow-y: auto; flex-shrink: 0; margin-bottom: 5px; }
 .history-row { display: flex; align-items: center; gap: 6px; border-radius: 10px; padding: 2px; }
 .history-row.active { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
 .history-open { flex: 1; text-align: left; border: 0; background: transparent; color: #cbd2e4; padding: 10px 8px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-/* FIX: Mas kitang-kita ang delete button */
 .del-btn { border: 0; background: transparent; color: #ff8d9a; padding: 8px; font-size: 18px; font-weight: bold; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
 .del-btn:hover { opacity: 1; }
 
@@ -450,7 +448,8 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
       <button type="button" class="tool" onclick="document.getElementById('fileInput').click()">＋ Attach</button>
       <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv,.json" style="display:none" onchange="handleFiles(event)">
       <button type="button" class="tool" onclick="toggleMic()" id="micBtn">🎙️ Mic</button>
-      <!-- WEB SEARCH CHECKBOX AY TINANGGAL NA DITO -->
+      
+      <!-- WEB SEARCH TOGGLE AY TINANGGAL NA PARA AUTOMATIC -->
       <label class="toggle-label"><input type="checkbox" id="autoRead" checked> Auto-Read</label>
     </div>
     <div class="actions"><button type="submit" class="send" id="sendBtn">Send ↑</button></div>
@@ -577,10 +576,23 @@ function handleUpload(event) {
   document.getElementById('uploadInput').value = '';
 }
 
-// ===== MAXIMUM GLITCH FORMATTER =====
+// ===== MAXIMUM GLITCH FORMATTER (With HTML Escaping) =====
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
 function fmt(text) {
   let f = text;
-  f = f.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  // Escape the code blocks para hindi gawing totoong button ng browser
+  f = f.replace(/```([\s\S]*?)```/g, function(match, code) {
+      return '<pre><code>' + escapeHtml(code) + '</code></pre>';
+  });
+  
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   f = f.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank">$1</a>');
   f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<]+)/g, function(m,p,u) {
@@ -637,7 +649,6 @@ function newChat() {
   setTimeout(function() { document.getElementById('prompt').focus(); }, 100);
 }
 
-// FIX: INAYOS ANG RENDER HISTORY PARA SIGURADONG LALABAS ANG MGA CHATS AT DELETE BUTTON
 function renderHistory() {
   var h = document.getElementById('history');
   h.innerHTML = '';
@@ -829,7 +840,7 @@ async function sendMessage() {
   
   var am = addMessage('assistant', '');
   var te = am.querySelector('.text');
-  te.innerHTML = '<span class="typing">Searching the web & consulting AI...</span>'; // Pinalitan ang text para alam mong nag-search
+  te.innerHTML = '<span class="typing">Routing to best AI & searching web...</span>';
   
   try {
     var API_URL = location.hostname === 'imachui.github.io' ? 'https://imachui-gen-ai.vercel.app/api/chat' : '/api/chat';
@@ -838,8 +849,7 @@ async function sendMessage() {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         message: text, 
-        messages: currentMessages.slice(-20),
-        useSearch: true // PALAGING TRUE NA ITO
+        messages: currentMessages.slice(-20)
       })
     });
     if (!resp.ok) { var err = await resp.json().catch(function() { return {}; }); throw new Error(err.error || 'API error (' + resp.status + ')'); }
