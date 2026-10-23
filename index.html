@@ -840,6 +840,48 @@ async function sendMessage() {
   
   var am = addMessage('assistant', '');
   var te = am.querySelector('.text');
+  
+  // ==========================================
+  // IMAGE GENERATION LOGIC (/image or /imagine)
+  // ==========================================
+  if (text.toLowerCase().startsWith('/image ') || text.toLowerCase().startsWith('/imagine ')) {
+    var imagePrompt = text.replace(/^\/(image|imagine)\s+/i, '').trim();
+    te.innerHTML = '<span class="typing">🎨 Generating image, please wait...</span>';
+    
+    try {
+      var IMG_API_URL = location.hostname === 'imachui.github.io' ? 'https://imachui-gen-ai.vercel.app/api/image' : '/api/image';
+      var imgResp = await fetch(IMG_API_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ prompt: imagePrompt })
+      });
+      
+      var imgData = await imgResp.json();
+      
+      if (!imgResp.ok) throw new Error(imgData.error || 'Image generation failed.');
+      
+      te.innerHTML = `<strong>🎨 Generated Image for:</strong> <em>"${imagePrompt}"</em>`;
+      var imgElement = document.createElement('img');
+      imgElement.src = imgData.image;
+      imgElement.style.cssText = 'max-width:100%; border-radius:12px; margin-top:12px; border: 1px solid var(--glass-border);';
+      te.appendChild(imgElement);
+      
+      currentMessages.push({role: 'assistant', content: `[Generated Image: ${imagePrompt}]`});
+      if (chat) { chat.messages.push({role: 'assistant', content: `[Generated Image: ${imagePrompt}]`}); chat.updated = Date.now(); save(); }
+      
+      busy = false; document.getElementById('sendBtn').disabled = false; promptEl.disabled = false;
+      return; // Tapusin na natin dito para hindi na tumuloy sa text AI
+      
+    } catch (imgErr) {
+      te.textContent = 'Image System Error: ' + imgErr.message;
+      busy = false; document.getElementById('sendBtn').disabled = false; promptEl.disabled = false;
+      return;
+    }
+  }
+  // ==========================================
+  // END OF IMAGE GENERATION LOGIC
+  // ==========================================
+
   te.innerHTML = '<span class="typing">Routing to best AI & searching web...</span>';
   
   try {
