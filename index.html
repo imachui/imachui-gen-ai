@@ -840,34 +840,38 @@ async function sendMessage() {
   var te = am.querySelector('.text');
   
   // ==========================================
-  // MAS MATALINONG IMAGE GENERATION LOGIC
+  // AYOS NA IMAGE GENERATION LOGIC
   // ==========================================
   var lowerText = text.toLowerCase();
   
-  // Kung may nakalakip na image AT humihingi ng "gawa", "bagong", "background", "design", etc.
-  var hasImageAttached = msgContent.some(c => c.type === 'image');
+  // 1. I-detect kung humihingi ng image
   var isImageRequest = lowerText.startsWith('/image ') || lowerText.startsWith('/imagine ') || 
-                       lowerText.startsWith('image ') || lowerText.startsWith('imagine ') ||
-                       (hasImageAttached && /(gawa|buo|edit|palitan|ibang|bagong|new|change|edit|background|design|larawan|image)/i.test(lowerText)) ||
-                       /(gawa|buo|edit|palitan|ibang|bagong|new|change|edit).*(image|pic|design|logo|larawan|background|picture)/i.test(lowerText) || 
-                       /(image|pic|design|logo|larawan|background|picture).*(gawa|buo|edit|palitan|ibang|bagong|new|change|edit)/i.test(lowerText);
+                       lowerText.includes('image') || lowerText.includes('picture') || 
+                       lowerText.includes('gawa') || lowerText.includes('design');
 
   if (isImageRequest) {
-    // Kunin ang prompt, linisin ang mga salitang walang kwenta para sa image generator
-    var imagePrompt = text.replace(/^(\/)?(image|imagine|bigyan|mo|ako|ng|nang|ngunit|ngunit|bagong|ibang|gawa|buo|edit|palitan)\s+/gi, '').trim();
-    if (!imagePrompt || imagePrompt.length < 5) imagePrompt = "A beautiful, highly detailed, cinematic masterpiece based on the user's request";
+    // 2. Kunin ang buong sinabi ni user, tanggalin lang ang mga command words sa unahan
+    // (Hindi na natin buburahin ang mga subject words tulad ng "grade 2 students")
+    var imagePrompt = text;
+    imagePrompt = imagePrompt.replace(/^\/(image|imagine)\s+/gi, ''); // tanggalin /image
+    imagePrompt = imagePrompt.replace(/^(bigyan|mo|ako|ng|nang|gumawa|ka|isang|larawan|image|picture|pic)\s+/gi, ''); // tanggalin mga filler
+    imagePrompt = imagePrompt.trim();
     
-    te.innerHTML = '<span class="typing">🎨 Generating new image design, please wait...</span>';
+    // Kung nawala lahat ng salita, ibalik ang orihinal na text
+    if (!imagePrompt || imagePrompt.length < 3) imagePrompt = text;
+
+    te.innerHTML = '<span class="typing">🎨 Generating image, please wait...</span>';
     
     try {
-      var encodedPrompt = encodeURIComponent(imagePrompt + ", high quality, masterpiece, 8k resolution");
-      var imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&seed=${Math.floor(Math.random() * 100000)}`;
+      // I-encode ang prompt at idagdag ang quality boosters
+      var finalPrompt = encodeURIComponent(imagePrompt + ", high quality, highly detailed, masterpiece");
+      var imageUrl = `https://image.pollinations.ai/prompt/${finalPrompt}?width=1024&height=1024&model=flux&nologo=true&seed=${Math.floor(Math.random() * 100000)}`;
       
       var imgElement = document.createElement('img');
       imgElement.src = imageUrl;
       imgElement.style.cssText = 'max-width:100%; border-radius:12px; margin-top:12px; border: 1px solid var(--glass-border);';
       
-      te.innerHTML = `<strong>🎨 Generated New Design:</strong> <em>"${imagePrompt}"</em><br><span style="font-size:12px; color:gray;">(Note: The free AI creates a NEW image based on your description. It cannot directly edit the exact pixels of your uploaded photo.)</span>`;
+      te.innerHTML = `<strong>🎨 Generated Image for:</strong> <em>"${imagePrompt}"</em><br><span style="font-size:12px; color:gray;">(Note: Free AI creates a NEW image from text. It cannot directly edit the pixels of your uploaded photo.)</span>`;
       te.appendChild(imgElement);
       
       currentMessages.push({role: 'assistant', content: `[Generated Image: ${imagePrompt}]`});
