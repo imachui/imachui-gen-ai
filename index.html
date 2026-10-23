@@ -575,7 +575,7 @@ function handleUpload(event) {
   document.getElementById('uploadInput').value = '';
 }
 
-// ===== MAXIMUM GLITCH FORMATTER (With HTML Escaping) =====
+// ===== SIMPLE FORMATTER (Clean & Safe) =====
 function escapeHtml(unsafe) {
     return unsafe
          .replace(/&/g, "&amp;")
@@ -587,18 +587,25 @@ function escapeHtml(unsafe) {
 
 function fmt(text) {
   let f = text;
+  
+  // 1. Render code blocks
   f = f.replace(/```([\s\S]*?)```/g, function(match, code) {
       return '<pre><code>' + escapeHtml(code) + '</code></pre>';
   });
   
+  // 2. Render bold text
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  f = f.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-  f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<]+)/g, function(m,p,u) {
-    return p + '<a href="' + (/^https?:\/\//i.test(u) ? u : 'https://' + u) + '" target="_blank">' + u + '</a>';
+  
+  // 3. Auto-link raw URLs (No HTML required from AI)
+  f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<"']+)/g, function(m, p1, p2) {
+    return p1 + '<a href="' + (/^https?:\/\//i.test(p2) ? p2 : 'https://' + p2) + '" target="_blank" rel="noopener noreferrer">' + p2 + '</a>';
   });
+  
+  // 4. Glitch text
   f = f.replace(/\b(Imachui|Nerts V|NertsV|Nerts)\b/gi, function(match) {
     return `<span class="glitch-text" data-text="${match}">${match}</span>`;
   });
+  
   return f;
 }
 
@@ -839,31 +846,23 @@ async function sendMessage() {
   var am = addMessage('assistant', '');
   var te = am.querySelector('.text');
   
-  // ==========================================
-  // AYOS NA IMAGE GENERATION LOGIC
-  // ==========================================
+  // IMAGE GENERATION LOGIC
   var lowerText = text.toLowerCase();
-  
-  // 1. I-detect kung humihingi ng image
   var isImageRequest = lowerText.startsWith('/image ') || lowerText.startsWith('/imagine ') || 
                        lowerText.includes('image') || lowerText.includes('picture') || 
                        lowerText.includes('gawa') || lowerText.includes('design');
 
   if (isImageRequest) {
-    // 2. Kunin ang buong sinabi ni user, tanggalin lang ang mga command words sa unahan
-    // (Hindi na natin buburahin ang mga subject words tulad ng "grade 2 students")
     var imagePrompt = text;
-    imagePrompt = imagePrompt.replace(/^\/(image|imagine)\s+/gi, ''); // tanggalin /image
-    imagePrompt = imagePrompt.replace(/^(bigyan|mo|ako|ng|nang|gumawa|ka|isang|larawan|image|picture|pic)\s+/gi, ''); // tanggalin mga filler
+    imagePrompt = imagePrompt.replace(/^\/(image|imagine)\s+/gi, ''); 
+    imagePrompt = imagePrompt.replace(/^(bigyan|mo|ako|ng|nang|gumawa|ka|isang|larawan|image|picture|pic)\s+/gi, ''); 
     imagePrompt = imagePrompt.trim();
     
-    // Kung nawala lahat ng salita, ibalik ang orihinal na text
     if (!imagePrompt || imagePrompt.length < 3) imagePrompt = text;
 
     te.innerHTML = '<span class="typing">🎨 Generating image, please wait...</span>';
     
     try {
-      // I-encode ang prompt at idagdag ang quality boosters
       var finalPrompt = encodeURIComponent(imagePrompt + ", high quality, highly detailed, masterpiece");
       var imageUrl = `https://image.pollinations.ai/prompt/${finalPrompt}?width=1024&height=1024&model=flux&nologo=true&seed=${Math.floor(Math.random() * 100000)}`;
       
@@ -886,9 +885,6 @@ async function sendMessage() {
       return;
     }
   }
-  // ==========================================
-  // END OF IMAGE GENERATION LOGIC
-  // ==========================================
 
   te.innerHTML = '<span class="typing">Routing to best AI & searching web...</span>';
   
