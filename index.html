@@ -592,12 +592,12 @@ function fmt(text) {
   let f = text;
   
   // 1. Burahin ang lahat ng hallucinated HTML attributes na naging text
-  f = f.replace(/target=["']_blank["']/gi, '');
-  f = f.replace(/rel=["']noopener noreferrer["']/gi, '');
+  f = f.replace(/target=["'][^"']*["']/gi, '');
+  f = f.replace(/rel=["'][^"']*["']/gi, '');
   f = f.replace(/href=["']([^"']+)["']/gi, '$1');
   f = f.replace(/<a[^>]*>/gi, ''); 
   f = f.replace(/<\/a>/gi, ''); 
-  f = f.replace(/["']>\s*https?/gi, ' https'); // fix stray quotes before urls
+  f = f.replace(/["']>\s*https?/gi, ' https'); 
 
   // 2. I-render ang code blocks
   f = f.replace(/```([\s\S]*?)```/g, function(match, code) {
