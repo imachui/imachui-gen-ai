@@ -385,10 +385,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <button class="side-btn ask-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen AI</button>
   
   <div class="side-label" style="margin-top: 15px;">Explore</div>
-  <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="side-btn" style="display:block; text-align:center; color:#38bdf8; border-color:#38bdf8; background:rgba(56,189,248,0.1); font-weight:bold; margin-bottom: 8px;">🚀 AI Launcher</a>
-  
-  <!-- IMACHUI NULLSECTOR LINK -->
-  <a href="https://imachui.github.io/imachui-nullsector/" target="_blank" class="side-btn" style="display:block; text-align:center; color:#00ffcc; border-color:#00ffcc; background:rgba(0,255,204,0.1); font-weight:bold; box-shadow: 0 0 10px rgba(0,255,204,0.2);">💼 Hire Imachui (Nullsector)</a>
+  <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="side-btn" style="display:block; text-align:center; color:#38bdf8; border-color:#38bdf8; background:rgba(56,189,248,0.1); font-weight:bold;">🚀 AI Launcher</a>
 
   <div class="side-label" style="margin-top: 15px;">Download App</div>
   <a href="#" class="apk-download-btn" download id="apkDownloadBtn">
@@ -578,7 +575,7 @@ function handleUpload(event) {
   document.getElementById('uploadInput').value = '';
 }
 
-// ===== BULLETPROOF FORMATTER (Sanitizes Hallucinated Links) =====
+// ===== MAXIMUM GLITCH FORMATTER (With HTML Escaping) =====
 function escapeHtml(unsafe) {
     return unsafe
          .replace(/&/g, "&amp;")
@@ -590,36 +587,18 @@ function escapeHtml(unsafe) {
 
 function fmt(text) {
   let f = text;
-  
-  // 1. Burahin ang lahat ng hallucinated HTML attributes na naging text
-  f = f.replace(/target=["'][^"']*["']/gi, '');
-  f = f.replace(/rel=["'][^"']*["']/gi, '');
-  f = f.replace(/href=["']([^"']+)["']/gi, '$1');
-  f = f.replace(/<a[^>]*>/gi, ''); 
-  f = f.replace(/<\/a>/gi, ''); 
-  f = f.replace(/["']>\s*https?/gi, ' https'); 
-
-  // 2. I-render ang code blocks
   f = f.replace(/```([\s\S]*?)```/g, function(match, code) {
       return '<pre><code>' + escapeHtml(code) + '</code></pre>';
   });
   
-  // 3. I-render ang bold text
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  
-  // 4. I-convert ang Markdown links [text](url) papuntang clickable
-  f = f.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-  
-  // 5. Gawing clickable link ang mga RAW URLs
-  f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<"']+)/g, function(m, p1, p2) {
-    return p1 + '<a href="' + (/^https?:\/\//i.test(p2) ? p2 : 'https://' + p2) + '" target="_blank" rel="noopener noreferrer">' + p2 + '</a>';
+  f = f.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<]+)/g, function(m,p,u) {
+    return p + '<a href="' + (/^https?:\/\//i.test(u) ? u : 'https://' + u) + '" target="_blank">' + u + '</a>';
   });
-  
-  // 6. Glitch text
   f = f.replace(/\b(Imachui|Nerts V|NertsV|Nerts)\b/gi, function(match) {
     return `<span class="glitch-text" data-text="${match}">${match}</span>`;
   });
-  
   return f;
 }
 
@@ -861,24 +840,30 @@ async function sendMessage() {
   var te = am.querySelector('.text');
   
   // ==========================================
-  // IMAGE GENERATION LOGIC (Pollinations)
+  // AYOS NA IMAGE GENERATION LOGIC
   // ==========================================
   var lowerText = text.toLowerCase();
+  
+  // 1. I-detect kung humihingi ng image
   var isImageRequest = lowerText.startsWith('/image ') || lowerText.startsWith('/imagine ') || 
                        lowerText.includes('image') || lowerText.includes('picture') || 
                        lowerText.includes('gawa') || lowerText.includes('design');
 
   if (isImageRequest) {
+    // 2. Kunin ang buong sinabi ni user, tanggalin lang ang mga command words sa unahan
+    // (Hindi na natin buburahin ang mga subject words tulad ng "grade 2 students")
     var imagePrompt = text;
-    imagePrompt = imagePrompt.replace(/^\/(image|imagine)\s+/gi, ''); 
-    imagePrompt = imagePrompt.replace(/^(bigyan|mo|ako|ng|nang|gumawa|ka|isang|larawan|image|picture|pic)\s+/gi, ''); 
+    imagePrompt = imagePrompt.replace(/^\/(image|imagine)\s+/gi, ''); // tanggalin /image
+    imagePrompt = imagePrompt.replace(/^(bigyan|mo|ako|ng|nang|gumawa|ka|isang|larawan|image|picture|pic)\s+/gi, ''); // tanggalin mga filler
     imagePrompt = imagePrompt.trim();
     
+    // Kung nawala lahat ng salita, ibalik ang orihinal na text
     if (!imagePrompt || imagePrompt.length < 3) imagePrompt = text;
 
     te.innerHTML = '<span class="typing">🎨 Generating image, please wait...</span>';
     
     try {
+      // I-encode ang prompt at idagdag ang quality boosters
       var finalPrompt = encodeURIComponent(imagePrompt + ", high quality, highly detailed, masterpiece");
       var imageUrl = `https://image.pollinations.ai/prompt/${finalPrompt}?width=1024&height=1024&model=flux&nologo=true&seed=${Math.floor(Math.random() * 100000)}`;
       
