@@ -849,20 +849,13 @@ async function sendMessage() {
     te.innerHTML = '<span class="typing">🎨 Generating image, please wait...</span>';
     
     try {
-      var IMG_API_URL = location.hostname === 'imachui.github.io' ? 'https://imachui-gen-ai.vercel.app/api/image' : '/api/image';
-      var imgResp = await fetch(IMG_API_URL, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ prompt: imagePrompt })
-      });
-      
-      var imgData = await imgResp.json();
-      
-      if (!imgResp.ok) throw new Error(imgData.error || 'Image generation failed.');
+      // Gumamit ng direktang Pollinations URL (walang API key na kailangan)
+      var encodedPrompt = encodeURIComponent(imagePrompt);
+      var imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true`;
       
       te.innerHTML = `<strong>🎨 Generated Image for:</strong> <em>"${imagePrompt}"</em>`;
       var imgElement = document.createElement('img');
-      imgElement.src = imgData.image;
+      imgElement.src = imageUrl;
       imgElement.style.cssText = 'max-width:100%; border-radius:12px; margin-top:12px; border: 1px solid var(--glass-border);';
       te.appendChild(imgElement);
       
@@ -870,7 +863,7 @@ async function sendMessage() {
       if (chat) { chat.messages.push({role: 'assistant', content: `[Generated Image: ${imagePrompt}]`}); chat.updated = Date.now(); save(); }
       
       busy = false; document.getElementById('sendBtn').disabled = false; promptEl.disabled = false;
-      return; // Tapusin na natin dito para hindi na tumuloy sa text AI
+      return; // Tapusin na natin dito
       
     } catch (imgErr) {
       te.textContent = 'Image System Error: ' + imgErr.message;
