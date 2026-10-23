@@ -840,45 +840,41 @@ async function sendMessage() {
   var te = am.querySelector('.text');
   
   // ==========================================
-  // IMAGE GENERATION LOGIC (Automatic Detection)
+  // MAS MATALINONG IMAGE GENERATION LOGIC
   // ==========================================
   var lowerText = text.toLowerCase();
   
-  // Kung may nakalakip na image AT ang tanong ay may kinalaman sa paggawa/design/ edit
+  // Kung may nakalakip na image AT humihingi ng "gawa", "bagong", "background", "design", etc.
+  var hasImageAttached = msgContent.some(c => c.type === 'image');
   var isImageRequest = lowerText.startsWith('/image ') || lowerText.startsWith('/imagine ') || 
                        lowerText.startsWith('image ') || lowerText.startsWith('imagine ') ||
-                       /gawa.*(image|pic|design|logo|larawan)|edit.*(image|pic|design|logo|larawan)|(image|pic|design|logo|larawan).*gawa/i.test(lowerText);
+                       (hasImageAttached && /(gawa|buo|edit|palitan|ibang|bagong|new|change|edit|background|design|larawan|image)/i.test(lowerText)) ||
+                       /(gawa|buo|edit|palitan|ibang|bagong|new|change|edit).*(image|pic|design|logo|larawan|background|picture)/i.test(lowerText) || 
+                       /(image|pic|design|logo|larawan|background|picture).*(gawa|buo|edit|palitan|ibang|bagong|new|change|edit)/i.test(lowerText);
 
   if (isImageRequest) {
-    // Kunin ang prompt, linisin ang /image at iba pang salita
-    var imagePrompt = text.replace(/^(\/)?(image|imagine)\s+/i, '').trim();
-    if (!imagePrompt) imagePrompt = "A beautiful, highly detailed, cinematic masterpiece";
+    // Kunin ang prompt, linisin ang mga salitang walang kwenta para sa image generator
+    var imagePrompt = text.replace(/^(\/)?(image|imagine|bigyan|mo|ako|ng|nang|ngunit|ngunit|bagong|ibang|gawa|buo|edit|palitan)\s+/gi, '').trim();
+    if (!imagePrompt || imagePrompt.length < 5) imagePrompt = "A beautiful, highly detailed, cinematic masterpiece based on the user's request";
     
-    // Dahil Pollinations ay Text-to-Image, gagamitin natin ang text prompt para gumawa ng bago.
-    // Idadagdag natin ang uploaded image details kung meron man.
-    if (msgContent.some(c => c.type === 'image')) {
-        imagePrompt += ", inspired by the uploaded image, high quality";
-    }
-
-    te.innerHTML = '<span class="typing">🎨 Generating new image based on your request...</span>';
+    te.innerHTML = '<span class="typing">🎨 Generating new image design, please wait...</span>';
     
     try {
-      var encodedPrompt = encodeURIComponent(imagePrompt);
+      var encodedPrompt = encodeURIComponent(imagePrompt + ", high quality, masterpiece, 8k resolution");
       var imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&seed=${Math.floor(Math.random() * 100000)}`;
       
-      // Mag-add ng loading indicator bago mag-load
       var imgElement = document.createElement('img');
       imgElement.src = imageUrl;
       imgElement.style.cssText = 'max-width:100%; border-radius:12px; margin-top:12px; border: 1px solid var(--glass-border);';
       
-      te.innerHTML = `<strong>🎨 Generated Image for:</strong> <em>"${imagePrompt}"</em><br><span style="font-size:12px; color:gray;">(Note: Free generator creates a NEW image from your text, it cannot directly edit the exact pixels of your uploaded photo)</span>`;
+      te.innerHTML = `<strong>🎨 Generated New Design:</strong> <em>"${imagePrompt}"</em><br><span style="font-size:12px; color:gray;">(Note: The free AI creates a NEW image based on your description. It cannot directly edit the exact pixels of your uploaded photo.)</span>`;
       te.appendChild(imgElement);
       
       currentMessages.push({role: 'assistant', content: `[Generated Image: ${imagePrompt}]`});
       if (chat) { chat.messages.push({role: 'assistant', content: `[Generated Image: ${imagePrompt}]`}); chat.updated = Date.now(); save(); }
       
       busy = false; document.getElementById('sendBtn').disabled = false; promptEl.disabled = false;
-      return;
+      return; 
       
     } catch (imgErr) {
       te.textContent = 'Image System Error: ' + imgErr.message;
