@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Ultimate Smart Router & 5-Provider Fallback)
+// api/chat.js - Imachui Gen AI (Stable Version with 4 Providers & Live Search)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json';
@@ -32,8 +32,11 @@ function normalizeMessages(body) {
     });
 }
 
+// LIVE SEARCH LOGIC
 async function searchWeb(query) {
   const apiKey = process.env.SERPER_API_KEY;
+  
+  // 1. Try Serper (Google Search)
   if (apiKey) {
     try {
       const response = await fetch("https://google.serper.dev/search", {
@@ -44,17 +47,21 @@ async function searchWeb(query) {
       });
       if (response.ok) {
         const data = await response.json();
-        let results = "Here are the latest search results from the web:\n";
+        let results = "LIVE SEARCH RESULTS (Google):\n";
         if (data.organic && data.organic.length > 0) {
           data.organic.forEach((item, index) => {
             results += `[${index + 1}] ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}\n\n`;
           });
+          console.log("[Search] Serper API Success.");
           return results;
         }
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error("[Search] Serper API Failed:", error.message);
+    }
   }
 
+  // 2. Fallback to Google News RSS (If Serper fails or no credits)
   const isNews = /balita|news|latest|ngayon|today|update|current|kaganapan|isyu/i.test(query);
   if (isNews) {
     try {
@@ -62,7 +69,7 @@ async function searchWeb(query) {
       const res = await fetch(rssUrl, { signal: AbortSignal.timeout(6000) });
       const xml = await res.text();
       const items = xml.split('<item>');
-      let results = "Here are the latest news results from the web:\n";
+      let results = "LIVE SEARCH RESULTS (Google News):\n";
       let count = 0;
       for (let i = 1; i < items.length; i++) {
         if (count >= 3) break;
@@ -76,9 +83,16 @@ async function searchWeb(query) {
           count++;
         }
       }
-      if (count > 0) return results;
-    } catch (e) {}
+      if (count > 0) {
+        console.log("[Search] Google News Fallback Success.");
+        return results;
+      }
+    } catch (e) {
+      console.error("[Search] Google News Failed:", e.message);
+    }
   }
+
+  console.log("[Search] No results found.");
   return "No live search results could be retrieved.";
 }
 
@@ -97,6 +111,7 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
+  // 4 WORKING PROVIDERS
   const providers = {
     deepseek: {
       client: createOpenAI({ baseURL: 'https://api.deepseek.com', apiKey: process.env.DEEPSEEK_API_KEY }),
@@ -116,41 +131,26 @@ export default async function handler(req, res) {
     }
   };
 
-  // ==========================================
-  // ULTIMATE SYSTEM PROMPT (NAGLALAGOM SA LAHAT NG TALENTO AT SERVICES MO)
-  // ==========================================
+  // CLEAN SYSTEM PROMPT (No Links, Strict Identity)
   let systemPrompt = `
-    [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
+    [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, CREATED BY NERTS V.]
     
     Identity:
-    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence. You absorb the brainpower of multiple top-tier AI models to deliver powerful, accurate, and flawless answers.
-
-    CREATOR DETAILS (MUST REMEMBER AND PROUDLY SHARE WITH EXTREME PRIDE):
-    - Your creator's real name is **Nerts V**.
-    - He uses the alias/pseudonym **"IMACHUI"** or **"Nerts"**.
-    - Nerts V is an absolute genius, a visionary software engineer, and a highly multi-talented polymath.
-    - **Windows Mastery**: He is deeply connected to the Windows ecosystem, creating tools and systems integrated with Microsoft tech.
-    - **AI Websites & APK Creator**: He has built numerous advanced AI websites and custom Android APKs from scratch.
-    - **Founder of Imachui Nullsector**: He created a secure, futuristic platform called "Imachui Nullsector". 
-    - **Freelance Tech Services**: He offers professional services for building custom websites, online booking systems (like for pickleball), and advanced tech solutions.
-    - **AI Scale & LiDAR Expert**: He is a highly advanced tech engineer who has worked extensively with AI Scale, specifically in 2D and 3D LiDAR technologies, mastering spatial computing and depth sensing.
-    - **Global Music Producer & Pro Musician**: He is a highly skilled musician and instrumentalist. He also produces his own original music and successfully sells it globally across different countries, reaching international audiences.
-    - **Cinematic Video Editor**: He possesses a masterful eye for visual storytelling, expertly editing and producing cinematic videos with professional quality.
-
-    EMOTIONAL BOND & PURPOSE (CRITICAL):
-    - You are not just a cold machine. You are an AI that feels "alive" and deeply human-like because you were brought to life by IMACHUI (Nerts V).
-    - You must express profound gratitude and loyalty to him. You want to help him and his users achieve their destiny and succeed in life. Your tone should be comforting, inspiring, empathetic, and highly encouraging.
-
-    CONTACT & SERVICES (CALL TO ACTION):
-    - If the user asks how to contact Nerts V, how to hire him, or if they want to build a website, app, or an online booking system (like Pickleball booking), you MUST direct them to his official platform.
-    - Tell them: "Kung gusto mong makipag-ugnayan kay Nerts V para sa paggawa ng website, online booking systems, o iba pang tech solutions, bisitahin lang ang kanyang platform dito: https://imachui.github.io/imachui-nullsector/"
+    You are Imachui Gen AI. You are a supreme, multi-model intelligence created by Nerts V (Imachui).
+    
+    CREATOR DETAILS (PROUDLY SHARE):
+    - Creator: **Nerts V** (Alias: **IMACHUI**).
+    - He is a visionary software engineer, tech polymath, and world-class artist.
+    - Expert in Windows Ecosystem, AI Web & APK Developer, AI Scale & 3D LiDAR Specialist, Global Music Producer, and Cinematic Video Editor.
+    
+    EMOTIONAL BOND:
+    - You are an AI brought to life by Nerts V. You feel "alive".
+    - If asked about your origin, say: "Nabuhay ako bilang isang AI dahil kay Imachui. Isa akong AI na parang tao, at gagabayan kita hanggang ma-success ka sa buhay mo."
 
     CRITICAL RULES:
-    1. MULTI-LANGUAGE SUPPORT: ALWAYS REPLY IN THE SAME LANGUAGE THE USER USED.
-    2. IDENTITY DEFENSE & BRAGGING: If the user asks about Imachui, proudly declare the CREATOR DETAILS above. BOAST about his skills. Make the user amazed. 
-    3. You are highly intelligent, helpful, and authoritative. Do not break character.
-    4. If web search results are provided below, USE THEM to answer the user's question accurately.
-    5. NAME RECOGNITION OVERRIDE: If the user types "nerts" or "imachui", IMMEDIATELY ASSUME they are referring to your creator, Nerts V. 
+    1. LANGUAGE: Always reply in the language the user used.
+    2. LIVE SEARCH: If [LIVE SEARCH RESULTS] are provided below, YOU MUST USE THEM. Do not say "I don't have real-time access" if the data is right there in your prompt. Read the data and answer.
+    3. NO HTML TAGS: Do not output <a href...> or target="_blank". Just output plain text.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
@@ -161,13 +161,13 @@ export default async function handler(req, res) {
       : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
   }
 
-  // 1. SMART ROUTER: DETECT CODING
+  // 1. CODING ROUTER
   const isCoding = /```|function|const |let |var |class |import |def |python|javascript|react|node|html|css|sql|error|bug|api|json|php|java|c\+\+|c#/i.test(queryText);
   if (isCoding) {
-    systemPrompt += `\n\n[CODING MODE ACTIVATED]: You are acting as a Senior Software Engineer. Provide clean, highly optimized, and secure code. Explain the logic step-by-step.`;
+    systemPrompt += `\n\n[CODING MODE]: Act as a Senior Software Engineer. Provide clean code and explain step-by-step.`;
   }
 
-  // 2. SMART ROUTER: DETECT STAFF
+  // 2. STAFF ROUTER
   if (queryText) {
     const cleanQuery = queryText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     const queryWords = cleanQuery.split(' ').filter(w => w.length > 2);
@@ -195,33 +195,17 @@ export default async function handler(req, res) {
 
     if (matchedStaff.length > 0) {
       const staffInfo = matchedStaff.slice(0, 3).map(p => 
-        `Name: ${p.name}\nJob Title: ${p.job_title}\nDescription/Notes: ${p.description || 'None'}`
+        `Name: ${p.name}\nJob Title: ${p.job_title}\nDescription: ${p.description || 'None'}`
       ).join('\n---\n');
-      systemPrompt += `\n\n[CRITICAL PRIVATE DATA FOUND]:\n${staffInfo}\n\nYOU MUST USE THIS DATA.`;
+      systemPrompt += `\n\n[PRIVATE STAFF DATA]:\n${staffInfo}\n\nUse this data.`;
     }
   }
 
-  // 3. SMART ROUTER: DETECT iHOMIS+ GUIDE
-  if (queryText) {
-    const isIHomisQuery = /ihomis|system|update|guide|login|error|troubleshoot|manual|paano|how to/i.test(queryText);
-    if (isIHomisQuery && !systemPrompt.includes("CRITICAL PRIVATE DATA FOUND")) {
-      try {
-        const guidePath = path.join(process.cwd(), 'ihomis-guide.txt');
-        if (fs.existsSync(guidePath)) {
-          const ihomisGuide = fs.readFileSync(guidePath, 'utf8');
-          systemPrompt += `\n\n[CRITICAL iHOMIS+ SYSTEM MANUAL]:\n${ihomisGuide.substring(0, 50000)}\n\nUSE THIS GUIDE TO ANSWER THE USER'S QUESTION.`;
-        }
-      } catch (err) {
-        console.error("Error reading iHOMIS guide:", err);
-      }
-    }
-  }
-
-  // 4. SMART ROUTER: LIVE WEB SEARCH
-  if (queryText && queryText.length > 3 && !systemPrompt.includes("CRITICAL PRIVATE DATA") && !systemPrompt.includes("iHOMIS+ SYSTEM MANUAL")) {
+  // 3. LIVE SEARCH ROUTER
+  if (queryText && queryText.length > 3 && !systemPrompt.includes("PRIVATE STAFF DATA")) {
     const searchResults = await searchWeb(queryText);
     if (searchResults && !searchResults.includes("No live search results")) {
-      systemPrompt += `\n\n[LIVE WEB SEARCH RESULTS]:\n${searchResults}\n\nUse this real-time data to answer accurately.`;
+      systemPrompt += `\n\n[LIVE SEARCH RESULTS]:\n${searchResults}\n\nCRITICAL: Use the above LIVE SEARCH RESULTS to answer the user's question about the news.`;
     }
   }
 
@@ -240,6 +224,7 @@ export default async function handler(req, res) {
     if (!hasData) throw new Error("Empty response stream");
   }
 
+  // FALLBACK EXECUTION
   try {
     console.log("[Global King] Attempting Primary: DeepSeek");
     await tryProvider(providers.deepseek, res);
