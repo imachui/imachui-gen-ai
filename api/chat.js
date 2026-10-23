@@ -97,7 +97,6 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
-  // --- 5 PROVIDERS SETUP ---
   const providers = {
     deepseek: {
       client: createOpenAI({ baseURL: 'https://api.deepseek.com', apiKey: process.env.DEEPSEEK_API_KEY }),
@@ -109,7 +108,7 @@ export default async function handler(req, res) {
     },
     mistral: {
       client: createOpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: process.env.MISTRAL_API_KEY }),
-      model: 'open-mistral-nemo' // Magaling ito sa coding at general logic
+      model: 'open-mistral-nemo'
     },
     openrouter: {
       client: createOpenAI({ baseURL: 'https://openrouter.ai/api/v1', apiKey: process.env.OPENROUTER_API_KEY }),
@@ -131,47 +130,51 @@ export default async function handler(req, res) {
       : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
   }
 
-  // ==========================================
   // 1. SMART ROUTER: DETECT CODING
-  // ==========================================
   const isCoding = /```|function|const |let |var |class |import |def |python|javascript|react|node|html|css|sql|error|bug|api|json|php|java|c\+\+|c#/i.test(queryText);
   if (isCoding) {
-    console.log("[Router] Coding intent detected. Injecting Senior Engineer Prompt.");
+    console.log("[Router] Coding intent detected.");
     systemPrompt += `\n\n[CODING MODE ACTIVATED]: You are acting as a Senior Software Engineer. Provide clean, highly optimized, and secure code. Explain the logic step-by-step. If there is an error, debug it meticulously.`;
   }
 
-  // ==========================================
-  // 2. SMART ROUTER: DETECT STAFF (JSON)
-  // ==========================================
+  // 2. SMART ROUTER: DETECT STAFF (SMARTER MATCHING)
   if (queryText) {
     const cleanQuery = queryText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-    const searchWords = cleanQuery.split(' ').filter(w => w.length > 2);
+    const queryWords = cleanQuery.split(' ').filter(w => w.length > 2);
 
     let matchedStaff = staffData.filter(person => {
       const cleanName = person.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-      return cleanName.includes(cleanQuery) || cleanQuery.includes(cleanName);
+      const cleanJob = person.job_title.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      
+      const nameWords = cleanName.split(' ');
+      const jobWords = cleanJob.split(' ');
+
+      const nameMatches = queryWords.filter(qw => nameWords.includes(qw)).length;
+      const jobMatches = queryWords.filter(qw => jobWords.includes(qw)).length;
+
+      // Priority: 2 words match sa pangalan (e.g. "jerry", "velando"), O kaya 1 word match sa job title (e.g. "chief")
+      return nameMatches >= 2 || jobMatches >= 1;
     });
 
+    // Fallback kung walang exact match
     if (matchedStaff.length === 0) {
       matchedStaff = staffData.filter(person => {
         const cleanName = person.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
         const cleanJob = person.job_title.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-        return searchWords.some(word => cleanName.includes(word) || cleanJob.includes(word));
+        return queryWords.some(word => cleanName.includes(word) || cleanJob.includes(word));
       });
     }
 
     if (matchedStaff.length > 0) {
-      console.log("[Router] Staff data found.");
-      const staffInfo = matchedStaff.slice(0, 5).map(p => 
+      console.log(`[Router] Found ${matchedStaff.length} staff matches.`);
+      const staffInfo = matchedStaff.slice(0, 3).map(p => 
         `Name: ${p.name}\nJob Title: ${p.job_title}\nDescription/Notes: ${p.description || 'None'}`
       ).join('\n---\n');
       systemPrompt += `\n\n[CRITICAL PRIVATE DATA FOUND]:\n${staffInfo}\n\nYOU MUST USE THIS DATA. DO NOT SAY YOU DON'T KNOW.`;
     }
   }
 
-  // ==========================================
   // 3. SMART ROUTER: DETECT iHOMIS+ GUIDE
-  // ==========================================
   if (queryText) {
     const isIHomisQuery = /ihomis|system|update|guide|login|error|troubleshoot|manual|paano|how to/i.test(queryText);
     if (isIHomisQuery && !systemPrompt.includes("CRITICAL PRIVATE DATA FOUND")) {
@@ -188,20 +191,16 @@ export default async function handler(req, res) {
     }
   }
 
-  // ==========================================
-  // 4. SMART ROUTER: LIVE WEB SEARCH (BALITA)
-  // ==========================================
+  // 4. SMART ROUTER: LIVE WEB SEARCH
   if (queryText && queryText.length > 3 && !systemPrompt.includes("CRITICAL PRIVATE DATA") && !systemPrompt.includes("iHOMIS+ SYSTEM MANUAL")) {
-    console.log("[Router] General/News intent. Triggering Web Search...");
+    console.log("[Router] Web Search intent.");
     const searchResults = await searchWeb(queryText);
     if (searchResults && !searchResults.includes("No live search results")) {
       systemPrompt += `\n\n[LIVE WEB SEARCH RESULTS]:\n${searchResults}\n\nUse this real-time data to answer accurately.`;
     }
   }
 
-  // ==========================================
-  // FALLBACK EXECUTION ENGINE (5-Tier)
-  // ==========================================
+  // FALLBACK ENGINE
   async function tryProvider(providerObj, res) {
     const result = await streamText({
       model: providerObj.client(providerObj.model),
@@ -238,7 +237,7 @@ export default async function handler(req, res) {
           return res.end();
         } catch (err4) {
           if (!res.headersSent) {
-            return res.status(502).json({ error: "The Global King is currently unavailable. All AI providers failed." });
+            return res.status(502).json({ error: "The Global King is currently unavailable." });
           }
           res.write(`\n\n[System Error: All AI brains failed to connect.]`);
           return res.end();
