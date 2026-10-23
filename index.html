@@ -842,14 +842,24 @@ async function sendMessage() {
   var te = am.querySelector('.text');
   
   // ==========================================
-  // IMAGE GENERATION LOGIC (/image or /imagine)
+  // IMAGE GENERATION LOGIC (Mas flexible na trigger)
   // ==========================================
-  if (text.toLowerCase().startsWith('/image ') || text.toLowerCase().startsWith('/imagine ')) {
-    var imagePrompt = text.replace(/^\/(image|imagine)\s+/i, '').trim();
+  var lowerText = text.toLowerCase();
+  if (lowerText.startsWith('/image ') || lowerText.startsWith('/imagine ') || lowerText.startsWith('image ') || lowerText.startsWith('imagine ')) {
+    
+    // Kukunin ang prompt kahit walang slash
+    var imagePrompt = text.replace(/^(\/)?(image|imagine)\s+/i, '').trim();
+    
+    // Kung blangko lang ang nilagay (e.g. "image" lang)
+    if (!imagePrompt) {
+       te.innerHTML = '<span class="typing">⚠️ Please provide a description. Example: <i>image a cute dog</i></span>';
+       busy = false; document.getElementById('sendBtn').disabled = false; promptEl.disabled = false;
+       return;
+    }
+
     te.innerHTML = '<span class="typing">🎨 Generating image, please wait...</span>';
     
     try {
-      // Gumamit ng direktang Pollinations URL (walang API key na kailangan)
       var encodedPrompt = encodeURIComponent(imagePrompt);
       var imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true`;
       
