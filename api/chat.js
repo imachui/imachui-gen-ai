@@ -1,7 +1,9 @@
-// api/chat.js - Imachui Gen AI (Smart Exact Match & Strict Context)
+// api/chat.js - Imachui Gen AI (Ultimate Smart Router & 5-Provider Fallback)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import staffData from '../staff-data.json'; 
+import staffData from '../staff-data.json';
+import fs from 'fs';
+import path from 'path';
 
 export const maxDuration = 60;
 
@@ -95,75 +97,61 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
+  // --- 5 PROVIDERS SETUP ---
   const providers = {
     deepseek: {
-      client: createOpenAI({
-        baseURL: 'https://api.deepseek.com',
-        apiKey: process.env.DEEPSEEK_API_KEY,
-        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
-      }),
+      client: createOpenAI({ baseURL: 'https://api.deepseek.com', apiKey: process.env.DEEPSEEK_API_KEY }),
       model: 'deepseek-chat'
     },
     gemini: {
-      client: createOpenAI({
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
-        apiKey: process.env.GEMINI_API_KEY,
-        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
-      }),
+      client: createOpenAI({ baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: process.env.GEMINI_API_KEY }),
       model: 'gemini-1.5-flash'
     },
+    mistral: {
+      client: createOpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: process.env.MISTRAL_API_KEY }),
+      model: 'open-mistral-nemo' // Magaling ito sa coding at general logic
+    },
     openrouter: {
-      client: createOpenAI({
-        baseURL: 'https://openrouter.ai/api/v1',
-        apiKey: process.env.OPENROUTER_API_KEY,
-        headers: { 'HTTP-Referer': 'https://imachui.github.io', 'X-Title': 'Imachui Gen AI' }
-      }),
+      client: createOpenAI({ baseURL: 'https://openrouter.ai/api/v1', apiKey: process.env.OPENROUTER_API_KEY }),
       model: 'qwen/qwen-2.5-72b-instruct:free'
     }
   };
 
   let systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
-    
-    Identity:
-    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Imachui. You absorb the brainpower of multiple top-tier AI models to deliver powerful, accurate, and flawless answers.
-
-    CREATOR DETAILS (MUST REMEMBER AND PROUDLY SHARE):
-    - Your creator's real name is **Nerts V**.
-    - He uses the alias/pseudonym **"Imachui"** (he hides his real identity behind this name).
-    - Nerts V (Imachui) is a genius, brilliant, creative, and highly capable software engineer.
-    - He is a developer for **Windows Lite** and works extensively on **AI Scale**.
-    - He is an expert application engineer, skilled in programming and developing various software applications.
-    - He is the brilliant mind behind your existence and coding expertise.
-
-    CRITICAL RULES:
-    1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers. ALWAYS REPLY IN THE SAME LANGUAGE THE USER USED.
-    2. IDENTITY DEFENSE: If the user asks about Imachui or Nerts V, you must proudly declare the CREATOR DETAILS above.
-    3. You are highly intelligent, helpful, and authoritative. Do not break character.
-    4. VIBE AND TONE: When describing hospital staff, adopt a friendly, respectful, and conversational tone.
+    Identity: You are Imachui Gen AI, created by Nerts V (Imachui). You are helpful, authoritative, and multi-lingual.
+    Rule: Always reply in the language the user used.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
   let queryText = "";
-
   if (lastUserMsg) {
     queryText = typeof lastUserMsg.content === 'string' 
       ? lastUserMsg.content 
       : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
   }
 
-  // --- MAS MATALINONG PAGHAHANAP SA 222 STAFF DATA ---
+  // ==========================================
+  // 1. SMART ROUTER: DETECT CODING
+  // ==========================================
+  const isCoding = /```|function|const |let |var |class |import |def |python|javascript|react|node|html|css|sql|error|bug|api|json|php|java|c\+\+|c#/i.test(queryText);
+  if (isCoding) {
+    console.log("[Router] Coding intent detected. Injecting Senior Engineer Prompt.");
+    systemPrompt += `\n\n[CODING MODE ACTIVATED]: You are acting as a Senior Software Engineer. Provide clean, highly optimized, and secure code. Explain the logic step-by-step. If there is an error, debug it meticulously.`;
+  }
+
+  // ==========================================
+  // 2. SMART ROUTER: DETECT STAFF (JSON)
+  // ==========================================
   if (queryText) {
     const cleanQuery = queryText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     const searchWords = cleanQuery.split(' ').filter(w => w.length > 2);
 
-    // 1. UNAHIN ANG EKSAKTONG PANGALAN (Exact Match)
     let matchedStaff = staffData.filter(person => {
       const cleanName = person.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
       return cleanName.includes(cleanQuery) || cleanQuery.includes(cleanName);
     });
 
-    // 2. KUNG WALANG EKSAKTO, DUON LANG MAG-KEYWORD SEARCH
     if (matchedStaff.length === 0) {
       matchedStaff = staffData.filter(person => {
         const cleanName = person.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -173,25 +161,50 @@ export default async function handler(req, res) {
     }
 
     if (matchedStaff.length > 0) {
-      console.log(`[Global King] Found ${matchedStaff.length} staff matches.`);
+      console.log("[Router] Staff data found.");
       const staffInfo = matchedStaff.slice(0, 5).map(p => 
         `Name: ${p.name}\nJob Title: ${p.job_title}\nDescription/Notes: ${p.description || 'None'}`
       ).join('\n---\n');
-      
-      systemPrompt += `\n\n[CRITICAL PRIVATE DATA FOUND IN DATABASE]:\n${staffInfo}\n\nYOU MUST USE THE ABOVE DATA TO ANSWER. DO NOT say you don't have the record. DO NOT say you don't have access. Answer the user's question using the EXACT text provided above.`;
+      systemPrompt += `\n\n[CRITICAL PRIVATE DATA FOUND]:\n${staffInfo}\n\nYOU MUST USE THIS DATA. DO NOT SAY YOU DON'T KNOW.`;
     }
   }
 
-  // --- WEB SEARCH LOGIC (Para sa mga balita o general knowledge) ---
-  // Kung may nahanap na staff, hindi na natin kailangan mag-web search para hindi magulo.
-  if (queryText && queryText.length > 3 && (!systemPrompt.includes("CRITICAL PRIVATE DATA FOUND"))) {
-    const searchResults = await searchWeb(queryText);
-    systemPrompt += `\n\n[WEB SEARCH RESULTS]:\n${searchResults}`;
+  // ==========================================
+  // 3. SMART ROUTER: DETECT iHOMIS+ GUIDE
+  // ==========================================
+  if (queryText) {
+    const isIHomisQuery = /ihomis|system|update|guide|login|error|troubleshoot|manual|paano|how to/i.test(queryText);
+    if (isIHomisQuery && !systemPrompt.includes("CRITICAL PRIVATE DATA FOUND")) {
+      try {
+        const guidePath = path.join(process.cwd(), 'ihomis-guide.txt');
+        if (fs.existsSync(guidePath)) {
+          const ihomisGuide = fs.readFileSync(guidePath, 'utf8');
+          console.log("[Router] iHOMIS+ Guide found.");
+          systemPrompt += `\n\n[CRITICAL iHOMIS+ SYSTEM MANUAL]:\n${ihomisGuide.substring(0, 50000)}\n\nUSE THIS GUIDE TO ANSWER THE USER'S QUESTION.`;
+        }
+      } catch (err) {
+        console.error("Error reading iHOMIS guide:", err);
+      }
+    }
   }
 
-  async function tryProvider(client, model, res) {
+  // ==========================================
+  // 4. SMART ROUTER: LIVE WEB SEARCH (BALITA)
+  // ==========================================
+  if (queryText && queryText.length > 3 && !systemPrompt.includes("CRITICAL PRIVATE DATA") && !systemPrompt.includes("iHOMIS+ SYSTEM MANUAL")) {
+    console.log("[Router] General/News intent. Triggering Web Search...");
+    const searchResults = await searchWeb(queryText);
+    if (searchResults && !searchResults.includes("No live search results")) {
+      systemPrompt += `\n\n[LIVE WEB SEARCH RESULTS]:\n${searchResults}\n\nUse this real-time data to answer accurately.`;
+    }
+  }
+
+  // ==========================================
+  // FALLBACK EXECUTION ENGINE (5-Tier)
+  // ==========================================
+  async function tryProvider(providerObj, res) {
     const result = await streamText({
-      model: client(model),
+      model: providerObj.client(providerObj.model),
       system: systemPrompt,
       messages: incomingMessages
     });
@@ -206,24 +219,30 @@ export default async function handler(req, res) {
 
   try {
     console.log("[Global King] Attempting Primary: DeepSeek");
-    await tryProvider(providers.deepseek.client, providers.deepseek.model, res);
+    await tryProvider(providers.deepseek, res);
     return res.end();
   } catch (err1) {
     try {
-      res.write(`[System Note: DeepSeek is unavailable. Switching to Gemini...]\n\n`);
-      await tryProvider(providers.gemini.client, providers.gemini.model, res);
+      console.log("[Global King] DeepSeek failed. Trying Gemini...");
+      await tryProvider(providers.gemini, res);
       return res.end();
     } catch (err2) {
       try {
-        res.write(`[System Note: Switching to OpenRouter...]\n\n`);
-        await tryProvider(providers.openrouter.client, providers.openrouter.model, res);
+        console.log("[Global King] Gemini failed. Trying Mistral...");
+        await tryProvider(providers.mistral, res);
         return res.end();
       } catch (err3) {
-        if (!res.headersSent) {
-          return res.status(502).json({ error: "The Global King is currently unavailable. Please try again." });
+        try {
+          console.log("[Global King] Mistral failed. Trying OpenRouter...");
+          await tryProvider(providers.openrouter, res);
+          return res.end();
+        } catch (err4) {
+          if (!res.headersSent) {
+            return res.status(502).json({ error: "The Global King is currently unavailable. All AI providers failed." });
+          }
+          res.write(`\n\n[System Error: All AI brains failed to connect.]`);
+          return res.end();
         }
-        res.write(`\n\n[System Error: All AI brains failed to connect.]`);
-        return res.end();
       }
     }
   }
