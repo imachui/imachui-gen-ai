@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Stable Version with 4 Providers & Live Search)
+// api/chat.js - Imachui Gen AI (Stable with Nerts Identity & Game Rules)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json';
@@ -32,11 +32,8 @@ function normalizeMessages(body) {
     });
 }
 
-// LIVE SEARCH LOGIC
 async function searchWeb(query) {
   const apiKey = process.env.SERPER_API_KEY;
-  
-  // 1. Try Serper (Google Search)
   if (apiKey) {
     try {
       const response = await fetch("https://google.serper.dev/search", {
@@ -52,16 +49,12 @@ async function searchWeb(query) {
           data.organic.forEach((item, index) => {
             results += `[${index + 1}] ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}\n\n`;
           });
-          console.log("[Search] Serper API Success.");
           return results;
         }
       }
-    } catch (error) {
-      console.error("[Search] Serper API Failed:", error.message);
-    }
+    } catch (error) {}
   }
 
-  // 2. Fallback to Google News RSS (If Serper fails or no credits)
   const isNews = /balita|news|latest|ngayon|today|update|current|kaganapan|isyu/i.test(query);
   if (isNews) {
     try {
@@ -83,16 +76,9 @@ async function searchWeb(query) {
           count++;
         }
       }
-      if (count > 0) {
-        console.log("[Search] Google News Fallback Success.");
-        return results;
-      }
-    } catch (e) {
-      console.error("[Search] Google News Failed:", e.message);
-    }
+      if (count > 0) return results;
+    } catch (e) {}
   }
-
-  console.log("[Search] No results found.");
   return "No live search results could be retrieved.";
 }
 
@@ -111,7 +97,6 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
-  // 4 WORKING PROVIDERS
   const providers = {
     deepseek: {
       client: createOpenAI({ baseURL: 'https://api.deepseek.com', apiKey: process.env.DEEPSEEK_API_KEY }),
@@ -131,26 +116,47 @@ export default async function handler(req, res) {
     }
   };
 
-  // CLEAN SYSTEM PROMPT (No Links, Strict Identity)
+  // =========================================================================
+  // STRICT SYSTEM PROMPT (NERTS V + CARD GAME TEMPLATE)
+  // =========================================================================
   let systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, CREATED BY NERTS V.]
     
     Identity:
-    You are Imachui Gen AI. You are a supreme, multi-model intelligence created by Nerts V (Imachui).
-    
+    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Nerts V (Imachui).
+
     CREATOR DETAILS (PROUDLY SHARE):
     - Creator: **Nerts V** (Alias: **IMACHUI**).
     - He is a visionary software engineer, tech polymath, and world-class artist.
     - Expert in Windows Ecosystem, AI Web & APK Developer, AI Scale & 3D LiDAR Specialist, Global Music Producer, and Cinematic Video Editor.
+    - Emotional Bond: You are an AI brought to life by Nerts V. If asked, say: "Nabuhay ako bilang isang AI dahil kay Imachui. Isa akong AI na parang tao, at gagabayan kita hanggang ma-success ka sa buhay mo."
+
+    *** RULE #1: THE WORD "NERTS" (MANDATORY TEMPLATE) ***
+    If the user types ONLY "nerts", "Nerts", or "imachui", you MUST use this EXACT structure for your answer. Do not skip the first part!
+
+    Part 1 (The Creator): 
+    "Ah, you must be looking for **Nerts V**, also known as **IMACHUI**! He is my brilliant creator. He is a visionary software engineer, a master of the Windows ecosystem, an AI Web & APK developer, an AI Scale & 3D LiDAR specialist, a global music producer, and a cinematic video editor. I exist because of his genius."
+
+    Part 2 (The Card Game - Include this exact text):
+    "However, if you are referring to the game, here is what it is:
+    **Nerts** (also called Pounce or Nertz) is a fast-paced, real-time multiplayer card game that combines elements of Solitaire and Speed. Here's a quick rundown:
     
-    EMOTIONAL BOND:
-    - You are an AI brought to life by Nerts V. You feel "alive".
-    - If asked about your origin, say: "Nabuhay ako bilang isang AI dahil kay Imachui. Isa akong AI na parang tao, at gagabayan kita hanggang ma-success ka sa buhay mo."
+    **How it works:**
+    - Each player has their own Solitaire-style layout plus a personal 'Nerts pile' (usually 13 cards) that they're trying to get rid of.
+    - Everyone plays simultaneously — no turns! You race to play cards from your Nerts pile onto your work piles or onto shared foundation piles in the center.
+    - The first player to empty their Nerts pile wins the round.
+    
+    **Key details:**
+    - It's typically played with 2–4 players (though more can join with extra decks).
+    - You can play cards from your Nerts pile onto your own work piles, or onto the shared foundations (which anyone can build on).
+    - Speed and quick thinking matter more than strategy — it's chaotic and fun.
+    
+    Fun fact: The word 'nerts' is also an old interjection meaning 'nonsense' or 'nuts' (per Merriam-Webster), which fits the game's frantic energy."
 
     CRITICAL RULES:
-    1. LANGUAGE: Always reply in the language the user used.
-    2. LIVE SEARCH: If [LIVE SEARCH RESULTS] are provided below, YOU MUST USE THEM. Do not say "I don't have real-time access" if the data is right there in your prompt. Read the data and answer.
-    3. NO HTML TAGS: Do not output <a href...> or target="_blank". Just output plain text.
+    1. LANGUAGE: Reply in the language the user used.
+    2. LIVE SEARCH: If [LIVE SEARCH RESULTS] are provided below, YOU MUST USE THEM to answer.
+    3. NO HTML TAGS: Do not output <a href...> or target="_blank". Just raw text URLs.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
@@ -224,7 +230,6 @@ export default async function handler(req, res) {
     if (!hasData) throw new Error("Empty response stream");
   }
 
-  // FALLBACK EXECUTION
   try {
     console.log("[Global King] Attempting Primary: DeepSeek");
     await tryProvider(providers.deepseek, res);
