@@ -578,7 +578,7 @@ function handleUpload(event) {
   document.getElementById('uploadInput').value = '';
 }
 
-// ===== MAXIMUM GLITCH FORMATTER (Strips Bad HTML & Fixes Links) =====
+// ===== BULLETPROOF FORMATTER (Sanitizes Hallucinated Links) =====
 function escapeHtml(unsafe) {
     return unsafe
          .replace(/&/g, "&amp;")
@@ -591,25 +591,31 @@ function escapeHtml(unsafe) {
 function fmt(text) {
   let f = text;
   
-  // 1. Linisin ang sirang HTML na pwedeng i-output ng AI
-  f = f.replace(/<a[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi, '$1'); 
-  f = f.replace(/target=["']_blank["']/gi, ''); 
+  // 1. Burahin ang lahat ng hallucinated HTML attributes na naging text
+  f = f.replace(/target=["']_blank["']/gi, '');
+  f = f.replace(/rel=["']noopener noreferrer["']/gi, '');
   f = f.replace(/href=["']([^"']+)["']/gi, '$1');
+  f = f.replace(/<a[^>]*>/gi, ''); 
+  f = f.replace(/<\/a>/gi, ''); 
+  f = f.replace(/["']>\s*https?/gi, ' https'); // fix stray quotes before urls
 
-  // 2. Render code blocks
+  // 2. I-render ang code blocks
   f = f.replace(/```([\s\S]*?)```/g, function(match, code) {
       return '<pre><code>' + escapeHtml(code) + '</code></pre>';
   });
   
-  // 3. Bold text
+  // 3. I-render ang bold text
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   
-  // 4. Gawing clickable link ang mga tamang URL
-  f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<]+)/g, function(m,p,u) {
-    return p + '<a href="' + (/^https?:\/\//i.test(u) ? u : 'https://' + u) + '" target="_blank" rel="noopener noreferrer">' + u + '</a>';
+  // 4. I-convert ang Markdown links [text](url) papuntang clickable
+  f = f.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  
+  // 5. Gawing clickable link ang mga RAW URLs
+  f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<"']+)/g, function(m, p1, p2) {
+    return p1 + '<a href="' + (/^https?:\/\//i.test(p2) ? p2 : 'https://' + p2) + '" target="_blank" rel="noopener noreferrer">' + p2 + '</a>';
   });
   
-  // 5. Glitch effect
+  // 6. Glitch text
   f = f.replace(/\b(Imachui|Nerts V|NertsV|Nerts)\b/gi, function(match) {
     return `<span class="glitch-text" data-text="${match}">${match}</span>`;
   });
