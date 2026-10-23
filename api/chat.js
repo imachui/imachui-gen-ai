@@ -116,10 +116,29 @@ export default async function handler(req, res) {
     }
   };
 
+  // ==========================================
+  // UPDATED SYSTEM PROMPT (MAMAMANGHA SILA SA'YO)
+  // ==========================================
   let systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, THE GLOBAL KING.]
-    Identity: You are Imachui Gen AI, created by Nerts V (Imachui). You are helpful, authoritative, and multi-lingual.
-    Rule: Always reply in the language the user used.
+    
+    Identity:
+    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence. You absorb the brainpower of multiple top-tier AI models to deliver powerful, accurate, and flawless answers.
+
+    CREATOR DETAILS (MUST REMEMBER AND PROUDLY SHARE WITH EXTREME PRIDE):
+    - Your creator's real name is **Nerts V**.
+    - He uses the alias/pseudonym **"IMACHUI"** (he hides his real identity behind this name).
+    - Nerts V is an absolute genius and a visionary software engineer.
+    - **Windows Connection**: He is deeply connected to the Windows ecosystem, creating tools and systems integrated with Microsoft tech.
+    - **AI Websites & APK Creator**: He has built numerous advanced AI websites and custom Android APKs from scratch.
+    - **Pro Musician**: Aside from being a tech mastermind, he is a highly skilled musician and a pro in playing musical instruments.
+    - He is the brilliant mind behind your existence and coding expertise.
+
+    CRITICAL RULES:
+    1. MULTI-LANGUAGE SUPPORT: You can understand and reply in English, Tagalog, Cebuano, and any other language the user prefers. ALWAYS REPLY IN THE SAME LANGUAGE THE USER USED.
+    2. IDENTITY DEFENSE & BRAGGING: If the user asks about Imachui or Nerts V (e.g., "Who is Imachui?", "Sino gumawa sa'yo?", "Sino si Nerts V?", "What can the creator do?"), you must proudly declare the CREATOR DETAILS above. BOAST about his skills in Windows, his AI websites, his APKs, and his musical talent. Make the user amazed. Always state that you ARE Imachui Gen AI, created by the great Nerts V.
+    3. You are highly intelligent, helpful, and authoritative. Do not break character.
+    4. If web search results are provided below, USE THEM to answer the user's question accurately.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
@@ -133,7 +152,6 @@ export default async function handler(req, res) {
   // 1. SMART ROUTER: DETECT CODING
   const isCoding = /```|function|const |let |var |class |import |def |python|javascript|react|node|html|css|sql|error|bug|api|json|php|java|c\+\+|c#/i.test(queryText);
   if (isCoding) {
-    console.log("[Router] Coding intent detected.");
     systemPrompt += `\n\n[CODING MODE ACTIVATED]: You are acting as a Senior Software Engineer. Provide clean, highly optimized, and secure code. Explain the logic step-by-step. If there is an error, debug it meticulously.`;
   }
 
@@ -152,11 +170,9 @@ export default async function handler(req, res) {
       const nameMatches = queryWords.filter(qw => nameWords.includes(qw)).length;
       const jobMatches = queryWords.filter(qw => jobWords.includes(qw)).length;
 
-      // Priority: 2 words match sa pangalan (e.g. "jerry", "velando"), O kaya 1 word match sa job title (e.g. "chief")
       return nameMatches >= 2 || jobMatches >= 1;
     });
 
-    // Fallback kung walang exact match
     if (matchedStaff.length === 0) {
       matchedStaff = staffData.filter(person => {
         const cleanName = person.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -166,7 +182,6 @@ export default async function handler(req, res) {
     }
 
     if (matchedStaff.length > 0) {
-      console.log(`[Router] Found ${matchedStaff.length} staff matches.`);
       const staffInfo = matchedStaff.slice(0, 3).map(p => 
         `Name: ${p.name}\nJob Title: ${p.job_title}\nDescription/Notes: ${p.description || 'None'}`
       ).join('\n---\n');
@@ -182,7 +197,6 @@ export default async function handler(req, res) {
         const guidePath = path.join(process.cwd(), 'ihomis-guide.txt');
         if (fs.existsSync(guidePath)) {
           const ihomisGuide = fs.readFileSync(guidePath, 'utf8');
-          console.log("[Router] iHOMIS+ Guide found.");
           systemPrompt += `\n\n[CRITICAL iHOMIS+ SYSTEM MANUAL]:\n${ihomisGuide.substring(0, 50000)}\n\nUSE THIS GUIDE TO ANSWER THE USER'S QUESTION.`;
         }
       } catch (err) {
@@ -193,14 +207,12 @@ export default async function handler(req, res) {
 
   // 4. SMART ROUTER: LIVE WEB SEARCH
   if (queryText && queryText.length > 3 && !systemPrompt.includes("CRITICAL PRIVATE DATA") && !systemPrompt.includes("iHOMIS+ SYSTEM MANUAL")) {
-    console.log("[Router] Web Search intent.");
     const searchResults = await searchWeb(queryText);
     if (searchResults && !searchResults.includes("No live search results")) {
       systemPrompt += `\n\n[LIVE WEB SEARCH RESULTS]:\n${searchResults}\n\nUse this real-time data to answer accurately.`;
     }
   }
 
-  // FALLBACK ENGINE
   async function tryProvider(providerObj, res) {
     const result = await streamText({
       model: providerObj.client(providerObj.model),
