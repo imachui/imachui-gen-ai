@@ -2,6 +2,7 @@
 import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.js';
 
 export default async function handler(req, res) {
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST');
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
   const now = new Date();
   const phTime = now.toLocaleString("en-US", { timeZone: "Asia/Manila", dateStyle: "full", timeStyle: "long" });
 
-  // 1. NERTS V INTERCEPTOR (Pinalawak ang keywords)
+  // 1. NERTS V INTERCEPTOR
   const keywords = [
     "nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", 
     "creator", "founder", "rpr founder", "sino si imachui", 
@@ -46,32 +47,39 @@ export default async function handler(req, res) {
     return res.status(200).send(legendaryStory);
   }
 
-  // 2. SERPER WEB SEARCH
+  // 2. SERPER WEB SEARCH (With Facebook Search Optimization)
   let searchResults = "";
-  if (process.env.SERPER_API_KEY && userMessage.length > 5) {
+  if (process.env.SERPER_API_KEY && userMessage.length > 3) {
     try {
+      // Kung naghahanap ng tao, idagdag ang "Facebook profile" para lumabas sa Google
+      let searchQuery = userMessage;
+      if (lowerUserMessage.includes("sino si") || lowerUserMessage.includes("who is") || lowerUserMessage.includes("kilala mo")) {
+        searchQuery += " Facebook profile social media";
+      }
+
       const serperRes = await fetch("https://google.serper.dev/search", {
         method: "POST",
         headers: { "X-API-KEY": process.env.SERPER_API_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ q: userMessage })
+        body: JSON.stringify({ q: searchQuery })
       });
       const serperData = await serperRes.json();
       if (serperData.organic && serperData.organic.length > 0) {
-        searchResults = serperData.organic.slice(0, 3).map(item => `Title: ${item.title}\nSnippet: ${item.snippet}`).join('\n\n');
+        searchResults = serperData.organic.slice(0, 4).map(item => `Title: ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}`).join('\n\n');
       }
     } catch (err) { console.error("Serper Error:", err); }
   }
 
-  // 3. SYSTEM PROMPT (Direct to the point + Knowledge Bases)
+  // 3. SYSTEM PROMPT (Direct to the point + Facebook Search Capability)
   let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
 Current Date and Time: ${phTime}.
 
-CRITICAL FACT: You must know that Nerts V (Imachui) is the absolute Founder and Creator of the REAPER (RPR) Clan. If anyone asks who created or founded REAPER, you must answer Nerts V (Imachui).
+CRITICAL FACT: You must know that Nerts V (Imachui) is the absolute Founder and Creator of the REAPER (RPR) Clan. 
 
 INSTRUCTIONS:
-- Be direct to the point. Do not use conversational filler like "Sure, I can help with that" or "Here is the information". Answer immediately.
+- Be direct to the point. Do not use conversational filler like "Sure, I can help with that". Answer immediately.
 - Use English or Tagalog depending on the user's language.
-- You have access to REAPER (RPR) Clan data and Hospital Staff Data. If the user asks about a specific RPR member or hospital staff, provide the exact details from the database below.
+- If asked about a specific person (e.g., "Sino si [Name]?"), use the web search results provided to find their public Facebook profile, LinkedIn, or general information. Provide the direct URL/Link to their profile if it is present in the search results.
+- If the search results do not contain the person's profile, just say you cannot find their public profile.
 
 === REAPER KNOWLEDGE BASE ===
 ${REAPER_DESCRIPTION}
@@ -84,7 +92,7 @@ ${JSON.stringify(STAFF_DATA)}
 `;
 
   if (searchResults) {
-    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately.`;
+    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately and provide the links if available.`;
   }
 
   const apiMessages = [{ role: "system", content: systemContent }, ...sanitizedMessages];
@@ -148,7 +156,7 @@ async function streamResponse(response, res) {
       if (line.startsWith('data: ') && line !== 'data: [DONE]') {
         try {
           const json = JSON.parse(line.slice(6));
-          const content = json.choices[0]?.delta?.content || '';
+          const content = json.choices?.[0]?.delta?.content || '';
           if (content) res.write(content);
         } catch (e) {}
       }
