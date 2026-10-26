@@ -1,5 +1,16 @@
 // api/chat.js
 export default async function handler(req, res) {
+  // 1. CORS HEADERS (Ang sagot sa "Failed to Fetch" error)
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*'); 
+  res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight request ng browser
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -14,7 +25,7 @@ export default async function handler(req, res) {
   const userMessage = messages[messages.length - 1].content.toLowerCase();
 
   // ==========================================
-  // 1. HARDCODED INTERCEPTOR PARA KAY NERTS V (IMACHUI)
+  // 2. HARDCODED INTERCEPTOR PARA KAY NERTS V (IMACHUI)
   // ==========================================
   const keywords = ["nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", "creator", "founder", "rpr", "reaper"];
   
@@ -29,7 +40,7 @@ export default async function handler(req, res) {
   }
 
   // ==========================================
-  // 2. SYSTEM PROMPT PARA SA IBA PANG TANONG
+  // 3. SYSTEM PROMPT PARA SA IBA PANG TANONG
   // ==========================================
   const systemPrompt = {
     role: "system",
@@ -41,7 +52,7 @@ export default async function handler(req, res) {
 
   try {
     // ==========================================
-    // 3. TAWAG SA DEEPSEEK API (STREAMING)
+    // 4. TAWAG SA DEEPSEEK API (STREAMING)
     // ==========================================
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
@@ -54,7 +65,7 @@ export default async function handler(req, res) {
         messages: [systemPrompt, ...messages],
         temperature: 0.7,
         max_tokens: 2000,
-        stream: true // <--- Mahalaga ito para gumana ang reader sa index.html mo
+        stream: true // Mahalaga ito para gumana ang reader sa index.html mo
       })
     });
 
