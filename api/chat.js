@@ -3,7 +3,7 @@ import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.
 
 // Helper function para mag-cancel ng request kapag masyadong matagal
 async function fetchWithTimeout(resource, options = {}) {
-  const { timeout = 8000 } = options; // 8 seconds timeout
+  const { timeout = 15000 } = options; // 15 seconds timeout
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   const response = await fetch(resource, {
@@ -14,37 +14,45 @@ async function fetchWithTimeout(resource, options = {}) {
   return response;
 }
 
-// Helper function para sa Image Analysis (THE RACE LOGIC)
+// Helper function para sa Image Analysis (Sequential Fallback)
 async function analyzeImage(base64Data, mimeType, userMessage) {
   const dataUri = `data:${mimeType};base64,${base64Data}`;
   const promptText = `You are IMACHUI GEN AI. Describe this image directly in detail. User's prompt: "${userMessage || 'Describe this image'}"`;
   
-  const promises = [];
+  let errorLog = "";
 
-  // 1. GEMINI REQUEST (Gamit ang tamang model: gemini-3.8-flash)
+  // 1. TRY GOOGLE GEMINI FIRST
   if (process.env.GEMINI_API_KEY) {
-    promises.push(
-      fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }]
-        }),
-        timeout: 8000
-      }).then(async res => {
+    const geminiModels = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash"];
+    for (const model of geminiModels) {
+      try {
+        const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }]
+          }),
+          timeout: 15000
+        });
+        
         const data = await res.json();
-        if (data.candidates?.[0]?.content?.parts[0]?.text) return data.candidates[0].content.parts[0].text;
-        throw new Error(data.error?.message || "Gemini failed");
-      })
-    );
+        if (data.candidates?.[0]?.content?.parts[0]?.text) {
+          return data.candidates[0].content.parts[0].text;
+        }
+        if (data.error) errorLog += `[Gemini ${model}]: ${data.error.message}. `;
+      } catch (e) {
+        errorLog += `[Gemini ${model} Timeout]: ${e.message}. `;
+      }
+    }
   }
 
-  // 2. OPENROUTER REQUEST (Gamit ang libreng vision models: Gemma 4 & Nemotron)
+  // 2. FALLBACK TO OPENROUTER (Yung dating gumana)
   if (process.env.OPENROUTER_API_KEY) {
-    const orModels = ["google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-nano-12b-v2-vl:free"];
+    const orModels = ["meta-llama/llama-3.2-11b-vision-instruct", "qwen/qwen-2-vl-7b-instruct"];
+    
     for (const model of orModels) {
-      promises.push(
-        fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+      try {
+        const res = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: { 
             "Content-Type": "application/json", 
@@ -60,25 +68,21 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
               ] 
             }]
           }),
-          timeout: 8000
-        }).then(async res => {
-          const data = await res.json();
-          if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
-          throw new Error(data.error?.message || "OpenRouter failed");
-        })
-      );
+          timeout: 15000
+        });
+        
+        const data = await res.json();
+        if (data.choices?.[0]?.message?.content) {
+          return data.choices[0].message.content;
+        }
+        if (data.error) errorLog += `[OpenRouter ${model}]: ${data.error.message}. `;
+      } catch (e) {
+        errorLog += `[OpenRouter ${model} Timeout]: ${e.message}. `;
+      }
     }
   }
 
-  if (promises.length === 0) return "⚠️ Walang available na API keys.";
-
-  try {
-    // RACE! Kung sino ang maunang sumagot, siya ang gagamitin natin
-    const fastestAnswer = await Promise.any(promises);
-    return fastestAnswer;
-  } catch (error) {
-    return `⚠️ Hindi mabasa ang image ngayon.\n\n*(Masyadong mabagal o puno ang AI Vision servers. Pakisubukan muli.)*`;
-  }
+  return `⚠️ Hindi mabasa ang image ngayon.\n\n**Detalye ng Error:**\n${errorLog}\n\n*(Pakisubukan muli mamaya o i-check ang API keys sa Vercel)*`;
 }
 
 export default async function handler(req, res) {
