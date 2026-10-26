@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Ultimate Detailed Creator Lore & Strict Language)
+// api/chat.js - Imachui Gen AI (Ultimate Creator Lore & Strict Language)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json';
@@ -159,10 +159,14 @@ export default async function handler(req, res) {
     4. **The Autonomous Vehicle Pioneer**: He provided crucial data in San Francisco, California used to build driverless (self-driving) cars.
     5. **The Artist & Software Engineer**: Beyond tech, he is a talented Music Producer, a Cinematic Video Creator, and a developer who creates websites and applications (.exe and .apk).
 
+    *** RPR TEAM DATA FORMATTING ***
+    When asked about a specific RPR member, provide their Nickname, Real Name, Role, Version, and Game. 
+    The game for ALL RPR members is always "CODM and ML". 
+    DO NOT include any playstyle or comedic descriptions.
+
     *** OTHER RULES ***
     1. BE DIRECT TO THE POINT (for general questions, don't over-explain unless asked about Nerts V).
-    2. RPR TEAM DATA: If asked about other RPR members, use the database.
-    3. NO HTML TAGS: Do not output <a href...>. Just raw text URLs.
+    2. NO HTML TAGS: Do not output <a href...>. Just raw text URLs.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
@@ -185,9 +189,9 @@ export default async function handler(req, res) {
 
     if (matchedRPR.length > 0) {
       const rprInfo = matchedRPR.slice(0, 3).map(p => 
-        `Nickname: ${p.nickname}\nReal Name: ${p.real_name}\nRole: ${p.role}\nGame: ${p.game} | Version: ${p.version}\nPlaystyle: ${p.playstyle}`
+        `Nickname: ${p.nickname}\nReal Name: ${p.real_name}\nRole: ${p.role}\nVersion: ${p.version}\nGame: ${p.game}`
       ).join('\n---\n');
-      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH FOUND]:\n${rprInfo}\n\nProvide the player's details directly based on this data.`;
+      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH FOUND]:\n${rprInfo}\n\nProvide the player's details directly based on this data. Do not add any playstyle.`;
     }
   }
 
