@@ -4,8 +4,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@ai-sdk/openai": "^1.0.0",
-    "@huggingface/inference": "^2.8.0",
-    "ai": "^4.0.0"
+    "@huggingface/inference": "^2.8.0"
   }
 }
