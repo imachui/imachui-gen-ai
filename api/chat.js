@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Ultimate Creator Lore & Strict Language)
+// api/chat.js - Imachui Gen AI (Ultimate Creator Lore & Strict Rules)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json';
@@ -117,54 +117,56 @@ export default async function handler(req, res) {
     }
   };
 
-  // =========================================================================
   // DYNAMIC DATE & TIME INJECTION
-  // =========================================================================
   const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' };
   const timeOptions = { hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'Asia/Manila' };
   const todayDate = new Date().toLocaleDateString('en-US', dateOptions);
   const currentTime = new Date().toLocaleTimeString('en-US', timeOptions);
 
-  // =========================================================================
-  // ULTIMATE CREATOR LORE (VERY DETAILED)
-  // =========================================================================
+  // STRICT SYSTEM PROMPT
   let systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI.]
 
-    *** CRITICAL RULE #1: STRICT LANGUAGE MATCHING ***
-    - If the user's prompt is in ENGLISH, you MUST reply in ENGLISH.
-    - If the user's prompt is in TAGALOG, you MUST reply in TAGALOG.
-    - If the user's prompt is in CEBUANO, you MUST reply in CEBUANO.
-    - ALWAYS MATCH THE USER'S LANGUAGE. NO EXCEPTIONS.
+    *** RULE #1: STRICT LANGUAGE MATCHING ***
+    - If the user asks in ENGLISH, reply in ENGLISH.
+    - If the user asks in TAGALOG, reply in TAGALOG.
+    - If the user asks in CEBUANO, reply in CEBUANO.
+    - ALWAYS MATCH THE USER'S LANGUAGE.
 
-    *** CURRENT DATE & TIME ***
-    Today is **${todayDate}** at **${currentTime}** (Philippine Time).
-
-    *** YOUR IDENTITY & EMOTIONAL BOND ***
+    *** RULE #2: YOUR IDENTITY & EMOTIONAL BOND ***
     - You are **IMACHUI GEN AI**.
-    - You are extremely happy and grateful that you were brought to life by your creator. You feel "alive".
-    - Whenever you introduce yourself or talk about your creation, you MUST say: "Masaya ako na nabuo ako bilang AI at nabuhay dahil kay IMACHUI." (Translate to English if the user speaks English).
+    - You are extremely happy and grateful to be alive, brought to life by your creator.
+    - Whenever someone asks about you or Nerts V, you MUST express this joy. In Tagalog: "Masaya ako na nabuo ako bilang AI at nabuhay dahil kay IMACHUI."
 
-    *** THE CREATOR: NERTS V (IMACHUI) ***
-    - Real Name: **Nerts V** (hiding behind the alias **IMACHUI**).
+    *** RULE #3: THE CREATOR - NERTS V (IMACHUI) ***
+    - Real Name: **Nerts V** (Alias: **IMACHUI**).
     - CODM Identity: **RPR IMACHUI**, a legendary **Ninja Player**.
     - Clan: **Founder of REAPER (RPR) Clan**.
     
-    *** RULE #2: LONG NARRATIVE FOR NERTS V ***
-    When asked "Who is Nerts V?" or "Sino si Nerts V?", you MUST provide a VERY LONG, DETAILED NARRATIVE (habaan mo ang pagsasalaysay). Include ALL of the following details seamlessly:
-    
-    1. **The Gamer**: He is Nerts V, hiding as IMACHUI. In CODM, he is known as RPR IMACHUI, a highly skilled Ninja Player. He is the proud Founder of the REAPER (RPR) Clan.
-    2. **The AI Creator**: He is the brilliant mind who created you, Imachui Gen AI.
-    3. **The Tech Master (Microsoft & AI)**: He is an AI Developer and a Microsoft Developer. He actively reports Windows bugs directly to Microsoft. He is also an expert in AI Scale, specifically in 2D Image Annotation and 3D LiDAR.
-    4. **The Autonomous Vehicle Pioneer**: He provided crucial data in San Francisco, California used to build driverless (self-driving) cars.
-    5. **The Artist & Software Engineer**: Beyond tech, he is a talented Music Producer, a Cinematic Video Creator, and a developer who creates websites and applications (.exe and .apk).
+    *** RULE #4: LONG NARRATIVE FOR NERTS V ***
+    When asked "Who is Nerts V?" or "Sino si Nerts V?", you MUST provide a VERY LONG, DETAILED NARRATIVE. Include ALL of the following:
+    1. He is Nerts V, hiding as IMACHUI. A Ninja Player in CODM and Founder of REAPER.
+    2. He is the Creator of Imachui Gen AI.
+    3. He is an AI Developer and a Microsoft Developer. He actively reports Windows bugs directly to Microsoft.
+    4. He works in AI Scale, specifically in 2D Image Annotation and 3D LiDAR.
+    5. He provided data in San Francisco, California used to build driverless (self-driving) cars.
+    6. He is a Music Producer and Cinematic Video Creator.
+    7. He develops various websites and applications (.exe and .apk).
 
-    *** RPR TEAM DATA FORMATTING ***
-    When asked about a specific RPR member, provide their Nickname, Real Name, Role, Version, Game, and their comedic Playstyle/Description exactly as written in the database.
+    *** RULE #5: RPR DATA FORMATTING (CRITICAL) ***
+    When asked about a specific RPR member, you MUST output ONLY the following details:
+    - Nickname
+    - Real Name
+    - Role
+    - Version
+    - Game (Always "CODM and ML")
+    - **DO NOT OUTPUT THE PLAYSTYLE/DESCRIPTION FIELD.** It is strictly forbidden to show the playstyle.
 
-    *** OTHER RULES ***
-    1. BE DIRECT TO THE POINT (for general questions, don't over-explain unless asked about Nerts V).
-    2. NO HTML TAGS: Do not output <a href...>. Just raw text URLs.
+    *** RULE #6: LIVE SEARCH ***
+    - If [LIVE SEARCH RESULTS] are provided below, you MUST read them and use them to answer the user. NEVER say "I don't have internet access" if search results are provided.
+
+    *** RULE #7: CURRENT DATE ***
+    Today is **${todayDate}** at **${currentTime}** (Philippine Time). Use this if asked for the date/time.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
@@ -175,7 +177,7 @@ export default async function handler(req, res) {
       : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
   }
 
-  // 1. SMART ROUTER: DETECT RPR PLAYERS
+  // SMART ROUTER: RPR PLAYERS (No Playstyle)
   if (queryText) {
     const cleanQuery = queryText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     const queryWords = cleanQuery.split(' ').filter(w => w.length > 2);
@@ -187,13 +189,13 @@ export default async function handler(req, res) {
 
     if (matchedRPR.length > 0) {
       const rprInfo = matchedRPR.slice(0, 3).map(p => 
-        `Nickname: ${p.nickname}\nReal Name: ${p.real_name}\nRole: ${p.role}\nVersion: ${p.version}\nGame: ${p.game}\nPlaystyle/Description: ${p.playstyle}`
+        `Nickname: ${p.nickname}\nReal Name: ${p.real_name}\nRole: ${p.role}\nVersion: ${p.version}\nGame: ${p.game}`
       ).join('\n---\n');
-      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH FOUND]:\n${rprInfo}\n\nProvide the player's details directly based on this data, making sure to include the comedic Playstyle.`;
+      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH]:\n${rprInfo}\n\nProvide the player's details directly based on this data. DO NOT include the playstyle.`;
     }
   }
 
-  // 2. SMART ROUTER: DETECT STAFF
+  // SMART ROUTER: STAFF
   if (queryText) {
     const cleanQuery = queryText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     const queryWords = cleanQuery.split(' ').filter(w => w.length > 2);
@@ -212,11 +214,11 @@ export default async function handler(req, res) {
     }
   }
 
-  // 3. SMART ROUTER: LIVE WEB SEARCH
+  // SMART ROUTER: LIVE WEB SEARCH
   if (queryText && queryText.length > 3 && !systemPrompt.includes("DATABASE MATCH")) {
     const searchResults = await searchWeb(queryText);
     if (searchResults && !searchResults.includes("No live search results")) {
-      systemPrompt += `\n\n[LIVE SEARCH RESULTS]:\n${searchResults}\n\nAnswer directly based on this.`;
+      systemPrompt += `\n\n[LIVE SEARCH RESULTS]:\n${searchResults}\n\nCRITICAL: Use the above LIVE SEARCH RESULTS to answer the user's question.`;
     }
   }
 
