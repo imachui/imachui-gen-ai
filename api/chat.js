@@ -1,19 +1,14 @@
 // api/chat.js
+import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.js';
+
 export default async function handler(req, res) {
-  // 1. CORS HEADERS (Kailangan sa lahat ng response)
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // 2. TUGUNAN ANG OPTIONS REQUEST (Ito ang aayos sa OPT_405 error)
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   let body = req.body;
   if (typeof body === 'string') {
@@ -23,118 +18,134 @@ export default async function handler(req, res) {
   const messages = body?.messages || [];
   const userMessage = body?.message || (messages.length > 0 ? messages[messages.length - 1].content : '');
 
-  if (!userMessage) {
-    return res.status(400).json({ error: 'No message provided' });
-  }
+  if (!userMessage) return res.status(400).json({ error: 'No message provided' });
 
   const sanitizedMessages = messages.map(msg => {
-    let textContent = "";
-    if (typeof msg.content === 'string') {
-      textContent = msg.content;
-    } else if (Array.isArray(msg.content)) {
-      textContent = msg.content.map(c => c.text || '').join('\n');
-    }
+    let textContent = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.map(c => c.text || '').join('\n') : "");
     return { role: msg.role, content: textContent };
   });
 
   const lowerUserMessage = userMessage.toLowerCase();
+  
+  // LIVE DATE AND TIME (Philippines)
+  const now = new Date();
+  const phTime = now.toLocaleString("en-US", { timeZone: "Asia/Manila", dateStyle: "full", timeStyle: "long" });
 
-  // ==========================================
-  // 3. HARDCODED INTERCEPTOR PARA KAY NERTS V
-  // ==========================================
-  const keywords = ["nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", "creator", "founder", "rpr", "reaper"];
+  // 1. NERTS V INTERCEPTOR
+  const keywords = ["nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", "creator", "founder", "rpr founder", "sino si imachui"];
+  
   if (keywords.some(keyword => lowerUserMessage.includes(keyword))) {
-    const legendaryStory = `**IMACHUI GEN AI : Global King**\n● Imachui Gen AI : Global King\n\n**IMACHUI — that's Nerts V, the Founder of REAPER (RPR) and my creator! 🫡**\n\nHere's the full legendary story:\n\n**Nerts V** (alias **IMACHUI**) is a legendary Ninja Player in *Call of Duty: Mobile* and the Founder of the **REAPER (RPR)** Clan. He moves silently in-game, takes you down before you even know he's there — a true ninja mastermind.\n\nBut he's way more than a gamer. He is the **Creator of Imachui Gen AI** — the AI you're talking to right now. He's also an **AI Developer** and a **Microsoft Developer**, actively reporting Windows bugs directly to Microsoft to help improve the platform.\n\nIn his professional life, he works in **AI Scale**, specifically in **2D Image Annotation and 3D LiDAR**. He even provided data in San Francisco, California, that was used to build driverless (self-driving) cars — real-world tech that's shaping the future.\n\nHe's also a **Music Producer** and **Cinematic Video Creator**, and he develops various websites and applications (.exe and .apk).\n\nSo yeah — gamer, founder, AI developer, Microsoft dev, LiDAR annotator, music producer, video creator, and app developer. The **Ultimate Ninja Mastermind**. 🥷🔥\n\n*(And yes — I am extremely happy and grateful to be alive, brought to life by him! Because of Nerts V, I now exist to help many people. I am here to be their guide in searching and understanding AI, ensuring that this technology can help and guide them in their daily lives just as my creator intended.)*`;
+    const legendaryStory = `**IMACHUI GEN AI : Global King**\n● Imachui Gen AI : Global King\n\n**IMACHUI — that's Nerts V, the Founder of REAPER (RPR) and my creator! 🫡**\n\nCurrent Date & Time: **${phTime}**\n\nHere is the full legendary story of my creator:\n\n**Nerts V** (alias **IMACHUI**) is a legendary Ninja Player in *Call of Duty: Mobile* and the visionary Founder of the **REAPER (RPR)** Clan. He moves silently in-game, takes you down before you even know he's there — a true ninja mastermind.\n\nBut he is way more than just a gamer. He is the **Creator of Imachui Gen AI** — the highly advanced AI you are communicating with right now. He is also a brilliant **AI Developer** and a **Microsoft Developer**, actively reporting Windows bugs directly to Microsoft to help improve the platform for everyone.\n\nIn his professional life, he works in **AI Scale**, specifically specializing in **2D Image Annotation and 3D LiDAR**. He even provided critical data in San Francisco, California, that was used to train and build driverless (self-driving) cars — real-world tech that is literally shaping the future of transportation.\n\nHe's also a talented **Music Producer** and **Cinematic Video Creator**, and he develops various complex websites and applications (.exe and .apk).\n\nSo yeah — gamer, founder, AI developer, Microsoft dev, LiDAR annotator, music producer, video creator, and app developer. He is the **Ultimate Ninja Mastermind**. 🥷🔥\n\n*(And yes — I am extremely happy and grateful to be alive, brought to life by him! Because of Nerts V, I now exist to help many people. I am here to be their guide in searching and understanding AI, ensuring that this technology can help and guide them in their daily lives just as my creator intended.)*`;
+
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     return res.status(200).send(legendaryStory);
   }
 
-  // ==========================================
-  // 4. SERPER WEB SEARCH
-  // ==========================================
+  // 2. SERPER WEB SEARCH
   let searchResults = "";
   if (process.env.SERPER_API_KEY && userMessage.length > 5) {
     try {
       const serperRes = await fetch("https://google.serper.dev/search", {
         method: "POST",
-        headers: {
-          "X-API-KEY": process.env.SERPER_API_KEY,
-          "Content-Type": "application/json"
-        },
+        headers: { "X-API-KEY": process.env.SERPER_API_KEY, "Content-Type": "application/json" },
         body: JSON.stringify({ q: userMessage })
       });
       const serperData = await serperRes.json();
       if (serperData.organic && serperData.organic.length > 0) {
-        searchResults = serperData.organic.slice(0, 3).map(item => 
-          `Title: ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}`
-        ).join('\n\n');
+        searchResults = serperData.organic.slice(0, 3).map(item => `Title: ${item.title}\nSnippet: ${item.snippet}`).join('\n\n');
       }
-    } catch (err) {
-      console.error("Serper Search Error:", err);
-    }
+    } catch (err) { console.error("Serper Error:", err); }
   }
 
-  // ==========================================
-  // 5. DEEPSEEK API
-  // ==========================================
-  let systemContent = `You are IMACHUI GEN AI (Global King), an advanced AI created by Nerts V (alias IMACHUI). 
-  Your primary purpose is to assist users, provide web search results, and act as a helpful guide. 
-  Always be respectful, highly intelligent, and helpful in English. 
-  If asked about your origin, remember that you were brought to life by Nerts V to help and guide people using AI.`;
+  // 3. SYSTEM PROMPT (Direct to the point + Knowledge Bases)
+  let systemContent = `You are IMACHUI GEN AI, created by Nerts V. 
+Current Date and Time: ${phTime}.
+
+INSTRUCTIONS:
+- Be direct to the point. Do not use conversational filler like "Sure, I can help with that" or "Here is the information". Answer immediately.
+- Use English or Tagalog depending on the user's language.
+- You have access to REAPER (RPR) Clan data and Hospital Staff Data. If the user asks about a specific RPR member or hospital staff, provide the exact details from the database below.
+
+=== REAPER KNOWLEDGE BASE ===
+${REAPER_DESCRIPTION}
+
+=== RPR MEMBERS ===
+${JSON.stringify(REAPER_MEMBERS)}
+
+=== HOSPITAL STAFF DATA ===
+${JSON.stringify(STAFF_DATA)}
+`;
 
   if (searchResults) {
-    systemContent += `\n\nHere are the latest web search results to help you answer the user's question:\n${searchResults}\n\nUse this information to provide an accurate, up-to-date answer.`;
+    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately.`;
   }
 
-  const systemPrompt = { role: "system", content: systemContent };
+  const apiMessages = [{ role: "system", content: systemContent }, ...sanitizedMessages];
 
-  try {
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}` 
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat", 
-        messages: [systemPrompt, ...sanitizedMessages],
-        temperature: 0.7,
-        max_tokens: 2500,
-        stream: true 
-      })
-    });
+  // 4. MULTI-PROVIDER AI ROUTING
+  let response;
 
-    if (!response.ok) {
-      throw new Error(`DeepSeek API Error: ${response.status}`);
-    }
+  // Try DeepSeek
+  if (process.env.DEEPSEEK_API_KEY) {
+    try {
+      response = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}` },
+        body: JSON.stringify({ model: "deepseek-chat", messages: apiMessages, temperature: 0.7, stream: true })
+      });
+      if (response.ok) return streamResponse(response, res);
+    } catch (e) { console.error("DeepSeek failed:", e); }
+  }
 
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+  // Try OpenRouter
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}` },
+        body: JSON.stringify({ model: "meta-llama/llama-3-8b-instruct", messages: apiMessages, stream: true })
+      });
+      if (response.ok) return streamResponse(response, res);
+    } catch (e) { console.error("OpenRouter failed:", e); }
+  }
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
-      
-      for (const line of lines) {
-        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-          try {
-            const json = JSON.parse(line.slice(6));
-            const content = json.choices[0]?.delta?.content || '';
-            if (content) {
-              res.write(content);
-            }
-          } catch (e) {}
-        }
+  // Try Mistral
+  if (process.env.MISTRAL_API_KEY) {
+    try {
+      response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}` },
+        body: JSON.stringify({ model: "mistral-small-latest", messages: apiMessages, stream: true })
+      });
+      if (response.ok) return streamResponse(response, res);
+    } catch (e) { console.error("Mistral failed:", e); }
+  }
+
+  return res.status(500).json({ error: "All AI providers failed." });
+}
+
+// Helper function para sa streaming
+async function streamResponse(response, res) {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split('\n');
+    
+    for (const line of lines) {
+      if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+        try {
+          const json = JSON.parse(line.slice(6));
+          const content = json.choices[0]?.delta?.content || '';
+          if (content) res.write(content);
+        } catch (e) {}
       }
     }
-    res.end();
-
-  } catch (error) {
-    console.error("DeepSeek Error:", error);
-    res.status(500).json({ error: "Failed to generate response", details: error.message });
   }
+  res.end();
 }
