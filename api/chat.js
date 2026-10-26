@@ -17,41 +17,37 @@ export default async function handler(req, res) {
   }
   
   const messages = body?.messages || [];
+  const lastMessage = messages[messages.length - 1];
+  
   let userMessage = body?.message || "";
-
-  // 1. CHECK KUNG MAY IMAGE NA KASAMA
   let hasImage = false;
   let imageBase64 = "";
-  
-  for (const msg of messages) {
-    if (Array.isArray(msg.content)) {
-      for (const part of msg.content) {
-        if (part.type === 'image') {
-          hasImage = true;
-          imageBase64 = part.image; // Ito ang base64 data
-        } else if (part.type === 'text' && part.text) {
-          userMessage = part.text; // Kunin ang text prompt
-        }
+
+  // 1. TIGNAN KUNG MAY IMAGE SA PINAKABAGONG MESSAGE
+  if (lastMessage && Array.isArray(lastMessage.content)) {
+    for (const part of lastMessage.content) {
+      if (part.type === 'image') {
+        hasImage = true;
+        imageBase64 = part.image;
+      } else if (part.type === 'text' && part.text) {
+        userMessage = part.text;
       }
     }
   }
 
   if (!userMessage && !hasImage) return res.status(400).json({ error: 'No message provided' });
 
-  const lowerUserMessage = userMessage.toLowerCase();
-  
-  // LIVE DATE AND TIME (Philippines)
-  const now = new Date();
-  const phTime = now.toLocaleString("en-US", { timeZone: "Asia/Manila", dateStyle: "full", timeStyle: "long" });
+  // 2. KUNG MAY IMAGE, DERETSO SA GEMINI VISION API
+  if (hasImage) {
+    if (!process.env.GEMINI_API_KEY) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.status(200).send("⚠️ System Error: Kulang ang GEMINI_API_KEY sa Vercel Environment Variables. Hindi ako makakabasa ng picture kung wala ito.");
+    }
 
-  // 2. KUNG MAY IMAGE, GAMITIN ANG GEMINI VISION API
-  if (hasImage && process.env.GEMINI_API_KEY) {
     try {
-      // Tanggalin ang data:image/jpeg;base64, prefix
+      // I-extract ang base64 data
       const base64Data = imageBase64.split(',')[1];
       const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
-
-      const promptText = userMessage || "Describe this image in detail. If there are people, tell me what they look like or any text visible.";
 
       const visionRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
         method: "POST",
@@ -59,7 +55,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           contents: [{
             parts: [
-              { text: `You are IMACHUI GEN AI. Answer directly and honestly. User asks: "${promptText}"` },
+              { text: `You are IMACHUI GEN AI. Describe this image directly in detail. If there are people, tell me what they look like, what they are wearing, or any visible text. User's prompt: "${userMessage || 'Describe this image'}"` },
               { inline_data: { mime_type: mimeType, data: base64Data } }
             ]
           }]
@@ -67,18 +63,37 @@ export default async function handler(req, res) {
       });
 
       const visionData = await visionRes.json();
-      if (visionData.candidates && visionData.candidates[0].content.parts[0].text) {
+      
+      // Kung may error sa Gemini API, ipakita ito
+      if (visionData.error) {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        return res.status(200).send(`⚠️ Gemini API Error: ${visionData.error.message}\n\n*(Siguraduhing tama at active ang GEMINI_API_KEY mo sa Google AI Studio)*`);
+      }
+
+      // Kung successful, ibalik ang sagot
+      if (visionData.candidates && visionData.candidates[0]?.content?.parts[0]?.text) {
         const answer = visionData.candidates[0].content.parts[0].text;
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         return res.status(200).send(answer);
+      } else {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        return res.status(200).send("⚠️ Nabasa ko ang image pero walang text na naibalik si Gemini. Subukan mo ulit.");
       }
     } catch (e) {
-      console.error("Gemini Vision Error:", e);
-      // Kung mag-fail, tuloy lang sa text chat sa baba
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.status(200).send(`⚠️ Error sa pagbasa ng image: ${e.message}`);
     }
   }
 
-  // 3. NERTS V INTERCEPTOR (Text lang)
+  // ==========================================
+  // KUNG WALANG IMAGE, DITO NA ANG TEXT LOGIC
+  // ==========================================
+
+  const lowerUserMessage = userMessage.toLowerCase();
+  const now = new Date();
+  const phTime = now.toLocaleString("en-US", { timeZone: "Asia/Manila", dateStyle: "full", timeStyle: "long" });
+
+  // Nerts V Interceptor
   const keywords = [
     "nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", 
     "creator", "founder", "rpr founder", "sino si imachui", 
@@ -93,13 +108,7 @@ export default async function handler(req, res) {
     return res.status(200).send(legendaryStory);
   }
 
-  // I-sanitize ang messages (Puro text lang)
-  const sanitizedMessages = messages.map(msg => {
-    let textContent = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.filter(c => c.type === 'text').map(c => c.text || '').join('\n') : "");
-    return { role: msg.role, content: textContent };
-  });
-
-  // 4. WEB SEARCH (Kung kailangan)
+  // Web Search Logic
   let searchResults = "";
   const isCodingQuestion = lowerUserMessage.includes("code") || lowerUserMessage.includes("html") || lowerUserMessage.includes("css") || lowerUserMessage.includes("javascript") || lowerUserMessage.includes("python") || lowerUserMessage.includes("website");
 
@@ -123,7 +132,7 @@ export default async function handler(req, res) {
     } catch (err) { console.error("Serper Error:", err); }
   }
 
-  // 5. SYSTEM PROMPT (Direct to the point)
+  // System Prompt for Text
   let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
 Current Date and Time: ${phTime}.
 
@@ -148,9 +157,14 @@ ${JSON.stringify(STAFF_DATA)}
     systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately.`;
   }
 
+  const sanitizedMessages = messages.map(msg => {
+    let textContent = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.filter(c => c.type === 'text').map(c => c.text || '').join('\n') : "");
+    return { role: msg.role, content: textContent };
+  });
+
   const apiMessages = [{ role: "system", content: systemContent }, ...sanitizedMessages];
 
-  // 6. MULTI-PROVIDER AI ROUTING (Fallback kung walang image)
+  // Multi-Provider Routing for Text
   let response;
 
   if (process.env.DEEPSEEK_API_KEY) {
@@ -178,7 +192,6 @@ ${JSON.stringify(STAFF_DATA)}
   return res.status(500).json({ error: "All AI providers failed." });
 }
 
-// Helper function para sa streaming
 async function streamResponse(response, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   const reader = response.body.getReader();
