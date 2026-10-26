@@ -47,14 +47,19 @@ export default async function handler(req, res) {
     return res.status(200).send(legendaryStory);
   }
 
-  // 2. SERPER WEB SEARCH (With Facebook Search Optimization)
+  // 2. SMART SERPER WEB SEARCH (Facebook Optimization)
   let searchResults = "";
   if (process.env.SERPER_API_KEY && userMessage.length > 3) {
     try {
-      // Kung naghahanap ng tao, idagdag ang "Facebook profile" para lumabas sa Google
       let searchQuery = userMessage;
+
+      // Kung naghahanap ng tao, linisin ang tanong at i-focus sa Facebook
       if (lowerUserMessage.includes("sino si") || lowerUserMessage.includes("who is") || lowerUserMessage.includes("kilala mo")) {
-        searchQuery += " Facebook profile social media";
+        // Tanggalin ang "sino si", "who is", "kilala mo ba", etc.
+        let nameOnly = userMessage.replace(/sino si|who is|kilala mo ba|kilala mo|search for|hanapin mo/gi, "").trim();
+        
+        // Gumamit ng Google Search Operator para sa Facebook
+        searchQuery = `site:facebook.com "${nameOnly}" OR "${nameOnly}" profile`;
       }
 
       const serperRes = await fetch("https://google.serper.dev/search", {
@@ -62,24 +67,28 @@ export default async function handler(req, res) {
         headers: { "X-API-KEY": process.env.SERPER_API_KEY, "Content-Type": "application/json" },
         body: JSON.stringify({ q: searchQuery })
       });
+      
       const serperData = await serperRes.json();
+      
       if (serperData.organic && serperData.organic.length > 0) {
-        searchResults = serperData.organic.slice(0, 4).map(item => `Title: ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}`).join('\n\n');
+        // Kunin ang top 3 results na may Facebook link
+        searchResults = serperData.organic.slice(0, 3).map(item => 
+          `Title: ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}`
+        ).join('\n\n');
       }
     } catch (err) { console.error("Serper Error:", err); }
   }
 
-  // 3. SYSTEM PROMPT (Direct to the point + Facebook Search Capability)
+  // 3. SYSTEM PROMPT
   let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
 Current Date and Time: ${phTime}.
 
 CRITICAL FACT: You must know that Nerts V (Imachui) is the absolute Founder and Creator of the REAPER (RPR) Clan. 
 
 INSTRUCTIONS:
-- Be direct to the point. Do not use conversational filler like "Sure, I can help with that". Answer immediately.
-- Use English or Tagalog depending on the user's language.
-- If asked about a specific person (e.g., "Sino si [Name]?"), use the web search results provided to find their public Facebook profile, LinkedIn, or general information. Provide the direct URL/Link to their profile if it is present in the search results.
-- If the search results do not contain the person's profile, just say you cannot find their public profile.
+- Be direct to the point. Do not use conversational filler.
+- If asked about a specific person (e.g., "Sino si [Name]?"), analyze the Web Search Results below. If the results show a Facebook link that matches the name, provide the link and the public info.
+- If the search results DO NOT match the name (e.g., it only shows a famous person like Mark Zuckerberg), you must say: "Walang public profile na naka-index sa Google para sa pangalang ito. Maaaring private ang Facebook account niya."
 
 === REAPER KNOWLEDGE BASE ===
 ${REAPER_DESCRIPTION}
@@ -92,7 +101,7 @@ ${JSON.stringify(STAFF_DATA)}
 `;
 
   if (searchResults) {
-    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately and provide the links if available.`;
+    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately. Do not hallucinate. If the name is not in the results, say you can't find it.`;
   }
 
   const apiMessages = [{ role: "system", content: systemContent }, ...sanitizedMessages];
