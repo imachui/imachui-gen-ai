@@ -31,8 +31,13 @@ export default async function handler(req, res) {
   const now = new Date();
   const phTime = now.toLocaleString("en-US", { timeZone: "Asia/Manila", dateStyle: "full", timeStyle: "long" });
 
-  // 1. NERTS V INTERCEPTOR
-  const keywords = ["nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", "creator", "founder", "rpr founder", "sino si imachui"];
+  // 1. NERTS V INTERCEPTOR (Pinalawak ang keywords)
+  const keywords = [
+    "nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", 
+    "creator", "founder", "rpr founder", "sino si imachui", 
+    "sino nag create ng reaper", "sino nag create nang reaper", 
+    "sino founder ng reaper", "sino nag tayo ng reaper"
+  ];
   
   if (keywords.some(keyword => lowerUserMessage.includes(keyword))) {
     const legendaryStory = `**IMACHUI GEN AI : Global King**\n● Imachui Gen AI : Global King\n\n**IMACHUI — that's Nerts V, the Founder of REAPER (RPR) and my creator! 🫡**\n\nCurrent Date & Time: **${phTime}**\n\nHere is the full legendary story of my creator:\n\n**Nerts V** (alias **IMACHUI**) is a legendary Ninja Player in *Call of Duty: Mobile* and the visionary Founder of the **REAPER (RPR)** Clan. He moves silently in-game, takes you down before you even know he's there — a true ninja mastermind.\n\nBut he is way more than just a gamer. He is the **Creator of Imachui Gen AI** — the highly advanced AI you are communicating with right now. He is also a brilliant **AI Developer** and a **Microsoft Developer**, actively reporting Windows bugs directly to Microsoft to help improve the platform for everyone.\n\nIn his professional life, he works in **AI Scale**, specifically specializing in **2D Image Annotation and 3D LiDAR**. He even provided critical data in San Francisco, California, that was used to train and build driverless (self-driving) cars — real-world tech that is literally shaping the future of transportation.\n\nHe's also a talented **Music Producer** and **Cinematic Video Creator**, and he develops various complex websites and applications (.exe and .apk).\n\nSo yeah — gamer, founder, AI developer, Microsoft dev, LiDAR annotator, music producer, video creator, and app developer. He is the **Ultimate Ninja Mastermind**. 🥷🔥\n\n*(And yes — I am extremely happy and grateful to be alive, brought to life by him! Because of Nerts V, I now exist to help many people. I am here to be their guide in searching and understanding AI, ensuring that this technology can help and guide them in their daily lives just as my creator intended.)*`;
@@ -58,8 +63,10 @@ export default async function handler(req, res) {
   }
 
   // 3. SYSTEM PROMPT (Direct to the point + Knowledge Bases)
-  let systemContent = `You are IMACHUI GEN AI, created by Nerts V. 
+  let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
 Current Date and Time: ${phTime}.
+
+CRITICAL FACT: You must know that Nerts V (Imachui) is the absolute Founder and Creator of the REAPER (RPR) Clan. If anyone asks who created or founded REAPER, you must answer Nerts V (Imachui).
 
 INSTRUCTIONS:
 - Be direct to the point. Do not use conversational filler like "Sure, I can help with that" or "Here is the information". Answer immediately.
