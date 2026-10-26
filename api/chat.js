@@ -17,14 +17,26 @@ export default async function handler(req, res) {
   }
   
   const messages = body?.messages || [];
-  const userMessage = body?.message || (messages.length > 0 ? messages[messages.length - 1].content : '');
+  let userMessage = body?.message || "";
 
-  if (!userMessage) return res.status(400).json({ error: 'No message provided' });
+  // 1. CHECK KUNG MAY IMAGE NA KASAMA
+  let hasImage = false;
+  let imageBase64 = "";
+  
+  for (const msg of messages) {
+    if (Array.isArray(msg.content)) {
+      for (const part of msg.content) {
+        if (part.type === 'image') {
+          hasImage = true;
+          imageBase64 = part.image; // Ito ang base64 data
+        } else if (part.type === 'text' && part.text) {
+          userMessage = part.text; // Kunin ang text prompt
+        }
+      }
+    }
+  }
 
-  const sanitizedMessages = messages.map(msg => {
-    let textContent = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.map(c => c.text || '').join('\n') : "");
-    return { role: msg.role, content: textContent };
-  });
+  if (!userMessage && !hasImage) return res.status(400).json({ error: 'No message provided' });
 
   const lowerUserMessage = userMessage.toLowerCase();
   
@@ -32,7 +44,41 @@ export default async function handler(req, res) {
   const now = new Date();
   const phTime = now.toLocaleString("en-US", { timeZone: "Asia/Manila", dateStyle: "full", timeStyle: "long" });
 
-  // 1. NERTS V INTERCEPTOR
+  // 2. KUNG MAY IMAGE, GAMITIN ANG GEMINI VISION API
+  if (hasImage && process.env.GEMINI_API_KEY) {
+    try {
+      // Tanggalin ang data:image/jpeg;base64, prefix
+      const base64Data = imageBase64.split(',')[1];
+      const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
+
+      const promptText = userMessage || "Describe this image in detail. If there are people, tell me what they look like or any text visible.";
+
+      const visionRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: `You are IMACHUI GEN AI. Answer directly and honestly. User asks: "${promptText}"` },
+              { inline_data: { mime_type: mimeType, data: base64Data } }
+            ]
+          }]
+        })
+      });
+
+      const visionData = await visionRes.json();
+      if (visionData.candidates && visionData.candidates[0].content.parts[0].text) {
+        const answer = visionData.candidates[0].content.parts[0].text;
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        return res.status(200).send(answer);
+      }
+    } catch (e) {
+      console.error("Gemini Vision Error:", e);
+      // Kung mag-fail, tuloy lang sa text chat sa baba
+    }
+  }
+
+  // 3. NERTS V INTERCEPTOR (Text lang)
   const keywords = [
     "nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", 
     "creator", "founder", "rpr founder", "sino si imachui", 
@@ -47,14 +93,20 @@ export default async function handler(req, res) {
     return res.status(200).send(legendaryStory);
   }
 
-  // 2. SMART SERPER WEB SEARCH (Lilipat lang sa search kung HINDI coding ang tanong)
+  // I-sanitize ang messages (Puro text lang)
+  const sanitizedMessages = messages.map(msg => {
+    let textContent = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.filter(c => c.type === 'text').map(c => c.text || '').join('\n') : "");
+    return { role: msg.role, content: textContent };
+  });
+
+  // 4. WEB SEARCH (Kung kailangan)
   let searchResults = "";
   const isCodingQuestion = lowerUserMessage.includes("code") || lowerUserMessage.includes("html") || lowerUserMessage.includes("css") || lowerUserMessage.includes("javascript") || lowerUserMessage.includes("python") || lowerUserMessage.includes("website");
 
   if (process.env.SERPER_API_KEY && userMessage.length > 3 && !isCodingQuestion) {
     try {
       let searchQuery = userMessage;
-      if (lowerUserMessage.includes("sino si") || lowerUserMessage.includes("who is") || lowerUserMessage.includes("kilala mo")) {
+      if (lowerUserMessage.includes("sino si") || lowerUserMessage.includes("who is")) {
         let nameOnly = userMessage.replace(/sino si|who is|kilala mo ba|kilala mo|search for|hanapin mo/gi, "").trim();
         searchQuery = `site:facebook.com "${nameOnly}" OR "${nameOnly}" profile`;
       }
@@ -71,7 +123,7 @@ export default async function handler(req, res) {
     } catch (err) { console.error("Serper Error:", err); }
   }
 
-  // 3. SYSTEM PROMPT (Ginawang permissive sa coding)
+  // 5. SYSTEM PROMPT (Direct to the point)
   let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
 Current Date and Time: ${phTime}.
 
@@ -79,8 +131,8 @@ CRITICAL FACT: You must know that Nerts V (Imachui) is the absolute Founder and 
 
 INSTRUCTIONS:
 1. Be direct to the point. Do not use conversational filler.
-2. You are an EXPERT PROGRAMMER. If the user asks for code (e.g., a Messenger clone, chat app, HTML, CSS, JS), YOU MUST PROVIDE THE CODE IMMEDIATELY in markdown code blocks. Do not refuse and do not give a legal lecture. Just provide the frontend code as a learning tool.
-3. If asked about a specific person, analyze the Web Search Results. Provide the link if available. If not found, say it's private.
+2. You are an EXPERT PROGRAMMER. Provide code immediately if asked.
+3. If asked about a specific person, analyze the Web Search Results. If not found, say it's private.
 
 === REAPER KNOWLEDGE BASE ===
 ${REAPER_DESCRIPTION}
@@ -98,10 +150,9 @@ ${JSON.stringify(STAFF_DATA)}
 
   const apiMessages = [{ role: "system", content: systemContent }, ...sanitizedMessages];
 
-  // 4. MULTI-PROVIDER AI ROUTING
+  // 6. MULTI-PROVIDER AI ROUTING (Fallback kung walang image)
   let response;
 
-  // Try DeepSeek
   if (process.env.DEEPSEEK_API_KEY) {
     try {
       response = await fetch("https://api.deepseek.com/chat/completions", {
@@ -113,7 +164,6 @@ ${JSON.stringify(STAFF_DATA)}
     } catch (e) { console.error("DeepSeek failed:", e); }
   }
 
-  // Try OpenRouter
   if (process.env.OPENROUTER_API_KEY) {
     try {
       response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -123,18 +173,6 @@ ${JSON.stringify(STAFF_DATA)}
       });
       if (response.ok) return streamResponse(response, res);
     } catch (e) { console.error("OpenRouter failed:", e); }
-  }
-
-  // Try Mistral
-  if (process.env.MISTRAL_API_KEY) {
-    try {
-      response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}` },
-        body: JSON.stringify({ model: "mistral-small-latest", messages: apiMessages, stream: true })
-      });
-      if (response.ok) return streamResponse(response, res);
-    } catch (e) { console.error("Mistral failed:", e); }
   }
 
   return res.status(500).json({ error: "All AI providers failed." });
