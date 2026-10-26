@@ -21,9 +21,9 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
   
   let errorLog = "";
 
-  // 1. TRY GOOGLE GEMINI FIRST
+  // 1. TRY GOOGLE GEMINI FIRST (Gamit ang tamang model: gemini-3.8-flash)
   if (process.env.GEMINI_API_KEY) {
-    const geminiModels = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash"];
+    const geminiModels = ["gemini-3.8-flash", "gemini-flash-latest"];
     for (const model of geminiModels) {
       try {
         const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
@@ -46,9 +46,9 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
     }
   }
 
-  // 2. FALLBACK TO OPENROUTER (Yung dating gumana)
+  // 2. FALLBACK TO OPENROUTER (Gamit ang aktibong libreng vision models)
   if (process.env.OPENROUTER_API_KEY) {
-    const orModels = ["meta-llama/llama-3.2-11b-vision-instruct", "qwen/qwen-2-vl-7b-instruct"];
+    const orModels = ["google/gemma-4-26b-a4b-it:free", "qwen/qwen-2.5-vl-72b-instruct:free"];
     
     for (const model of orModels) {
       try {
