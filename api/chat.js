@@ -1,6 +1,56 @@
 // api/chat.js
 import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.js';
 
+// Helper function para sa Vision API na may Retry at Fallback
+async function analyzeImageWithGemini(base64Data, mimeType, userMessage) {
+  // Listahan ng mga pwedeng ipalit na modelo kung mag-fail ang isa
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"];
+  
+  for (const model of models) {
+    // Mag-retry ng hanggang 3 beses bawat modelo
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const visionRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: `You are IMACHUI GEN AI. Describe this image directly in detail. If there are people, tell me what they look like, what they are wearing, or any visible text. User's prompt: "${userMessage || 'Describe this image'}"` },
+                { inline_data: { mime_type: mimeType, data: base64Data } }
+              ]
+            }]
+          })
+        });
+
+        const visionData = await visionRes.json();
+
+        // Kung success, ibalik agad ang sagot
+        if (visionData.candidates && visionData.candidates[0]?.content?.parts[0]?.text) {
+          return { success: true, text: visionData.candidates[0].content.parts[0].text };
+        }
+
+        // Kung 503 (High Demand) o 429 (Rate Limit), mag-hintay muna bago i-retry
+        if (visionData.error && (visionData.error.code === 503 || visionData.error.code === 429)) {
+          console.log(`[${model}] High demand/rate limit. Retrying in ${attempt * 2} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000)); // 2s, 4s, 6s
+          continue;
+        }
+
+        // Kung ibang error (tulad ng 404 Model Not Found), lumipat agad sa susunod na modelo
+        break; 
+
+      } catch (e) {
+        console.error(`Network error on ${model}:`, e.message);
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+      }
+    }
+  }
+
+  // Kung nabigo lahat ng models at retries
+  return { success: false, error: "Ang mga servers ng Google Gemini ay kasalukuyang overloaded. Pakisubukan muli pagkalipas ng ilang minuto." };
+}
+
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -37,7 +87,7 @@ export default async function handler(req, res) {
 
   if (!userMessage && !hasImage) return res.status(400).json({ error: 'No message provided' });
 
-  // 2. KUNG MAY IMAGE, DERETSO SA GEMINI VISION API
+  // 2. KUNG MAY IMAGE, GAMITIN ANG SMART RETRY & FALLBACK
   if (hasImage) {
     if (!process.env.GEMINI_API_KEY) {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -48,34 +98,13 @@ export default async function handler(req, res) {
       const base64Data = imageBase64.split(',')[1];
       const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
 
-      // GAMIT ANG "gemini-1.5-flash-latest" NA SIYANG STABLE NGAYON
-      const visionRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: `You are IMACHUI GEN AI. Describe this image directly in detail. If there are people, tell me what they look like, what they are wearing, or any visible text. User's prompt: "${userMessage || 'Describe this image'}"` },
-              { inline_data: { mime_type: mimeType, data: base64Data } }
-            ]
-          }]
-        })
-      });
+      const result = await analyzeImageWithGemini(base64Data, mimeType, userMessage);
 
-      const visionData = await visionRes.json();
-      
-      if (visionData.error) {
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        return res.status(200).send(`⚠️ Gemini API Error: ${visionData.error.message}\n\n*(Siguraduhing active ang GEMINI_API_KEY mo sa Google AI Studio at may access ito sa Gemini 1.5 Flash)*`);
-      }
-
-      if (visionData.candidates && visionData.candidates[0]?.content?.parts[0]?.text) {
-        const answer = visionData.candidates[0].content.parts[0].text;
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        return res.status(200).send(answer);
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      if (result.success) {
+        return res.status(200).send(result.text);
       } else {
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        return res.status(200).send("⚠️ Nabasa ko ang image pero walang text na naibalik si Gemini. Subukan mo ulit.");
+        return res.status(200).send(`⚠️ ${result.error}`);
       }
     } catch (e) {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
