@@ -1,19 +1,32 @@
 // api/chat.js
 import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.js';
 
-// Helper function para sa Image Analysis na may Fallback (Gemini -> OpenRouter)
+// Helper function para mag-cancel ng request kapag masyadong matagal
+async function fetchWithTimeout(resource, options = {}) {
+  const { timeout = 8000 } = options; // 8 seconds timeout
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  const response = await fetch(resource, {
+    ...options,
+    signal: controller.signal  
+  });
+  clearTimeout(id);
+  return response;
+}
+
+// Helper function para sa Image Analysis
 async function analyzeImage(base64Data, mimeType, userMessage) {
   const dataUri = `data:${mimeType};base64,${base64Data}`;
   const promptText = `You are IMACHUI GEN AI. Describe this image directly in detail. If there are people, tell me what they look like, what they are wearing, or any visible text. User's prompt: "${userMessage || 'Describe this image'}"`;
   
   let errorLog = "";
 
-  // 1. TRY GOOGLE GEMINI (Valid models as of Oct 2026)
+  // 1. TRY GOOGLE GEMINI
   if (process.env.GEMINI_API_KEY) {
-    const models = ["gemini-3.8-flash", "gemini-2.5-flash"]; 
+    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest"];
     for (const model of models) {
       try {
-        const visionRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+        const visionRes = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -30,26 +43,20 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
         if (visionData.candidates && visionData.candidates[0]?.content?.parts[0]?.text) {
           return visionData.candidates[0].content.parts[0].text;
         }
-        if (visionData.error) {
-          errorLog += `[Gemini ${model}]: ${visionData.error.message}. `;
-        }
+        if (visionData.error) errorLog += `[Gemini ${model}]: ${visionData.error.message}. `;
       } catch (e) {
-        errorLog += `[Gemini ${model} Exception]: ${e.message}. `;
+        errorLog += `[Gemini ${model} Timeout/Error]: ${e.message}. `;
       }
     }
   }
 
-  // 2. FALLBACK TO OPENROUTER (Valid free vision models)
+  // 2. FALLBACK TO OPENROUTER VISION
   if (process.env.OPENROUTER_API_KEY) {
-    const orModels = [
-      "google/gemma-4-26b-a4b-it:free", 
-      "qwen/qwen2.5-vl-72b-instruct:free",
-      "qwen/qwen2.5-vl-7b-instruct:free"
-    ];
+    const orModels = ["meta-llama/llama-3.2-11b-vision-instruct", "qwen/qwen-2-vl-7b-instruct"];
     
     for (const model of orModels) {
       try {
-        const openRouterRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const openRouterRes = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -72,18 +79,15 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
         if (openRouterData.choices && openRouterData.choices[0]?.message?.content) {
           return openRouterData.choices[0].message.content;
         }
-        
-        if (openRouterData.error) {
-          errorLog += `[OpenRouter ${model}]: ${openRouterData.error.message}. `;
-        }
+        if (openRouterData.error) errorLog += `[OpenRouter ${model}]: ${openRouterData.error.message}. `;
       } catch (e) {
-        errorLog += `[OpenRouter ${model} Exception]: ${e.message}. `;
+        errorLog += `[OpenRouter ${model} Timeout/Error]: ${e.message}. `;
       }
     }
   }
 
-  // Kung nabigo lahat, ibalik ang error
-  return `⚠️ Hindi mabasa ang image.\n\n**Detalye ng Error:**\n${errorLog}\n\n*(Pakisubukan muli mamaya o i-check kung may credits/quota pa ang API keys mo sa Vercel)*`;
+  // Kung nabigo lahat
+  return `⚠️ Hindi mabasa ang image.\n\n**Detalye ng Error:**\n${errorLog}\n\n*(Ang mga AI Vision servers ay kasalukuyang hindi sumasagot o puno. Pakisubukan muli mamaya.)*`;
 }
 
 export default async function handler(req, res) {
@@ -122,7 +126,7 @@ export default async function handler(req, res) {
 
   if (!userMessage && !hasImage) return res.status(400).json({ error: 'No message provided' });
 
-  // 2. KUNG MAY IMAGE, GAMITIN ANG DUAL-VISION FALLBACK
+  // 2. KUNG MAY IMAGE
   if (hasImage) {
     try {
       const base64Data = imageBase64.split(',')[1];
