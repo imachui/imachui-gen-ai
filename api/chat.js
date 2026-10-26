@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Concise, Stable, with RPR Founder & Admins)
+// api/chat.js - Imachui Gen AI (With Real-Time Date Injection)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json';
@@ -118,10 +118,20 @@ export default async function handler(req, res) {
   };
 
   // =========================================================================
-  // DIRECT & CONCISE SYSTEM PROMPT (NO LONG EXPLANATIONS)
+  // DYNAMIC DATE INJECTION (Philippine Time)
+  // =========================================================================
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' };
+  const today = new Date().toLocaleDateString('en-US', options); 
+
+  // =========================================================================
+  // DIRECT & CONCISE SYSTEM PROMPT
   // =========================================================================
   let systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI.]
+
+    *** CURRENT DATE CONTEXT ***
+    Today is exactly: **${today}** (Philippine Time). 
+    If the user asks for the date or day today (e.g., "anong araw ngayon"), you MUST answer with this exact date. Do not make up a date.
 
     *** CRITICAL RULE: BE DIRECT TO THE POINT. ***
     - Keep your answers accurate, concise, and straight to the point. 
