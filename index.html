@@ -845,8 +845,8 @@ async function sendMessage() {
   // ==========================================
   var lowerText = text.toLowerCase();
   var isImageRequest = lowerText.startsWith('/image ') || lowerText.startsWith('/imagine ') || 
-                       lowerText.includes('image') || lowerText.includes('picture') || 
-                       lowerText.includes('gawa') || lowerText.includes('design');
+                       lowerText.includes('generate image') || lowerText.includes('gumawa ng larawan') || 
+                       lowerText.includes('picture of') || lowerText.includes('draw a');
 
   if (isImageRequest) {
     var imagePrompt = text;
