@@ -3,7 +3,7 @@ import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.
 
 // Helper function para mag-cancel ng request kapag masyadong matagal
 async function fetchWithTimeout(resource, options = {}) {
-  const { timeout = 8000 } = options; // 8 seconds timeout
+  const { timeout = 10000 } = options; // 10 seconds timeout
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   const response = await fetch(resource, {
@@ -21,9 +21,9 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
   
   let errorLog = "";
 
-  // 1. TRY GOOGLE GEMINI
+  // 1. GOOGLE GEMINI (Mga aktibong modelo ngayong Oktubre 2026)
   if (process.env.GEMINI_API_KEY) {
-    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest"];
+    const models = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"];
     for (const model of models) {
       try {
         const visionRes = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
@@ -50,9 +50,13 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
     }
   }
 
-  // 2. FALLBACK TO OPENROUTER VISION
+  // 2. OPENROUTER VISION (Mga libreng vision models ngayong Oktubre 2026)
   if (process.env.OPENROUTER_API_KEY) {
-    const orModels = ["meta-llama/llama-3.2-11b-vision-instruct", "qwen/qwen-2-vl-7b-instruct"];
+    const orModels = [
+      "google/gemma-4-26b-a4b-it:free",
+      "nvidia/nemotron-nano-12b-v2-vl:free",
+      "nvidia/nemotron-3.5-super-vl:free"
+    ];
     
     for (const model of orModels) {
       try {
