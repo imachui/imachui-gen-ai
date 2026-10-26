@@ -587,16 +587,24 @@ function escapeHtml(unsafe) {
 
 function fmt(text) {
   let f = text;
-  // Escape the code blocks para hindi gawing totoong button ng browser
   f = f.replace(/```([\s\S]*?)```/g, function(match, code) {
       return '<pre><code>' + escapeHtml(code) + '</code></pre>';
   });
   
   f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  f = f.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-  f = f.replace(/(^|[^"'])((?:https?:\/\/|www\.)[^\s<]+)/g, function(m,p,u) {
-    return p + '<a href="' + (/^https?:\/\//i.test(u) ? u : 'https://' + u) + '" target="_blank">' + u + '</a>';
+  
+  // UPDATE: Kayang basahin ang // at https:// pati na ang markdown links
+  f = f.replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/\/)[^\s<]+)\)/g, function(m, text, url) {
+    let finalUrl = url.startsWith('//') ? 'https:' + url : url;
+    return '<a href="' + finalUrl + '" target="_blank" style="color:#38bdf8;text-decoration:underline;">' + text + '</a>';
   });
+
+  // UPDATE: Auto-link para sa mga raw links na walang brackets
+  f = f.replace(/(^|[^"'])((?:https?:\/\/|\/\/)[^\s<]+)/g, function(m,p,u) {
+    let finalUrl = u.startsWith('//') ? 'https:' + u : u;
+    return p + '<a href="' + finalUrl + '" target="_blank" style="color:#38bdf8;text-decoration:underline;">' + u + '</a>';
+  });
+  
   f = f.replace(/\b(Imachui|Nerts V|NertsV|Nerts)\b/gi, function(match) {
     return `<span class="glitch-text" data-text="${match}">${match}</span>`;
   });
