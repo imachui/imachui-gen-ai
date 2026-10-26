@@ -41,16 +41,15 @@ export default async function handler(req, res) {
   if (hasImage) {
     if (!process.env.GEMINI_API_KEY) {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      return res.status(200).send("⚠️ System Error: Kulang ang GEMINI_API_KEY sa Vercel Environment Variables. Hindi ako makakabasa ng picture kung wala ito.");
+      return res.status(200).send("⚠️ System Error: Kulang ang GEMINI_API_KEY sa Vercel Environment Variables.");
     }
 
     try {
-      // I-extract ang base64 data
       const base64Data = imageBase64.split(',')[1];
       const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
 
-      // TAMANG MODEL: gemini-1.5-flash
-      const visionRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      // GAMIT ANG "gemini-1.5-flash-latest" NA SIYANG STABLE NGAYON
+      const visionRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -65,13 +64,11 @@ export default async function handler(req, res) {
 
       const visionData = await visionRes.json();
       
-      // Kung may error sa Gemini API, ipakita ito
       if (visionData.error) {
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        return res.status(200).send(`⚠️ Gemini API Error: ${visionData.error.message}\n\n*(Siguraduhing tama at active ang GEMINI_API_KEY mo sa Google AI Studio)*`);
+        return res.status(200).send(`⚠️ Gemini API Error: ${visionData.error.message}\n\n*(Siguraduhing active ang GEMINI_API_KEY mo sa Google AI Studio at may access ito sa Gemini 1.5 Flash)*`);
       }
 
-      // Kung successful, ibalik ang sagot
       if (visionData.candidates && visionData.candidates[0]?.content?.parts[0]?.text) {
         const answer = visionData.candidates[0].content.parts[0].text;
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
