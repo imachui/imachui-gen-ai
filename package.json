@@ -2,6 +2,7 @@
   "name": "imachui-gen-ai",
   "version": "2.0.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@ai-sdk/openai": "^1.0.0",
     "@huggingface/inference": "^2.8.0",
