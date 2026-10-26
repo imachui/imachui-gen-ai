@@ -3,7 +3,7 @@ import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.
 
 // Helper function para mag-cancel ng request kapag masyadong matagal
 async function fetchWithTimeout(resource, options = {}) {
-  const { timeout = 10000 } = options; // 10 seconds timeout
+  const { timeout = 6000 } = options; // 6 seconds timeout
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   const response = await fetch(resource, {
@@ -14,84 +14,68 @@ async function fetchWithTimeout(resource, options = {}) {
   return response;
 }
 
-// Helper function para sa Image Analysis
+// Helper function para sa Image Analysis (THE RACE LOGIC)
 async function analyzeImage(base64Data, mimeType, userMessage) {
   const dataUri = `data:${mimeType};base64,${base64Data}`;
-  const promptText = `You are IMACHUI GEN AI. Describe this image directly in detail. If there are people, tell me what they look like, what they are wearing, or any visible text. User's prompt: "${userMessage || 'Describe this image'}"`;
+  const promptText = `You are IMACHUI GEN AI. Describe this image directly in detail. User's prompt: "${userMessage || 'Describe this image'}"`;
   
-  let errorLog = "";
+  const promises = [];
 
-  // 1. GOOGLE GEMINI (Mga aktibong modelo ngayong Oktubre 2026)
+  // 1. GEMINI REQUEST
   if (process.env.GEMINI_API_KEY) {
-    const models = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"];
-    for (const model of models) {
-      try {
-        const visionRes = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: promptText },
-                { inline_data: { mime_type: mimeType, data: base64Data } }
-              ]
-            }]
-          })
-        });
-
-        const visionData = await visionRes.json();
-        if (visionData.candidates && visionData.candidates[0]?.content?.parts[0]?.text) {
-          return visionData.candidates[0].content.parts[0].text;
-        }
-        if (visionData.error) errorLog += `[Gemini ${model}]: ${visionData.error.message}. `;
-      } catch (e) {
-        errorLog += `[Gemini ${model} Timeout/Error]: ${e.message}. `;
-      }
-    }
+    promises.push(
+      fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }]
+        }),
+        timeout: 6000
+      }).then(async res => {
+        const data = await res.json();
+        if (data.candidates?.[0]?.content?.parts[0]?.text) return data.candidates[0].content.parts[0].text;
+        throw new Error("Gemini failed");
+      })
+    );
   }
 
-  // 2. OPENROUTER VISION (Mga libreng vision models ngayong Oktubre 2026)
+  // 2. OPENROUTER REQUEST
   if (process.env.OPENROUTER_API_KEY) {
-    const orModels = [
-      "google/gemma-4-26b-a4b-it:free",
-      "nvidia/nemotron-nano-12b-v2-vl:free",
-      "nvidia/nemotron-3.5-super-vl:free"
-    ];
-    
-    for (const model of orModels) {
-      try {
-        const openRouterRes = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: model,
-            messages: [{
-              role: "user",
-              content: [
-                { type: "text", text: promptText },
-                { type: "image_url", image_url: { url: dataUri } }
-              ]
-            }]
-          })
-        });
-
-        const openRouterData = await openRouterRes.json();
-        
-        if (openRouterData.choices && openRouterData.choices[0]?.message?.content) {
-          return openRouterData.choices[0].message.content;
-        }
-        if (openRouterData.error) errorLog += `[OpenRouter ${model}]: ${openRouterData.error.message}. `;
-      } catch (e) {
-        errorLog += `[OpenRouter ${model} Timeout/Error]: ${e.message}. `;
-      }
-    }
+    promises.push(
+      fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}` 
+        },
+        body: JSON.stringify({
+          model: "google/gemini-flash-1.5", 
+          messages: [{ 
+            role: "user", 
+            content: [
+              { type: "text", text: promptText }, 
+              { type: "image_url", image_url: { url: dataUri } }
+            ] 
+          }]
+        }),
+        timeout: 6000
+      }).then(async res => {
+        const data = await res.json();
+        if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
+        throw new Error("OpenRouter failed");
+      })
+    );
   }
 
-  // Kung nabigo lahat
-  return `⚠️ Hindi mabasa ang image.\n\n**Detalye ng Error:**\n${errorLog}\n\n*(Ang mga AI Vision servers ay kasalukuyang hindi sumasagot o puno. Pakisubukan muli mamaya.)*`;
+  if (promises.length === 0) return "⚠️ Walang available na API keys.";
+
+  try {
+    // RACE! Kung sino ang maunang sumagot, siya ang gagamitin natin
+    const fastestAnswer = await Promise.any(promises);
+    return fastestAnswer;
+  } catch (error) {
+    return `⚠️ Hindi mabasa ang image ngayon.\n\n*(Masyadong mabagal o puno ang AI Vision servers. Pakisubukan muli.)*`;
+  }
 }
 
 export default async function handler(req, res) {
@@ -116,33 +100,26 @@ export default async function handler(req, res) {
   let hasImage = false;
   let imageBase64 = "";
 
-  // 1. TIGNAN KUNG MAY IMAGE
   if (lastMessage && Array.isArray(lastMessage.content)) {
     for (const part of lastMessage.content) {
-      if (part.type === 'image') {
-        hasImage = true;
-        imageBase64 = part.image;
-      } else if (part.type === 'text' && part.text) {
-        userMessage = part.text;
-      }
+      if (part.type === 'image') { hasImage = true; imageBase64 = part.image; } 
+      else if (part.type === 'text' && part.text) { userMessage = part.text; }
     }
   }
 
   if (!userMessage && !hasImage) return res.status(400).json({ error: 'No message provided' });
 
-  // 2. KUNG MAY IMAGE
+  // IMAGE LOGIC
   if (hasImage) {
     try {
       const base64Data = imageBase64.split(',')[1];
       const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
-
       const answer = await analyzeImage(base64Data, mimeType, userMessage);
-      
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       return res.status(200).send(answer);
     } catch (e) {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      return res.status(200).send(`⚠️ Error sa pagbasa ng image: ${e.message}`);
+      return res.status(200).send(`⚠️ Error: ${e.message}`);
     }
   }
 
@@ -154,7 +131,6 @@ export default async function handler(req, res) {
   const now = new Date();
   const phTime = now.toLocaleString("en-US", { timeZone: "Asia/Manila", dateStyle: "full", timeStyle: "long" });
 
-  // Nerts V Interceptor
   const keywords = [
     "nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", 
     "creator", "founder", "rpr founder", "sino si imachui", 
@@ -193,7 +169,7 @@ export default async function handler(req, res) {
     } catch (err) { console.error("Serper Error:", err); }
   }
 
-  // System Prompt for Text
+  // System Prompt for Text (Pinalakas ang Link Instruction)
   let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
 Current Date and Time: ${phTime}.
 
@@ -202,7 +178,9 @@ CRITICAL FACT: You must know that Nerts V (Imachui) is the absolute Founder and 
 INSTRUCTIONS:
 1. Be direct to the point. Do not use conversational filler.
 2. You are an EXPERT PROGRAMMER. Provide code immediately if asked.
-3. If asked about a specific person, analyze the Web Search Results. If not found, say it's private.
+3. If asked about a specific person, analyze the Web Search Results. 
+4. **CRITICAL RULE**: You MUST ALWAYS provide the source URLs/Links (e.g., Facebook, LinkedIn, website) in your final response if they are present in the search results. Format the link properly as a clickable markdown link, like: [Facebook Profile](https://facebook.com/...).
+5. If the person is not found in the results, just say it's private or not indexed.
 
 === REAPER KNOWLEDGE BASE ===
 ${REAPER_DESCRIPTION}
@@ -215,7 +193,7 @@ ${JSON.stringify(STAFF_DATA)}
 `;
 
   if (searchResults) {
-    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately.`;
+    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately and INCLUDE THE LINKS.`;
   }
 
   const sanitizedMessages = messages.map(msg => {
