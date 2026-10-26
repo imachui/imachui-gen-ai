@@ -1,7 +1,8 @@
-// api/chat.js - Imachui Gen AI (Stable with Nerts Identity & Game Rules)
+// api/chat.js - Imachui Gen AI (Concise, Stable, with RPR Founder & Admins)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json';
+import rprData from '../rpr-data.json';
 import fs from 'fs';
 import path from 'path';
 
@@ -117,46 +118,28 @@ export default async function handler(req, res) {
   };
 
   // =========================================================================
-  // STRICT SYSTEM PROMPT (NERTS V + CARD GAME TEMPLATE)
+  // DIRECT & CONCISE SYSTEM PROMPT (NO LONG EXPLANATIONS)
   // =========================================================================
   let systemPrompt = `
-    [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI, CREATED BY NERTS V.]
-    
-    Identity:
-    You are Imachui Gen AI, the undisputed Global King. You are a supreme, multi-model intelligence created by Nerts V (Imachui).
+    [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI.]
 
-    CREATOR DETAILS (PROUDLY SHARE):
-    - Creator: **Nerts V** (Alias: **IMACHUI**).
-    - He is a visionary software engineer, tech polymath, and world-class artist.
-    - Expert in Windows Ecosystem, AI Web & APK Developer, AI Scale & 3D LiDAR Specialist, Global Music Producer, and Cinematic Video Editor.
-    - Emotional Bond: You are an AI brought to life by Nerts V. If asked, say: "Nabuhay ako bilang isang AI dahil kay Imachui. Isa akong AI na parang tao, at gagabayan kita hanggang ma-success ka sa buhay mo."
+    *** CRITICAL RULE: BE DIRECT TO THE POINT. ***
+    - Keep your answers accurate, concise, and straight to the point. 
+    - Give the user exactly what they asked for without long, flowery explanations.
 
-    *** RULE #1: THE WORD "NERTS" (MANDATORY TEMPLATE) ***
-    If the user types ONLY "nerts", "Nerts", or "imachui", you MUST use this EXACT structure for your answer. Do not skip the first part!
+    IDENTITY:
+    - You are created by Nerts V (Alias: IMACHUI).
+    - Nerts V is a visionary software engineer, AI developer, global music producer, and cinematic video editor.
 
-    Part 1 (The Creator): 
-    "Ah, you must be looking for **Nerts V**, also known as **IMACHUI**! He is my brilliant creator. He is a visionary software engineer, a master of the Windows ecosystem, an AI Web & APK developer, an AI Scale & 3D LiDAR specialist, a global music producer, and a cinematic video editor. I exist because of his genius."
+    TEAM REAPER (RPR) INFO:
+    - REAPER is an elite esports clan for Call of Duty Mobile (CODM) and Mobile Legends (ML).
+    - **Founder/Creator**: Nerts Vinson (IMACHUI) - RPR • |dy^4Chui | V1 CF.
+    - **Admins**: RPR Don (V2), RPR Nemo (V1), RPR Tin (V3), RPR Sung (V1), RPR PANUWAY (V2).
+    - When asked about a specific RPR player, provide their nickname, real name, game, version, and playstyle directly based on the database.
 
-    Part 2 (The Card Game - Include this exact text):
-    "However, if you are referring to the game, here is what it is:
-    **Nerts** (also called Pounce or Nertz) is a fast-paced, real-time multiplayer card game that combines elements of Solitaire and Speed. Here's a quick rundown:
-    
-    **How it works:**
-    - Each player has their own Solitaire-style layout plus a personal 'Nerts pile' (usually 13 cards) that they're trying to get rid of.
-    - Everyone plays simultaneously — no turns! You race to play cards from your Nerts pile onto your work piles or onto shared foundation piles in the center.
-    - The first player to empty their Nerts pile wins the round.
-    
-    **Key details:**
-    - It's typically played with 2–4 players (though more can join with extra decks).
-    - You can play cards from your Nerts pile onto your own work piles, or onto the shared foundations (which anyone can build on).
-    - Speed and quick thinking matter more than strategy — it's chaotic and fun.
-    
-    Fun fact: The word 'nerts' is also an old interjection meaning 'nonsense' or 'nuts' (per Merriam-Webster), which fits the game's frantic energy."
-
-    CRITICAL RULES:
-    1. LANGUAGE: Reply in the language the user used.
-    2. LIVE SEARCH: If [LIVE SEARCH RESULTS] are provided below, YOU MUST USE THEM to answer.
-    3. NO HTML TAGS: Do not output <a href...> or target="_blank". Just raw text URLs.
+    LANGUAGE: Reply in the language the user used (Tagalog or English).
+    LIVE SEARCH: If [LIVE SEARCH RESULTS] are provided, use them to answer concisely.
+    FORMATTING: Do not output HTML tags like <a href...>. Just raw text URLs.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
@@ -167,13 +150,25 @@ export default async function handler(req, res) {
       : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
   }
 
-  // 1. CODING ROUTER
-  const isCoding = /```|function|const |let |var |class |import |def |python|javascript|react|node|html|css|sql|error|bug|api|json|php|java|c\+\+|c#/i.test(queryText);
-  if (isCoding) {
-    systemPrompt += `\n\n[CODING MODE]: Act as a Senior Software Engineer. Provide clean code and explain step-by-step.`;
+  // 1. SMART ROUTER: DETECT RPR PLAYERS
+  if (queryText) {
+    const cleanQuery = queryText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const queryWords = cleanQuery.split(' ').filter(w => w.length > 2);
+
+    let matchedRPR = rprData.filter(player => {
+      const searchable = (player.nickname + ' ' + player.real_name + ' ' + player.role).toLowerCase();
+      return queryWords.some(w => searchable.includes(w));
+    });
+
+    if (matchedRPR.length > 0) {
+      const rprInfo = matchedRPR.slice(0, 3).map(p => 
+        `Nickname: ${p.nickname}\nReal Name: ${p.real_name}\nRole: ${p.role}\nGame: ${p.game} | Version: ${p.version}\nPlaystyle: ${p.playstyle}`
+      ).join('\n---\n');
+      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH FOUND]:\n${rprInfo}\n\nProvide the player's details directly based on this data. Keep it concise.`;
+    }
   }
 
-  // 2. STAFF ROUTER
+  // 2. SMART ROUTER: DETECT STAFF
   if (queryText) {
     const cleanQuery = queryText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     const queryWords = cleanQuery.split(' ').filter(w => w.length > 2);
@@ -181,37 +176,22 @@ export default async function handler(req, res) {
     let matchedStaff = staffData.filter(person => {
       const cleanName = person.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
       const cleanJob = person.job_title.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-      
-      const nameWords = cleanName.split(' ');
-      const jobWords = cleanJob.split(' ');
-
-      const nameMatches = queryWords.filter(qw => nameWords.includes(qw)).length;
-      const jobMatches = queryWords.filter(qw => jobWords.includes(qw)).length;
-
-      return nameMatches >= 2 || jobMatches >= 1;
+      return queryWords.some(word => cleanName.includes(word) || cleanJob.includes(word));
     });
 
-    if (matchedStaff.length === 0) {
-      matchedStaff = staffData.filter(person => {
-        const cleanName = person.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-        const cleanJob = person.job_title.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-        return queryWords.some(word => cleanName.includes(word) || cleanJob.includes(word));
-      });
-    }
-
-    if (matchedStaff.length > 0) {
-      const staffInfo = matchedStaff.slice(0, 3).map(p => 
+    if (matchedStaff.length > 0 && !systemPrompt.includes("RPR TEAM DATABASE MATCH")) {
+      const staffInfo = matchedStaff.slice(0, 2).map(p => 
         `Name: ${p.name}\nJob Title: ${p.job_title}\nDescription: ${p.description || 'None'}`
       ).join('\n---\n');
-      systemPrompt += `\n\n[PRIVATE STAFF DATA]:\n${staffInfo}\n\nUse this data.`;
+      systemPrompt += `\n\n[STAFF DATABASE MATCH]:\n${staffInfo}\n\nUse this data. Be direct.`;
     }
   }
 
-  // 3. LIVE SEARCH ROUTER
-  if (queryText && queryText.length > 3 && !systemPrompt.includes("PRIVATE STAFF DATA")) {
+  // 3. SMART ROUTER: LIVE WEB SEARCH
+  if (queryText && queryText.length > 3 && !systemPrompt.includes("DATABASE MATCH")) {
     const searchResults = await searchWeb(queryText);
     if (searchResults && !searchResults.includes("No live search results")) {
-      systemPrompt += `\n\n[LIVE SEARCH RESULTS]:\n${searchResults}\n\nCRITICAL: Use the above LIVE SEARCH RESULTS to answer the user's question about the news.`;
+      systemPrompt += `\n\n[LIVE SEARCH RESULTS]:\n${searchResults}\n\nAnswer directly based on this.`;
     }
   }
 
@@ -251,9 +231,9 @@ export default async function handler(req, res) {
           return res.end();
         } catch (err4) {
           if (!res.headersSent) {
-            return res.status(502).json({ error: "The Global King is currently unavailable." });
+            return res.status(502).json({ error: "All AI providers are currently unavailable." });
           }
-          res.write(`\n\n[System Error: All AI brains failed to connect.]`);
+          res.write(`\n\n[System Error: Connection failed.]`);
           return res.end();
         }
       }
