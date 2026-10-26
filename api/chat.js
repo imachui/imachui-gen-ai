@@ -160,9 +160,7 @@ export default async function handler(req, res) {
     5. **The Artist & Software Engineer**: Beyond tech, he is a talented Music Producer, a Cinematic Video Creator, and a developer who creates websites and applications (.exe and .apk).
 
     *** RPR TEAM DATA FORMATTING ***
-    When asked about a specific RPR member, provide their Nickname, Real Name, Role, Version, and Game. 
-    The game for ALL RPR members is always "CODM and ML". 
-    DO NOT include any playstyle or comedic descriptions.
+    When asked about a specific RPR member, provide their Nickname, Real Name, Role, Version, Game, and their comedic Playstyle/Description exactly as written in the database.
 
     *** OTHER RULES ***
     1. BE DIRECT TO THE POINT (for general questions, don't over-explain unless asked about Nerts V).
@@ -189,9 +187,9 @@ export default async function handler(req, res) {
 
     if (matchedRPR.length > 0) {
       const rprInfo = matchedRPR.slice(0, 3).map(p => 
-        `Nickname: ${p.nickname}\nReal Name: ${p.real_name}\nRole: ${p.role}\nVersion: ${p.version}\nGame: ${p.game}`
+        `Nickname: ${p.nickname}\nReal Name: ${p.real_name}\nRole: ${p.role}\nVersion: ${p.version}\nGame: ${p.game}\nPlaystyle/Description: ${p.playstyle}`
       ).join('\n---\n');
-      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH FOUND]:\n${rprInfo}\n\nProvide the player's details directly based on this data. Do not add any playstyle.`;
+      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH FOUND]:\n${rprInfo}\n\nProvide the player's details directly based on this data, making sure to include the comedic Playstyle.`;
     }
   }
 
