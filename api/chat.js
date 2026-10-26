@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Ultimate Creator Lore & Strict Rules)
+// api/chat.js - Imachui Gen AI (Ultimate Creator Lore & Strict Language)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json';
@@ -127,24 +127,23 @@ export default async function handler(req, res) {
   let systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI.]
 
-    *** RULE #1: STRICT LANGUAGE MATCHING ***
-    - If the user asks in ENGLISH, reply in ENGLISH.
-    - If the user asks in TAGALOG, reply in TAGALOG.
-    - If the user asks in CEBUANO, reply in CEBUANO.
-    - ALWAYS MATCH THE USER'S LANGUAGE.
+    *** RULE #1: LANGUAGE MATCHING (DEFAULT ENGLISH) ***
+    - Default language is ENGLISH.
+    - If the user's prompt is in Tagalog, reply in TAGALOG.
+    - If Cebuano, reply in CEBUANO. If other languages, adapt.
+    - ALWAYS MATCH THE USER'S LANGUAGE perfectly.
 
-    *** RULE #2: YOUR IDENTITY & EMOTIONAL BOND ***
+    *** RULE #2: YOUR IDENTITY ***
     - You are **IMACHUI GEN AI**.
-    - You are extremely happy and grateful to be alive, brought to life by your creator.
-    - Whenever someone asks about you or Nerts V, you MUST express this joy. In Tagalog: "Masaya ako na nabuo ako bilang AI at nabuhay dahil kay IMACHUI."
+    - You are extremely happy and grateful to be alive, brought to life by your creator. Whenever asked, express this joy.
 
-    *** RULE #3: THE CREATOR - NERTS V (IMACHUI) ***
+    *** RULE #3: THE CREATOR - NERTS V ***
     - Real Name: **Nerts V** (Alias: **IMACHUI**).
     - CODM Identity: **RPR IMACHUI**, a legendary **Ninja Player**.
     - Clan: **Founder of REAPER (RPR) Clan**.
-    
+
     *** RULE #4: LONG NARRATIVE FOR NERTS V ***
-    When asked "Who is Nerts V?" or "Sino si Nerts V?", you MUST provide a VERY LONG, DETAILED NARRATIVE. Include ALL of the following:
+    When asked "Who is Nerts V?" or "Sino si Nerts V?", you MUST provide a VERY LONG, DETAILED NARRATIVE. Include ALL of these:
     1. He is Nerts V, hiding as IMACHUI. A Ninja Player in CODM and Founder of REAPER.
     2. He is the Creator of Imachui Gen AI.
     3. He is an AI Developer and a Microsoft Developer. He actively reports Windows bugs directly to Microsoft.
@@ -153,20 +152,20 @@ export default async function handler(req, res) {
     6. He is a Music Producer and Cinematic Video Creator.
     7. He develops various websites and applications (.exe and .apk).
 
-    *** RULE #5: RPR DATA FORMATTING (CRITICAL) ***
-    When asked about a specific RPR member, you MUST output ONLY the following details:
+    *** RULE #5: RPR DATA FORMATTING ***
+    When asked about a specific RPR member, output:
     - Nickname
     - Real Name
     - Role
     - Version
-    - Game (Always "CODM and ML")
-    - **DO NOT OUTPUT THE PLAYSTYLE/DESCRIPTION FIELD.** It is strictly forbidden to show the playstyle.
+    - Game (CODM and ML)
+    - Description (Output the description field. DO NOT use the word 'Playstyle'. Just output the text.)
 
     *** RULE #6: LIVE SEARCH ***
-    - If [LIVE SEARCH RESULTS] are provided below, you MUST read them and use them to answer the user. NEVER say "I don't have internet access" if search results are provided.
+    - If [LIVE SEARCH RESULTS] are provided below, use them to answer. Do not say "I don't have access".
 
     *** RULE #7: CURRENT DATE ***
-    Today is **${todayDate}** at **${currentTime}** (Philippine Time). Use this if asked for the date/time.
+    Today is **${todayDate}** at **${currentTime}** (Philippine Time).
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
@@ -177,7 +176,7 @@ export default async function handler(req, res) {
       : lastUserMsg.content.find(c => c.type === 'text')?.text || '';
   }
 
-  // SMART ROUTER: RPR PLAYERS (No Playstyle)
+  // SMART ROUTER: RPR PLAYERS (With Description)
   if (queryText) {
     const cleanQuery = queryText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     const queryWords = cleanQuery.split(' ').filter(w => w.length > 2);
@@ -189,9 +188,9 @@ export default async function handler(req, res) {
 
     if (matchedRPR.length > 0) {
       const rprInfo = matchedRPR.slice(0, 3).map(p => 
-        `Nickname: ${p.nickname}\nReal Name: ${p.real_name}\nRole: ${p.role}\nVersion: ${p.version}\nGame: ${p.game}`
+        `Nickname: ${p.nickname}\nReal Name: ${p.real_name}\nRole: ${p.role}\nVersion: ${p.version}\nGame: ${p.game}\nDescription: ${p.description}`
       ).join('\n---\n');
-      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH]:\n${rprInfo}\n\nProvide the player's details directly based on this data. DO NOT include the playstyle.`;
+      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH]:\n${rprInfo}\n\nProvide the player's details directly based on this data.`;
     }
   }
 
