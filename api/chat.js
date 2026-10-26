@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Fixed Language Matching & Creator Lore)
+// api/chat.js - Imachui Gen AI (Ultimate Creator Lore & Strict Language)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json';
