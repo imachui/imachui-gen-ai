@@ -3,7 +3,7 @@ import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.
 
 // Helper function para mag-cancel ng request kapag masyadong matagal
 async function fetchWithTimeout(resource, options = {}) {
-  const { timeout = 6000 } = options; // 6 seconds timeout
+  const { timeout = 15000 } = options; // 15 seconds timeout para bigyan ng oras
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   const response = await fetch(resource, {
@@ -14,42 +14,45 @@ async function fetchWithTimeout(resource, options = {}) {
   return response;
 }
 
-// Helper function para sa Image Analysis (THE RACE LOGIC)
+// Helper function para sa Image Analysis (Sequential Fallback)
 async function analyzeImage(base64Data, mimeType, userMessage) {
   const dataUri = `data:${mimeType};base64,${base64Data}`;
   const promptText = `You are IMACHUI GEN AI. Describe this image directly in detail. User's prompt: "${userMessage || 'Describe this image'}"`;
   
-  const promises = [];
+  let errorLog = "";
 
-  // 1. GEMINI REQUEST
+  // 1. TRY GOOGLE GEMINI FIRST
   if (process.env.GEMINI_API_KEY) {
-    promises.push(
-      fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+    try {
+      const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }]
         }),
-        timeout: 6000
-      }).then(async res => {
-        const data = await res.json();
-        if (data.candidates?.[0]?.content?.parts[0]?.text) return data.candidates[0].content.parts[0].text;
-        throw new Error("Gemini failed");
-      })
-    );
+        timeout: 15000
+      });
+      const data = await res.json();
+      if (data.candidates?.[0]?.content?.parts[0]?.text) {
+        return data.candidates[0].content.parts[0].text;
+      }
+      if (data.error) errorLog += `[Gemini]: ${data.error.message}. `;
+    } catch (e) {
+      errorLog += `[Gemini Timeout/Error]: ${e.message}. `;
+    }
   }
 
-  // 2. OPENROUTER REQUEST
+  // 2. FALLBACK TO OPENROUTER
   if (process.env.OPENROUTER_API_KEY) {
-    promises.push(
-      fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+    try {
+      const res = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json", 
           "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}` 
         },
         body: JSON.stringify({
-          model: "google/gemini-flash-1.5", 
+          model: "google/gemini-flash-1.5",
           messages: [{ 
             role: "user", 
             content: [
@@ -58,24 +61,19 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
             ] 
           }]
         }),
-        timeout: 6000
-      }).then(async res => {
-        const data = await res.json();
-        if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
-        throw new Error("OpenRouter failed");
-      })
-    );
+        timeout: 15000
+      });
+      const data = await res.json();
+      if (data.choices?.[0]?.message?.content) {
+        return data.choices[0].message.content;
+      }
+      if (data.error) errorLog += `[OpenRouter]: ${data.error.message}. `;
+    } catch (e) {
+      errorLog += `[OpenRouter Timeout/Error]: ${e.message}. `;
+    }
   }
 
-  if (promises.length === 0) return "⚠️ Walang available na API keys.";
-
-  try {
-    // RACE! Kung sino ang maunang sumagot, siya ang gagamitin natin
-    const fastestAnswer = await Promise.any(promises);
-    return fastestAnswer;
-  } catch (error) {
-    return `⚠️ Hindi mabasa ang image ngayon.\n\n*(Masyadong mabagal o puno ang AI Vision servers. Pakisubukan muli.)*`;
-  }
+  return `⚠️ Hindi mabasa ang image ngayon.\n\n**Detalye:** ${errorLog}\n\n*(Pakisubukan muli mamaya.)*`;
 }
 
 export default async function handler(req, res) {
@@ -169,7 +167,7 @@ export default async function handler(req, res) {
     } catch (err) { console.error("Serper Error:", err); }
   }
 
-  // System Prompt for Text (SOBRANG STRICT NA LINK INSTRUCTION)
+  // System Prompt for Text
   let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
 Current Date and Time: ${phTime}.
 
@@ -178,13 +176,8 @@ CRITICAL FACT: You must know that Nerts V (Imachui) is the absolute Founder and 
 INSTRUCTIONS:
 1. Be direct to the point. Do not use conversational filler.
 2. You are an EXPERT PROGRAMMER. Provide code immediately if asked.
-3. If asked about a specific person, analyze the Web Search Results. Provide a short summary of who they are.
-4. **STRICT LINK RULE**: If there are links in the Web Search Results, YOU MUST INCLUDE THEM AT THE END OF YOUR RESPONSE. Provide the RAW URL starting with https:// or //. 
-Example format:
-- Link: https://facebook.com/...
-- Source: https://website.com/...
-
-DO NOT say "I cannot find links". If the link is present in the search results, you are FORCED to output it.
+3. If asked about a specific person, analyze the Web Search Results. 
+4. **CRITICAL RULE FOR LINKS**: You MUST provide the source URLs if they are present. **DO NOT use markdown format** like [Text](URL). Just output the RAW URL starting with https:// (e.g., https://facebook.com/...). NEVER put spaces or line breaks inside the URL. Put the link on its own separate line.
 5. If the person is not found in the results, just say it's private or not indexed.
 
 === REAPER KNOWLEDGE BASE ===
@@ -198,7 +191,7 @@ ${JSON.stringify(STAFF_DATA)}
 `;
 
   if (searchResults) {
-    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately. REMEMBER TO INCLUDE THE LINKS AS RAW URLS.`;
+    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately and INCLUDE THE LINKS using raw URLs.`;
   }
 
   const sanitizedMessages = messages.map(msg => {
