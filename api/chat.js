@@ -1,14 +1,15 @@
 // api/chat.js
 import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.js';
 
-// Helper function para sa Vision API na may Retry at Fallback
-async function analyzeImageWithGemini(base64Data, mimeType, userMessage) {
-  // Listahan ng mga pwedeng ipalit na modelo kung mag-fail ang isa
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"];
-  
-  for (const model of models) {
-    // Mag-retry ng hanggang 3 beses bawat modelo
-    for (let attempt = 1; attempt <= 3; attempt++) {
+// Helper function para sa Image Analysis na may Fallback (Gemini -> OpenRouter)
+async function analyzeImage(base64Data, mimeType, userMessage) {
+  const dataUri = `data:${mimeType};base64,${base64Data}`;
+  const promptText = `You are IMACHUI GEN AI. Describe this image directly in detail. If there are people, tell me what they look like, what they are wearing, or any visible text. User's prompt: "${userMessage || 'Describe this image'}"`;
+
+  // 1. TRY GOOGLE GEMINI FIRST
+  if (process.env.GEMINI_API_KEY) {
+    const models = ["gemini-2.5-flash", "gemini-1.5-flash-latest"];
+    for (const model of models) {
       try {
         const visionRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
           method: "POST",
@@ -16,7 +17,7 @@ async function analyzeImageWithGemini(base64Data, mimeType, userMessage) {
           body: JSON.stringify({
             contents: [{
               parts: [
-                { text: `You are IMACHUI GEN AI. Describe this image directly in detail. If there are people, tell me what they look like, what they are wearing, or any visible text. User's prompt: "${userMessage || 'Describe this image'}"` },
+                { text: promptText },
                 { inline_data: { mime_type: mimeType, data: base64Data } }
               ]
             }]
@@ -24,31 +25,47 @@ async function analyzeImageWithGemini(base64Data, mimeType, userMessage) {
         });
 
         const visionData = await visionRes.json();
-
-        // Kung success, ibalik agad ang sagot
         if (visionData.candidates && visionData.candidates[0]?.content?.parts[0]?.text) {
-          return { success: true, text: visionData.candidates[0].content.parts[0].text };
+          return visionData.candidates[0].content.parts[0].text;
         }
-
-        // Kung 503 (High Demand) o 429 (Rate Limit), mag-hintay muna bago i-retry
-        if (visionData.error && (visionData.error.code === 503 || visionData.error.code === 429)) {
-          console.log(`[${model}] High demand/rate limit. Retrying in ${attempt * 2} seconds...`);
-          await new Promise(resolve => setTimeout(resolve, attempt * 2000)); // 2s, 4s, 6s
-          continue;
-        }
-
-        // Kung ibang error (tulad ng 404 Model Not Found), lumipat agad sa susunod na modelo
-        break; 
-
       } catch (e) {
-        console.error(`Network error on ${model}:`, e.message);
-        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+        console.log(`Gemini ${model} failed, trying next...`);
       }
     }
   }
 
-  // Kung nabigo lahat ng models at retries
-  return { success: false, error: "Ang mga servers ng Google Gemini ay kasalukuyang overloaded. Pakisubukan muli pagkalipas ng ilang minuto." };
+  // 2. FALLBACK TO OPENROUTER VISION (Kung nag-fail ang Gemini)
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      const openRouterRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-3.2-11b-vision-instruct", // Libreng vision model sa OpenRouter
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: promptText },
+              { type: "image_url", image_url: { url: dataUri } }
+            ]
+          }]
+        })
+      });
+
+      const openRouterData = await openRouterRes.json();
+      if (openRouterData.choices && openRouterData.choices[0]?.message?.content) {
+        return openRouterData.choices[0].message.content;
+      }
+    } catch (e) {
+      console.error("OpenRouter Vision Failed:", e);
+    }
+  }
+
+  // Kung parehong nabigo
+  return "⚠️ Hindi mabasa ang image. Ang Gemini at OpenRouter Vision ay kasalukuyang overloaded o naubos ang quota. Pakisubukan muli mamaya.";
 }
 
 export default async function handler(req, res) {
@@ -73,7 +90,7 @@ export default async function handler(req, res) {
   let hasImage = false;
   let imageBase64 = "";
 
-  // 1. TIGNAN KUNG MAY IMAGE SA PINAKABAGONG MESSAGE
+  // 1. TIGNAN KUNG MAY IMAGE
   if (lastMessage && Array.isArray(lastMessage.content)) {
     for (const part of lastMessage.content) {
       if (part.type === 'image') {
@@ -87,25 +104,16 @@ export default async function handler(req, res) {
 
   if (!userMessage && !hasImage) return res.status(400).json({ error: 'No message provided' });
 
-  // 2. KUNG MAY IMAGE, GAMITIN ANG SMART RETRY & FALLBACK
+  // 2. KUNG MAY IMAGE, GAMITIN ANG DUAL-VISION FALLBACK
   if (hasImage) {
-    if (!process.env.GEMINI_API_KEY) {
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      return res.status(200).send("⚠️ System Error: Kulang ang GEMINI_API_KEY sa Vercel Environment Variables.");
-    }
-
     try {
       const base64Data = imageBase64.split(',')[1];
       const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
 
-      const result = await analyzeImageWithGemini(base64Data, mimeType, userMessage);
-
+      const answer = await analyzeImage(base64Data, mimeType, userMessage);
+      
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      if (result.success) {
-        return res.status(200).send(result.text);
-      } else {
-        return res.status(200).send(`⚠️ ${result.error}`);
-      }
+      return res.status(200).send(answer);
     } catch (e) {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       return res.status(200).send(`⚠️ Error sa pagbasa ng image: ${e.message}`);
