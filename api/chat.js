@@ -3,7 +3,7 @@ import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.
 
 // Helper function para mag-cancel ng request kapag masyadong matagal
 async function fetchWithTimeout(resource, options = {}) {
-  const { timeout = 15000 } = options; // 15 seconds timeout
+  const { timeout = 6000 } = options; // 6 seconds timeout
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   const response = await fetch(resource, {
@@ -14,75 +14,68 @@ async function fetchWithTimeout(resource, options = {}) {
   return response;
 }
 
-// Helper function para sa Image Analysis (Sequential Fallback)
+// Helper function para sa Image Analysis (THE RACE LOGIC)
 async function analyzeImage(base64Data, mimeType, userMessage) {
   const dataUri = `data:${mimeType};base64,${base64Data}`;
   const promptText = `You are IMACHUI GEN AI. Describe this image directly in detail. User's prompt: "${userMessage || 'Describe this image'}"`;
   
-  let errorLog = "";
+  const promises = [];
 
-  // 1. TRY GOOGLE GEMINI FIRST (Gamit ang tamang model: gemini-3.8-flash)
+  // 1. GEMINI REQUEST
   if (process.env.GEMINI_API_KEY) {
-    const geminiModels = ["gemini-3.8-flash", "gemini-flash-latest"];
-    for (const model of geminiModels) {
-      try {
-        const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }]
-          }),
-          timeout: 15000
-        });
-        
+    promises.push(
+      fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }]
+        }),
+        timeout: 6000
+      }).then(async res => {
         const data = await res.json();
-        if (data.candidates?.[0]?.content?.parts[0]?.text) {
-          return data.candidates[0].content.parts[0].text;
-        }
-        if (data.error) errorLog += `[Gemini ${model}]: ${data.error.message}. `;
-      } catch (e) {
-        errorLog += `[Gemini ${model} Timeout]: ${e.message}. `;
-      }
-    }
+        if (data.candidates?.[0]?.content?.parts[0]?.text) return data.candidates[0].content.parts[0].text;
+        throw new Error("Gemini failed");
+      })
+    );
   }
 
-  // 2. FALLBACK TO OPENROUTER (Gamit ang aktibong libreng vision models)
+  // 2. OPENROUTER REQUEST
   if (process.env.OPENROUTER_API_KEY) {
-    const orModels = ["google/gemma-4-26b-a4b-it:free", "qwen/qwen-2.5-vl-72b-instruct:free"];
-    
-    for (const model of orModels) {
-      try {
-        const res = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json", 
-            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}` 
-          },
-          body: JSON.stringify({
-            model: model,
-            messages: [{ 
-              role: "user", 
-              content: [
-                { type: "text", text: promptText }, 
-                { type: "image_url", image_url: { url: dataUri } }
-              ] 
-            }]
-          }),
-          timeout: 15000
-        });
-        
+    promises.push(
+      fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}` 
+        },
+        body: JSON.stringify({
+          model: "google/gemini-flash-1.5", 
+          messages: [{ 
+            role: "user", 
+            content: [
+              { type: "text", text: promptText }, 
+              { type: "image_url", image_url: { url: dataUri } }
+            ] 
+          }]
+        }),
+        timeout: 6000
+      }).then(async res => {
         const data = await res.json();
-        if (data.choices?.[0]?.message?.content) {
-          return data.choices[0].message.content;
-        }
-        if (data.error) errorLog += `[OpenRouter ${model}]: ${data.error.message}. `;
-      } catch (e) {
-        errorLog += `[OpenRouter ${model} Timeout]: ${e.message}. `;
-      }
-    }
+        if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
+        throw new Error("OpenRouter failed");
+      })
+    );
   }
 
-  return `⚠️ Hindi mabasa ang image ngayon.\n\n**Detalye ng Error:**\n${errorLog}\n\n*(Pakisubukan muli mamaya o i-check ang API keys sa Vercel)*`;
+  if (promises.length === 0) return "⚠️ Walang available na API keys.";
+
+  try {
+    // RACE! Kung sino ang maunang sumagot, siya ang gagamitin natin
+    const fastestAnswer = await Promise.any(promises);
+    return fastestAnswer;
+  } catch (error) {
+    return `⚠️ Hindi mabasa ang image ngayon.\n\n*(Masyadong mabagal o puno ang AI Vision servers. Pakisubukan muli.)*`;
+  }
 }
 
 export default async function handler(req, res) {
@@ -176,7 +169,7 @@ export default async function handler(req, res) {
     } catch (err) { console.error("Serper Error:", err); }
   }
 
-  // System Prompt for Text
+  // System Prompt for Text (Pinalakas ang Link Instruction)
   let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
 Current Date and Time: ${phTime}.
 
@@ -186,7 +179,7 @@ INSTRUCTIONS:
 1. Be direct to the point. Do not use conversational filler.
 2. You are an EXPERT PROGRAMMER. Provide code immediately if asked.
 3. If asked about a specific person, analyze the Web Search Results. 
-4. **CRITICAL RULE FOR LINKS**: You MUST provide the source URLs if they are present. DO NOT use markdown format like [Text](URL). Just output the RAW URL starting with https:// (e.g., https://facebook.com/...). NEVER put spaces or line breaks inside the URL. Put the link on its own separate line.
+4. **CRITICAL RULE FOR LINKS**: You MUST provide the source URLs if they are present. **DO NOT use markdown format** like [Text](URL). Just output the RAW URL starting with https:// (e.g., https://facebook.com/...). NEVER put spaces or line breaks inside the URL. Put the link on its own separate line.
 5. If the person is not found in the results, just say it's private or not indexed.
 
 === REAPER KNOWLEDGE BASE ===
