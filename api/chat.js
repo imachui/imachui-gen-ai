@@ -1,13 +1,11 @@
 // api/chat.js
-
 export default async function handler(req, res) {
-  // 1. CORS HEADERS (Susi para hindi mag "Failed to fetch" ang GitHub Pages)
+  // CORS Headers (Susi para hindi mag-Failed to fetch)
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Handle preflight request ng browser
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -16,7 +14,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Kunin ang data (may fallback kung sakaling string ang pumasok)
   let body = req.body;
   if (typeof body === 'string') {
     try { body = JSON.parse(body); } catch(e) {}
@@ -29,7 +26,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No message provided' });
   }
 
-  // I-sanitize ang messages para hindi mag-crash ang DeepSeek API (String vs Array fix)
   const sanitizedMessages = messages.map(msg => {
     let textContent = "";
     if (typeof msg.content === 'string') {
@@ -42,9 +38,7 @@ export default async function handler(req, res) {
 
   const lowerUserMessage = userMessage.toLowerCase();
 
-  // ==========================================
-  // 2. HARDCODED INTERCEPTOR PARA KAY NERTS V (IMACHUI)
-  // ==========================================
+  // --- NERTS V INTERCEPTOR ---
   const keywords = ["nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", "creator", "founder", "rpr", "reaper"];
   
   if (keywords.some(keyword => lowerUserMessage.includes(keyword))) {
@@ -56,9 +50,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  // ==========================================
-  // 3. WEB SEARCH (SERPER) - Ibinalik natin ito
-  // ==========================================
+  // --- SERPER WEB SEARCH ---
   let searchResults = "";
   if (process.env.SERPER_API_KEY && userMessage.length > 5) {
     try {
@@ -81,9 +73,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // ==========================================
-  // 4. SYSTEM PROMPT & AI API CALL (DEEPSEEK STREAMING)
-  // ==========================================
+  // --- DEEPSEEK API ---
   let systemContent = `You are IMACHUI GEN AI (Global King), an advanced AI created by Nerts V (alias IMACHUI). 
   Your primary purpose is to assist users, provide web search results, and act as a helpful guide. 
   Always be respectful, highly intelligent, and helpful in English. 
@@ -134,9 +124,7 @@ export default async function handler(req, res) {
             if (content) {
               res.write(content);
             }
-          } catch (e) {
-            // Ignore parse errors
-          }
+          } catch (e) {}
         }
       }
     }
