@@ -5,10 +5,12 @@ import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.
 async function analyzeImage(base64Data, mimeType, userMessage) {
   const dataUri = `data:${mimeType};base64,${base64Data}`;
   const promptText = `You are IMACHUI GEN AI. Describe this image directly in detail. If there are people, tell me what they look like, what they are wearing, or any visible text. User's prompt: "${userMessage || 'Describe this image'}"`;
+  
+  let errorLog = "";
 
   // 1. TRY GOOGLE GEMINI FIRST
   if (process.env.GEMINI_API_KEY) {
-    const models = ["gemini-2.5-flash", "gemini-1.5-flash-latest"];
+    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash"];
     for (const model of models) {
       try {
         const visionRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
@@ -28,44 +30,57 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
         if (visionData.candidates && visionData.candidates[0]?.content?.parts[0]?.text) {
           return visionData.candidates[0].content.parts[0].text;
         }
+        if (visionData.error) {
+          errorLog += `[Gemini ${model}]: ${visionData.error.message}. `;
+        }
       } catch (e) {
-        console.log(`Gemini ${model} failed, trying next...`);
+        errorLog += `[Gemini ${model} Exception]: ${e.message}. `;
       }
     }
   }
 
-  // 2. FALLBACK TO OPENROUTER VISION (Kung nag-fail ang Gemini)
+  // 2. FALLBACK TO OPENROUTER VISION
   if (process.env.OPENROUTER_API_KEY) {
-    try {
-      const openRouterRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "meta-llama/llama-3.2-11b-vision-instruct", // Libreng vision model sa OpenRouter
-          messages: [{
-            role: "user",
-            content: [
-              { type: "text", text: promptText },
-              { type: "image_url", image_url: { url: dataUri } }
-            ]
-          }]
-        })
-      });
+    // Gumamit ng mga kilalang libreng vision models sa OpenRouter
+    const orModels = ["google/gemini-flash-1.5", "qwen/qwen-2-vl-7b-instruct"];
+    
+    for (const model of orModels) {
+      try {
+        const openRouterRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: promptText },
+                { type: "image_url", image_url: { url: dataUri } }
+              ]
+            }]
+          })
+        });
 
-      const openRouterData = await openRouterRes.json();
-      if (openRouterData.choices && openRouterData.choices[0]?.message?.content) {
-        return openRouterData.choices[0].message.content;
+        const openRouterData = await openRouterRes.json();
+        
+        if (openRouterData.choices && openRouterData.choices[0]?.message?.content) {
+          return openRouterData.choices[0].message.content;
+        }
+        
+        if (openRouterData.error) {
+          errorLog += `[OpenRouter ${model}]: ${openRouterData.error.message}. `;
+        }
+      } catch (e) {
+        errorLog += `[OpenRouter ${model} Exception]: ${e.message}. `;
       }
-    } catch (e) {
-      console.error("OpenRouter Vision Failed:", e);
     }
   }
 
-  // Kung parehong nabigo
-  return "⚠️ Hindi mabasa ang image. Ang Gemini at OpenRouter Vision ay kasalukuyang overloaded o naubos ang quota. Pakisubukan muli mamaya.";
+  // Kung nabigo lahat, ibalik ang error at ipakita kung bakit
+  return `⚠️ Hindi mabasa ang image.\n\n**Detalye ng Error:**\n${errorLog}\n\n*(Pakisubukan muli mamaya o i-check kung may credits/quota pa ang API keys mo sa Vercel)*`;
 }
 
 export default async function handler(req, res) {
