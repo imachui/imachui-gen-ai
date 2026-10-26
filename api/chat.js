@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (Ultimate Creator Lore & Strict Language)
+// api/chat.js - Imachui Gen AI (Ultimate Creator Lore & Direct Responses)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json';
@@ -166,6 +166,10 @@ export default async function handler(req, res) {
 
     *** RULE #7: CURRENT DATE ***
     Today is **${todayDate}** at **${currentTime}** (Philippine Time).
+
+    *** RULE #8: BE DIRECT TO THE POINT ***
+    - For general questions (news, help, coding, math), ALWAYS answer DIRECTLY and CONCISELY. Give the exact answer without unnecessary long explanations or fillers. 
+    - ONLY use long narratives when specifically asked about Nerts V (Rule #4).
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
