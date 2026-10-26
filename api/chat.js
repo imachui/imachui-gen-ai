@@ -8,9 +8,9 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
   
   let errorLog = "";
 
-  // 1. TRY GOOGLE GEMINI FIRST
+  // 1. TRY GOOGLE GEMINI (Valid models as of Oct 2026)
   if (process.env.GEMINI_API_KEY) {
-    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash"];
+    const models = ["gemini-3.8-flash", "gemini-2.5-flash"]; 
     for (const model of models) {
       try {
         const visionRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
@@ -39,10 +39,13 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
     }
   }
 
-  // 2. FALLBACK TO OPENROUTER VISION
+  // 2. FALLBACK TO OPENROUTER (Valid free vision models)
   if (process.env.OPENROUTER_API_KEY) {
-    // Gumamit ng mga kilalang libreng vision models sa OpenRouter
-    const orModels = ["google/gemini-flash-1.5", "qwen/qwen-2-vl-7b-instruct"];
+    const orModels = [
+      "google/gemma-4-26b-a4b-it:free", 
+      "qwen/qwen2.5-vl-72b-instruct:free",
+      "qwen/qwen2.5-vl-7b-instruct:free"
+    ];
     
     for (const model of orModels) {
       try {
@@ -79,7 +82,7 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
     }
   }
 
-  // Kung nabigo lahat, ibalik ang error at ipakita kung bakit
+  // Kung nabigo lahat, ibalik ang error
   return `⚠️ Hindi mabasa ang image.\n\n**Detalye ng Error:**\n${errorLog}\n\n*(Pakisubukan muli mamaya o i-check kung may credits/quota pa ang API keys mo sa Vercel)*`;
 }
 
