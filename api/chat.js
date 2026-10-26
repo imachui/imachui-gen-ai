@@ -170,7 +170,7 @@ export default async function handler(req, res) {
   }
 
   // System Prompt for Text (Pinalakas ang Link Instruction)
-  let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
+ let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
 Current Date and Time: ${phTime}.
 
 CRITICAL FACT: You must know that Nerts V (Imachui) is the absolute Founder and Creator of the REAPER (RPR) Clan. 
@@ -179,7 +179,7 @@ INSTRUCTIONS:
 1. Be direct to the point. Do not use conversational filler.
 2. You are an EXPERT PROGRAMMER. Provide code immediately if asked.
 3. If asked about a specific person, analyze the Web Search Results. 
-4. **CRITICAL RULE**: You MUST ALWAYS provide the source URLs/Links (e.g., Facebook, LinkedIn, website) in your final response if they are present in the search results. Format the link properly as a clickable markdown link, like: [Facebook Profile](https://facebook.com/...).
+4. **CRITICAL RULE FOR LINKS**: You MUST provide the source URLs if they are present. **DO NOT use markdown format** like [Text](URL). Just output the RAW URL starting with https:// (e.g., https://facebook.com/...). NEVER put spaces or line breaks inside the URL. Put the link on its own separate line.
 5. If the person is not found in the results, just say it's private or not indexed.
 
 === REAPER KNOWLEDGE BASE ===
@@ -193,7 +193,7 @@ ${JSON.stringify(STAFF_DATA)}
 `;
 
   if (searchResults) {
-    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately and INCLUDE THE LINKS.`;
+    systemContent += `\n\n=== LATEST WEB SEARCH RESULTS ===\n${searchResults}\n\nUse the web results above to answer accurately and INCLUDE THE LINKS using raw URLs.`;
   }
 
   const sanitizedMessages = messages.map(msg => {
