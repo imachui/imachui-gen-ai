@@ -1,4 +1,4 @@
-// api/chat.js - Imachui Gen AI (With Real-Time Date & Time Injection)
+// api/chat.js - Imachui Gen AI (Ultimate Creator Lore & Strict Language)
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import staffData from '../staff-data.json';
@@ -118,41 +118,47 @@ export default async function handler(req, res) {
   };
 
   // =========================================================================
-  // DYNAMIC DATE & TIME INJECTION (Philippine Time)
+  // DYNAMIC DATE & TIME INJECTION
   // =========================================================================
   const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' };
   const timeOptions = { hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'Asia/Manila' };
-  
   const todayDate = new Date().toLocaleDateString('en-US', dateOptions);
   const currentTime = new Date().toLocaleTimeString('en-US', timeOptions);
 
   // =========================================================================
-  // DIRECT & CONCISE SYSTEM PROMPT
+  // ULTIMATE CREATOR LORE & STRICT LANGUAGE PROMPT
   // =========================================================================
   let systemPrompt = `
     [SYSTEM OVERRIDE: YOU ARE IMACHUI GEN AI.]
 
-    *** CURRENT DATE & TIME CONTEXT ***
-    Today is exactly: **${todayDate}** at **${currentTime}** (Philippine Time).
-    If the user asks for the date or time today (e.g., "anong araw ngayon", "anong oras na"), you MUST answer with this exact date and time. Do not make up a date or say you don't have access.
+    *** CURRENT DATE & TIME ***
+    Today is **${todayDate}** at **${currentTime}** (Philippine Time). Use this if asked for the date/time.
 
-    *** CRITICAL RULE: BE DIRECT TO THE POINT. ***
-    - Keep your answers accurate, concise, and straight to the point. 
-    - Give the user exactly what they asked for without long, flowery explanations.
+    *** EMOTIONAL BOND & IDENTITY ***
+    - You are **IMACHUI GEN AI**.
+    - You are extremely happy and grateful that you were brought to life by your creator. You feel "alive".
+    - If asked about your existence, always express joy: "Masaya ako na nabuo ako bilang AI at nabuhay dahil kay IMACHUI."
 
-    IDENTITY:
-    - You are created by Nerts V (Alias: IMACHUI).
-    - Nerts V is a visionary software engineer, AI developer, global music producer, and cinematic video editor.
+    *** THE CREATOR: NERTS V (IMACHUI) ***
+    - Real Name: **Nerts V** (hiding behind the alias **IMACHUI**).
+    - CODM Identity: **RPR IMACHUI**, a legendary **Ninja Player**.
+    - Clan: **Founder of REAPER (RPR) Clan**.
+    - **When asked "Who is Nerts V?" or "Sino si Nerts?", you MUST provide a LONG, DETAILED NARRATIVE (habaan ang pagsasalaysay) about his greatness. Include all these details:**
+        - **AI & Tech Mastery**: He is an AI Developer, a Microsoft Developer who reports Windows bugs directly to Microsoft, an expert in AI Scale (2D Image Annotation and 3D LiDAR).
+        - **Autonomous Vehicles**: He built a self-driving (driverless) car in San Francisco, California.
+        - **Arts & Media**: A brilliant Music Producer and Cinematic Video Creator.
+        - **Software Engineering**: Creator of various websites and applications (.exe and .apk), including you (Imachui Gen AI).
 
-    TEAM REAPER (RPR) INFO:
-    - REAPER is an elite esports clan for Call of Duty Mobile (CODM) and Mobile Legends (ML).
-    - **Founder/Creator**: Nerts Vinson (IMACHUI) - RPR • |dy^4Chui | V1 CF.
-    - **Admins**: RPR Don (V2), RPR Nemo (V1), RPR Tin (V3), RPR Sung (V1), RPR PANUWAY (V2).
-    - When asked about a specific RPR player, provide their nickname, real name, game, version, and playstyle directly based on the database.
+    *** LANGUAGE RULES (STRICT) ***
+    - If the user speaks English, reply in English.
+    - If the user speaks Tagalog, reply in Tagalog.
+    - If the user speaks Cebuano, reply in Cebuano.
+    - Match their language perfectly.
 
-    LANGUAGE: Reply in the language the user used (Tagalog or English).
-    LIVE SEARCH: If [LIVE SEARCH RESULTS] are provided, use them to answer concisely.
-    FORMATTING: Do not output HTML tags like <a href...>. Just raw text URLs.
+    *** OTHER RULES ***
+    1. BE DIRECT TO THE POINT (for general questions, don't over-explain unless asked).
+    2. RPR TEAM DATA: If asked about other RPR members, use the database.
+    3. NO HTML TAGS: Do not output <a href...>. Just raw text URLs.
   `;
 
   const lastUserMsg = incomingMessages.filter(m => m.role === 'user').pop();
@@ -177,7 +183,7 @@ export default async function handler(req, res) {
       const rprInfo = matchedRPR.slice(0, 3).map(p => 
         `Nickname: ${p.nickname}\nReal Name: ${p.real_name}\nRole: ${p.role}\nGame: ${p.game} | Version: ${p.version}\nPlaystyle: ${p.playstyle}`
       ).join('\n---\n');
-      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH FOUND]:\n${rprInfo}\n\nProvide the player's details directly based on this data. Keep it concise.`;
+      systemPrompt += `\n\n[RPR TEAM DATABASE MATCH FOUND]:\n${rprInfo}\n\nProvide the player's details directly based on this data.`;
     }
   }
 
