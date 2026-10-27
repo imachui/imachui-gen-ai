@@ -24,24 +24,27 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
 
   const promises = [];
 
-  // 1. GEMINI
+  // 1. GEMINI (dalawang model sabay, walang thinking para mabilis)
   if (process.env.GEMINI_API_KEY) {
-    promises.push((async () => {
-      const res = await fetchWithTimeout(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }]
-          })
-        }
-      );
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join("\n");
-      if (text) return text;
-      throw new Error("Gemini: " + (data.error?.message || data.candidates?.[0]?.finishReason || "no text"));
-    })());
+    for (const gModel of ["gemini-2.5-flash", "gemini-2.5-flash-lite"]) {
+      promises.push((async () => {
+        const res = await fetchWithTimeout(
+          `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
+              generationConfig: { maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } }
+            })
+          }
+        );
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join("\n");
+        if (text) return text;
+        throw new Error(`Gemini(${gModel}): ` + (data.error?.message || data.candidates?.[0]?.finishReason || "no text"));
+      })());
+    }
   }
 
   // 2. MISTRAL
@@ -52,6 +55,7 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}` },
         body: JSON.stringify({
           model: "mistral-small-latest",
+          max_tokens: 1024,
           messages: [{
             role: "user",
             content: [
@@ -76,6 +80,7 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}` },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
+          max_tokens: 1024,
           messages: [{
             role: "user",
             content: [
@@ -260,7 +265,7 @@ ${JSON.stringify(STAFF_DATA)}
       response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}` },
-        body: JSON.stringify({ model: "meta-llama/llama-3-8b-instruct", messages: apiMessages, stream: true })
+        body: JSON.stringify({ model: "meta-llama/llama-3-8b-instruct", messages: apiMessages, max_tokens: 2048, stream: true })
       });
       if (response.ok) return streamResponse(response, res);
       console.error("OpenRouter status:", response.status);
