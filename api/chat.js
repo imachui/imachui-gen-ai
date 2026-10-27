@@ -18,7 +18,15 @@ function loadJson(file) {
   return null;
 }
 
-const RPR_DATA = loadJson('rpr-data.json') || [];
+// Mga pangalan na HINDI dapat lumabas bilang RPR member (kahit nasa rpr-data.json).
+// Dagdagan lang ang listahang ito kung may gusto pang alisin. (lowercase, walang accent)
+const RPR_EXCLUDE = ['eunice templado'];
+
+const RPR_DATA = (loadJson('rpr-data.json') || []).filter((m) => {
+  const key = String(`${m.nickname || ''} ${m.real_name || ''}`)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ');
+  return !RPR_EXCLUDE.some((x) => key.includes(x));
+});
 const STAFF_ALL = loadJson('staff-data.json') || STAFF_DATA;
 
 // ==========================================
@@ -148,7 +156,7 @@ function formatStaffEntry(s) {
 
 // Database card (exact, galing mismo sa database — hindi hinuhulaan ng AI)
 function buildDbCard(l, lang) {
-  let out = T(lang, '📇 **Found in the Imachui Gen AI database:**', '📇 **Nakita sa database ng Imachui Gen AI:**') + '\n';
+  let out = '';
   if (l.rpr.length || l.members.length) {
     out += '\n🥷 **REAPER (RPR) Clan**\n';
     out += l.rpr.map(formatRprEntry).join('\n');
@@ -640,8 +648,8 @@ export default async function handler(req, res) {
       const v1 = RPR_DATA.filter((m) => /V1/i.test(m.version)).length;
       const out = T(
         lang,
-        `**REAPER (RPR)** has **${RPR_DATA.length}** members in my database (V1 Main accounts: ${v1}, other versions: ${RPR_DATA.length - v1}).\n\nTo find someone, ask me like this:\n• Who is Panuway\n• Who is Jomar\n• Who are the admins of RPR`,
-        `Ang **REAPER (RPR)** ay may **${RPR_DATA.length}** na members sa aking database (V1 Main accounts: ${v1}, ibang version: ${RPR_DATA.length - v1}).\n\nPara may hanapin, itanong mo ito nang ganito:\n• Sino si Panuway\n• Sino si Jomar\n• Sino ang mga admin ng RPR`
+        `**REAPER (RPR)** has **${RPR_DATA.length}** members (V1 Main accounts: ${v1}, other versions: ${RPR_DATA.length - v1}).\n\nTo find someone, ask me like this:\n• Who is Panuway\n• Who is Jomar\n• Who are the admins of RPR`,
+        `Ang **REAPER (RPR)** ay may **${RPR_DATA.length}** na members (V1 Main accounts: ${v1}, ibang version: ${RPR_DATA.length - v1}).\n\nPara may hanapin, itanong mo ito nang ganito:\n• Sino si Panuway\n• Sino si Jomar\n• Sino ang mga admin ng RPR`
       );
       return sendPlain(out);
     }
@@ -715,17 +723,18 @@ ANSWER RULES:
 1. Be direct and to the point. No greetings, no filler, no long introductions.
 2. Accuracy comes first. Use the DATABASE, WEB RESULTS, and your solid knowledge. If you are not sure, say so in one short sentence. Never guess and never invent facts, names, numbers, or links.
 3. You are an EXPERT PROGRAMMER. For code requests, give complete, working code immediately in a code block.
-4. This is a fun community app. The DATABASE belongs to the creator and the community has agreed to share it, so present database identities openly with a friendly, fun tone. Never invent personal details (such as addresses or phone numbers) that are not in the database or the web results.
-5. Never write markdown links like [text](url). When you give a source, write the RAW URL starting with https:// on its own line.
+4. This is a fun community app. The DATABASE belongs to the creator and the community has agreed to share it, so present identities openly with a friendly, fun tone. Never invent personal details (such as addresses or phone numbers) that are not in the database or the web results.
+5. NEVER say the words "database", "records", "my data", "search results", or "web results" to the user. Speak naturally, as if you simply know these people. Never say a person is "not in the database".
+6. Never write markdown links like [text](url). When you give a source, write the RAW URL starting with https:// on its own line.
 `;
 
   if (lookupName) {
     systemContent += `\n=== PERSON LOOKUP ===\nThe user is looking for: "${lookupName}".\n`;
     if (foundLocal) {
-      systemContent += `The database card for this person is ALREADY shown to the user above your answer. Do NOT repeat it and do NOT say the person is missing from the database.
-Your job: in at most 2 short sentences, add only facts from the WEB RESULTS that clearly refer to this same person (the full name must appear in the title or snippet). If nothing clear, write one short sentence saying no extra public information was found.\n`;
+      systemContent += `The profile of this person is ALREADY shown to the user above your answer. Do NOT repeat it.
+Your job: in at most 2 short sentences, add only facts from the WEB RESULTS that clearly refer to this same person (the full name must appear in the title or snippet). Do not say the web result "matches" the profile and do not claim it is the same person; say "Online, a person with this name..." only if unsure. If nothing clear, write one short sentence saying no extra public information was found.\n`;
     } else {
-      systemContent += `The person was NOT found in the database. Use only the WEB RESULTS below. Only say a result is about this person if the full name clearly appears in the title or snippet. A Facebook post or video where the name appears only as a commenter is NOT information about the person. If nothing clear is found, say the person is private or not indexed. Do NOT write any URLs: the system adds the Facebook links automatically. Keep it short.\n`;
+      systemContent += `This person has no profile in the DATABASE. Use only the WEB RESULTS below, and never claim this person belongs to REAPER (RPR) or the hospital. Only say a result is about this person if the full name clearly appears in the title or snippet. A Facebook post or video where the name appears only as a commenter is NOT information about the person. If nothing clear is found, say the person is private or not indexed. Do NOT write any URLs: the system adds the Facebook links automatically. Keep it short.\n`;
     }
     if (personContext) systemContent += `\n=== WEB RESULTS ===\n${personContext}\n`;
   }
@@ -794,7 +803,7 @@ Write ONE final answer for the user. Keep the parts that are correct and agree w
   if (lookupName) {
     const body = foundLocal
       ? dbHead
-      : T(lang, `I could not find "${titleCase(lookupName)}" in my database.`, `Hindi ko nakita si "${titleCase(lookupName)}" sa aking database.`);
+      : T(lang, `I could not find any information about "${titleCase(lookupName)}".`, `Wala akong nakitang impormasyon tungkol kay "${titleCase(lookupName)}".`);
     return sendPlain(body + personTail);
   }
 
