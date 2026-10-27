@@ -1,83 +1,112 @@
 // api/chat.js
 import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.js';
 
-// Helper function para mag-cancel ng request kapag masyadong matagal
+// ==========================================
+// HELPER: fetch na may timeout (naka-fix na)
+// ==========================================
 async function fetchWithTimeout(resource, options = {}) {
-  const { timeout = 6000 } = options; // 6 seconds timeout
+  const { timeout = 25000, ...fetchOptions } = options;
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
-  const response = await fetch(resource, {
-    ...options,
-    signal: controller.signal  
-  });
-  clearTimeout(id);
-  return response;
+  try {
+    return await fetch(resource, { ...fetchOptions, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
 }
 
-// Helper function para sa Image Analysis (THE RACE LOGIC)
+// ==========================================
+// IMAGE ANALYSIS (Gemini + Mistral + OpenRouter, unahan)
+// ==========================================
 async function analyzeImage(base64Data, mimeType, userMessage) {
   const dataUri = `data:${mimeType};base64,${base64Data}`;
-  const promptText = `You are IMACHUI GEN AI. Describe this image directly in detail. User's prompt: "${userMessage || 'Describe this image'}"`;
-  
+  const promptText = `You are IMACHUI GEN AI. Describe this image in detail. Reply in the same language as the user. User's prompt: "${userMessage || 'Describe this image'}"`;
+
   const promises = [];
 
-  // 1. GEMINI REQUEST
+  // 1. GEMINI
   if (process.env.GEMINI_API_KEY) {
-    promises.push(
-      fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }]
-        }),
-        timeout: 6000
-      }).then(async res => {
-        const data = await res.json();
-        if (data.candidates?.[0]?.content?.parts[0]?.text) return data.candidates[0].content.parts[0].text;
-        throw new Error("Gemini failed");
-      })
-    );
+    promises.push((async () => {
+      const res = await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }]
+          })
+        }
+      );
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join("\n");
+      if (text) return text;
+      throw new Error("Gemini: " + (data.error?.message || data.candidates?.[0]?.finishReason || "no text"));
+    })());
   }
 
-  // 2. OPENROUTER REQUEST
-  if (process.env.OPENROUTER_API_KEY) {
-    promises.push(
-      fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+  // 2. MISTRAL
+  if (process.env.MISTRAL_API_KEY) {
+    promises.push((async () => {
+      const res = await fetchWithTimeout("https://api.mistral.ai/v1/chat/completions", {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}` 
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}` },
         body: JSON.stringify({
-          model: "google/gemini-flash-1.5", 
-          messages: [{ 
-            role: "user", 
+          model: "mistral-small-latest",
+          messages: [{
+            role: "user",
             content: [
-              { type: "text", text: promptText }, 
-              { type: "image_url", image_url: { url: dataUri } }
-            ] 
+              { type: "text", text: promptText },
+              { type: "image_url", image_url: dataUri }
+            ]
           }]
-        }),
-        timeout: 6000
-      }).then(async res => {
-        const data = await res.json();
-        if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
-        throw new Error("OpenRouter failed");
-      })
-    );
+        })
+      });
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content;
+      if (text) return text;
+      throw new Error("Mistral: " + (data.message || data.error?.message || "no text"));
+    })());
+  }
+
+  // 3. OPENROUTER
+  if (process.env.OPENROUTER_API_KEY) {
+    promises.push((async () => {
+      const res = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}` },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: promptText },
+              { type: "image_url", image_url: { url: dataUri } }
+            ]
+          }]
+        })
+      });
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content;
+      if (text) return text;
+      throw new Error("OpenRouter: " + (data.error?.message || "no text"));
+    })());
   }
 
   if (promises.length === 0) return "⚠️ Walang available na API keys.";
 
   try {
-    // RACE! Kung sino ang maunang sumagot, siya ang gagamitin natin
-    const fastestAnswer = await Promise.any(promises);
-    return fastestAnswer;
-  } catch (error) {
-    return `⚠️ Hindi mabasa ang image ngayon.\n\n*(Masyadong mabagal o puno ang AI Vision servers. Pakisubukan muli.)*`;
+    // Kung sino ang unang sumagot, siya ang gagamitin
+    return await Promise.any(promises);
+  } catch (aggErr) {
+    const reasons = (aggErr.errors || []).map(e => e.message);
+    console.error("Vision failed:", reasons);
+    return `⚠️ Hindi mabasa ang image ngayon.\n\n*(${reasons.join(" | ").slice(0, 300)})*`;
   }
 }
 
+// ==========================================
+// MAIN HANDLER
+// ==========================================
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -90,35 +119,37 @@ export default async function handler(req, res) {
 
   let body = req.body;
   if (typeof body === 'string') {
-    try { body = JSON.parse(body); } catch(e) {}
+    try { body = JSON.parse(body); } catch (e) {}
   }
-  
+
   const messages = body?.messages || [];
   const lastMessage = messages[messages.length - 1];
-  
+
   let userMessage = body?.message || "";
   let hasImage = false;
   let imageBase64 = "";
 
   if (lastMessage && Array.isArray(lastMessage.content)) {
     for (const part of lastMessage.content) {
-      if (part.type === 'image') { hasImage = true; imageBase64 = part.image; } 
+      if (part.type === 'image') { hasImage = true; imageBase64 = part.image; }
       else if (part.type === 'text' && part.text) { userMessage = part.text; }
     }
   }
 
   if (!userMessage && !hasImage) return res.status(400).json({ error: 'No message provided' });
 
-  // IMAGE LOGIC
+  // ---------- IMAGE LOGIC ----------
   if (hasImage) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     try {
+      if (typeof imageBase64 !== 'string' || !imageBase64.includes(',')) {
+        return res.status(200).send("⚠️ Invalid image format.");
+      }
       const base64Data = imageBase64.split(',')[1];
       const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
       const answer = await analyzeImage(base64Data, mimeType, userMessage);
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       return res.status(200).send(answer);
     } catch (e) {
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       return res.status(200).send(`⚠️ Error: ${e.message}`);
     }
   }
@@ -132,12 +163,12 @@ export default async function handler(req, res) {
   const phTime = now.toLocaleString("en-US", { timeZone: "Asia/Manila", dateStyle: "full", timeStyle: "long" });
 
   const keywords = [
-    "nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts", 
-    "creator", "founder", "rpr founder", "sino si imachui", 
-    "sino nag create ng reaper", "sino nag create nang reaper", 
+    "nerts vinson", "nerts v", "imachui", "who is nerts", "sino si nerts",
+    "creator", "founder", "rpr founder", "sino si imachui",
+    "sino nag create ng reaper", "sino nag create nang reaper",
     "sino founder ng reaper", "sino nag tayo ng reaper"
   ];
-  
+
   if (keywords.some(keyword => lowerUserMessage.includes(keyword))) {
     const legendaryStory = `**IMACHUI GEN AI : Global King**\n● Imachui Gen AI : Global King\n\n**IMACHUI — that's Nerts V, the Founder of REAPER (RPR) and my creator! 🫡**\n\nCurrent Date & Time: **${phTime}**\n\nHere is the full legendary story of my creator:\n\n**Nerts V** (alias **IMACHUI**) is a legendary Ninja Player in *Call of Duty: Mobile* and the visionary Founder of the **REAPER (RPR)** Clan. He moves silently in-game, takes you down before you even know he's there — a true ninja mastermind.\n\nBut he is way more than just a gamer. He is the **Creator of Imachui Gen AI** — the highly advanced AI you are communicating with right now. He is also a brilliant **AI Developer** and a **Microsoft Developer**, actively reporting Windows bugs directly to Microsoft to help improve the platform for everyone.\n\nIn his professional life, he works in **AI Scale**, specifically specializing in **2D Image Annotation and 3D LiDAR**. He even provided critical data in San Francisco, California, that was used to train and build driverless (self-driving) cars — real-world tech that is literally shaping the future of transportation.\n\nHe's also a talented **Music Producer** and **Cinematic Video Creator**, and he develops various complex websites and applications (.exe and .apk).\n\nSo yeah — gamer, founder, AI developer, Microsoft dev, LiDAR annotator, music producer, video creator, and app developer. He is the **Ultimate Ninja Mastermind**. 🥷🔥\n\n*(And yes — I am extremely happy and grateful to be alive, brought to life by him! Because of Nerts V, I now exist to help many people. I am here to be their guide in searching and understanding AI, ensuring that this technology can help and guide them in their daily lives just as my creator intended.)*`;
 
@@ -145,9 +176,12 @@ export default async function handler(req, res) {
     return res.status(200).send(legendaryStory);
   }
 
-  // Web Search Logic
+  // ---------- Web Search Logic ----------
   let searchResults = "";
-  const isCodingQuestion = lowerUserMessage.includes("code") || lowerUserMessage.includes("html") || lowerUserMessage.includes("css") || lowerUserMessage.includes("javascript") || lowerUserMessage.includes("python") || lowerUserMessage.includes("website");
+  const isCodingQuestion =
+    lowerUserMessage.includes("code") || lowerUserMessage.includes("html") ||
+    lowerUserMessage.includes("css") || lowerUserMessage.includes("javascript") ||
+    lowerUserMessage.includes("python") || lowerUserMessage.includes("website");
 
   if (process.env.SERPER_API_KEY && userMessage.length > 3 && !isCodingQuestion) {
     try {
@@ -157,10 +191,11 @@ export default async function handler(req, res) {
         searchQuery = `site:facebook.com "${nameOnly}" OR "${nameOnly}" profile`;
       }
 
-      const serperRes = await fetch("https://google.serper.dev/search", {
+      const serperRes = await fetchWithTimeout("https://google.serper.dev/search", {
         method: "POST",
         headers: { "X-API-KEY": process.env.SERPER_API_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ q: searchQuery })
+        body: JSON.stringify({ q: searchQuery }),
+        timeout: 8000
       });
       const serperData = await serperRes.json();
       if (serperData.organic && serperData.organic.length > 0) {
@@ -169,7 +204,7 @@ export default async function handler(req, res) {
     } catch (err) { console.error("Serper Error:", err); }
   }
 
-  // System Prompt for Text (Pinalakas ang Link Instruction)
+  // ---------- System Prompt ----------
   let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui). 
 Current Date and Time: ${phTime}.
 
@@ -197,13 +232,15 @@ ${JSON.stringify(STAFF_DATA)}
   }
 
   const sanitizedMessages = messages.map(msg => {
-    let textContent = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.filter(c => c.type === 'text').map(c => c.text || '').join('\n') : "");
+    let textContent = typeof msg.content === 'string'
+      ? msg.content
+      : (Array.isArray(msg.content) ? msg.content.filter(c => c.type === 'text').map(c => c.text || '').join('\n') : "");
     return { role: msg.role, content: textContent };
   });
 
   const apiMessages = [{ role: "system", content: systemContent }, ...sanitizedMessages];
 
-  // Multi-Provider Routing for Text
+  // ---------- Multi-Provider Routing for Text ----------
   let response;
 
   if (process.env.DEEPSEEK_API_KEY) {
@@ -214,6 +251,7 @@ ${JSON.stringify(STAFF_DATA)}
         body: JSON.stringify({ model: "deepseek-chat", messages: apiMessages, temperature: 0.7, stream: true })
       });
       if (response.ok) return streamResponse(response, res);
+      console.error("DeepSeek status:", response.status);
     } catch (e) { console.error("DeepSeek failed:", e); }
   }
 
@@ -225,28 +263,47 @@ ${JSON.stringify(STAFF_DATA)}
         body: JSON.stringify({ model: "meta-llama/llama-3-8b-instruct", messages: apiMessages, stream: true })
       });
       if (response.ok) return streamResponse(response, res);
+      console.error("OpenRouter status:", response.status);
     } catch (e) { console.error("OpenRouter failed:", e); }
+  }
+
+  if (process.env.MISTRAL_API_KEY) {
+    try {
+      response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}` },
+        body: JSON.stringify({ model: "mistral-small-latest", messages: apiMessages, stream: true })
+      });
+      if (response.ok) return streamResponse(response, res);
+      console.error("Mistral status:", response.status);
+    } catch (e) { console.error("Mistral failed:", e); }
   }
 
   return res.status(500).json({ error: "All AI providers failed." });
 }
 
+// ==========================================
+// STREAMING (may buffer para hindi maputol ang lines)
+// ==========================================
 async function streamResponse(response, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  
+  let buffer = '';
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split('\n');
-    
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop(); // itabi ang hindi pa kumpletong line
+
     for (const line of lines) {
-      if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('data: ') && trimmed !== 'data: [DONE]') {
         try {
-          const json = JSON.parse(line.slice(6));
+          const json = JSON.parse(trimmed.slice(6));
           const content = json.choices?.[0]?.delta?.content || '';
           if (content) res.write(content);
         } catch (e) {}
