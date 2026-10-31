@@ -11,7 +11,7 @@
 html, body {
   background-color: #0b1120;
   margin: 0; padding: 0; height: 100%; overflow: hidden;
-  overscroll-behavior: none; 
+  overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -307,29 +307,33 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .role { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
 .msg.user .role { color: var(--accent2); }
 .text { white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; max-width: 100%; font-size: 15px; }
-.text pre { background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; overflow-x: auto; font-family: "SF Mono", monospace; font-size: 13px; margin: 10px 0; border: 1px solid var(--glass-border); }
-.text code { font-family: "SF Mono", monospace; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+.text pre { background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; overflow-x: auto; font-family: "SF Mono", Consolas, monospace; font-size: 13px; margin: 10px 0; border: 1px solid var(--glass-border); white-space: pre; }
+.text pre code { background: transparent; padding: 0; }
+.text code { font-family: "SF Mono", Consolas, monospace; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
 .text a { color: var(--accent); text-decoration: none; word-break: break-all; border-bottom: 1px solid var(--accent); }
 .text a:hover { border-bottom: 1px solid transparent; }
 .text strong { color: #fff; font-weight: 700; }
 .prov { font-size: 10px; color: #8f9bb5; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
 .read-row { margin-top: 12px; }
 .read-btn { border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; border-radius: 10px; padding: 8px 14px; font-size: 12px; cursor: pointer; font-weight: 500; }
-.att-list { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.att-list { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.att-list:empty { display: none; }
 .att-chip { font-size: 11px; color:#c9d1e6; border: 1px solid var(--glass-border); border-radius: 8px; padding: 6px 10px; background: rgba(255,255,255,0.03); }
 .att-img { max-width: 100%; max-height: 250px; border-radius: 12px; margin-top: 12px; }
 .typing { color: var(--accent); font-size: 13px; font-weight: 700; }
 
-.composer-wrap { padding: 20px 24px 30px; display: flex; justify-content: center; flex-shrink: 0; background: transparent; }
-.composer { width: 100%; max-width: 850px; padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 12px; }
-#prompt { width: 100%; min-height: 60px; max-height: 200px; resize: vertical; border: 0; outline: 0; color: #fff; background: transparent; padding: 8px 12px; line-height: 1.5; font-size: 15px; letter-spacing: -0.01em; font-family: inherit; }
+/* ===== COMPACT COMPOSER (maliit na message box) ===== */
+.composer-wrap { padding: 10px 24px 16px; display: flex; justify-content: center; flex-shrink: 0; background: transparent; }
+.composer { width: 100%; max-width: 850px; padding: 8px 12px; border-radius: 20px; display: flex; flex-direction: column; gap: 4px; }
+#prompt { width: 100%; height: 42px; min-height: 42px; max-height: 160px; resize: none; overflow-y: auto; border: 0; outline: 0; color: #fff; background: transparent; padding: 8px 10px; line-height: 1.45; font-size: 15px; letter-spacing: -0.01em; font-family: inherit; }
 #prompt::placeholder { color: #6b7385; }
-.composer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--glass-border); }
-.tools, .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.tool { border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px 14px; background: rgba(255,255,255,0.05); color: #fff; font-size: 12px; cursor: pointer; font-weight: 500; }
-.send { border: 0; border-radius: 12px; padding: 12px 24px; color: #05070a; background: linear-gradient(135deg, var(--accent), var(--accent2)); font-weight: 850; font-size: 14px; cursor: pointer; letter-spacing: -0.01em;}
-.toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; font-weight: 500; }
-.toggle-label input { accent-color: var(--accent); width: 16px; height: 16px; }
+.composer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--glass-border); }
+.tools, .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tool { border: 1px solid var(--glass-border); border-radius: 10px; padding: 7px 12px; background: rgba(255,255,255,0.05); color: #fff; font-size: 12px; cursor: pointer; font-weight: 500; }
+.send { border: 0; border-radius: 10px; padding: 9px 20px; color: #05070a; background: linear-gradient(135deg, var(--accent), var(--accent2)); font-weight: 850; font-size: 14px; cursor: pointer; letter-spacing: -0.01em; }
+.send:disabled { opacity: 0.6; cursor: default; }
+.toggle-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; font-weight: 500; }
+.toggle-label input { accent-color: var(--accent); width: 15px; height: 15px; }
 
 @media(max-width:768px){
   .app { grid-template-columns: 1fr; height: 100vh; height: 100dvh; }
@@ -341,18 +345,19 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   .topbar { height: 58px; padding: 0 14px; gap: 10px; }
   .top-title { font-size: 12px; flex: 1; }
   .launcher-btn { padding: 8px 12px; font-size: 11px; }
-  .chat { padding: 18px 12px 280px 12px; }
+  .chat { padding: 18px 12px 130px 12px; }
   .maintenance-banner { flex-direction: column; text-align: center; padding: 20px 15px; }
   .maintenance-text { text-align: center; }
   .welcome-main-title { font-size: 38px; }
-  .composer-wrap { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; padding: 10px 10px max(10px,env(safe-area-inset-bottom)) 10px; z-index: 100; background: linear-gradient(0deg, var(--bg) 70%, transparent 100%); }
-  .composer { padding: 10px; border-radius: 18px; background: rgba(30, 41, 59, 0.95); }
-  #prompt { min-height: 48px; font-size: 16px; padding: 8px; }
-  .composer-bottom { flex-direction: column; align-items: stretch; gap: 8px; }
-  .tools { justify-content: space-between; width: 100%; }
-  .tool { padding: 10px 12px; font-size: 12px; flex: 1; text-align: center; }
-  .actions { width: 100%; }
-  .send { width: 100%; padding: 14px; font-size: 16px; font-weight: 900; }
+  .composer-wrap { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; padding: 8px 10px max(8px,env(safe-area-inset-bottom)) 10px; z-index: 100; background: linear-gradient(0deg, var(--bg) 70%, transparent 100%); }
+  .composer { padding: 6px 10px; border-radius: 16px; background: rgba(30, 41, 59, 0.95); }
+  #prompt { height: 40px; min-height: 40px; max-height: 110px; font-size: 16px; padding: 6px 8px; }
+  .composer-bottom { flex-direction: row; align-items: center; flex-wrap: nowrap; gap: 6px; padding-top: 6px; }
+  .tools { flex: 1; min-width: 0; justify-content: flex-start; gap: 6px; flex-wrap: nowrap; width: auto; }
+  .tool { flex: 0 0 auto; padding: 8px 10px; font-size: 12px; text-align: center; }
+  .toggle-label { font-size: 11px; white-space: nowrap; }
+  .actions { width: auto; flex: 0 0 auto; }
+  .send { width: auto; padding: 10px 18px; font-size: 14px; font-weight: 900; }
   .msg { gap: 10px; margin: 16px 0; }
   .avatar { width: 32px; height: 32px; flex: 0 0 32px; font-size: 11px; }
   .body { padding: 12px 14px; font-size: 14px; }
@@ -383,7 +388,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <button class="side-btn" onclick="newChat();closeSidebar()">＋ New Conversation</button>
   <div class="side-label">Workspace</div>
   <button class="side-btn ask-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen AI</button>
-  
+
   <div class="side-label" style="margin-top: 15px;">Explore</div>
   <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="side-btn" style="display:block; text-align:center; color:#38bdf8; border-color:#38bdf8; background:rgba(56,189,248,0.1); font-weight:bold;">🚀 AI Launcher</a>
 
@@ -395,15 +400,15 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 
   <div class="side-label">Recent Conversations</div>
   <div class="history" id="history"></div>
-  
+
   <div class="status" id="status">Loading...</div>
-  
+
   <div class="backup-row">
     <button id="downloadBtn" onclick="downloadBackup()">💾 Download</button>
     <button id="uploadBtn" onclick="document.getElementById('uploadInput').click()">📂 Upload</button>
   </div>
   <input type="file" id="uploadInput" accept=".json" style="display:none" onchange="handleUpload(event)">
-  
+
   <div class="side-foot">
     Imachui Gen AI<br>
     <span class="fire-text">The Supreme Intelligence.</span>
@@ -414,20 +419,20 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 <header class="topbar glass">
   <button class="menu-btn" onclick="toggleSidebar()">☰</button>
   <div class="top-title">IMACHUI GEN AI / <span class="gradient">GLOBAL KING</span></div>
-  
+
   <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="launcher-btn">🚀 AI Launcher</a>
 </header>
 <section class="chat" id="chat">
   <div class="welcome" id="welcome">
     <div class="brand-icon" style="margin:0 auto 20px;width:80px;height:80px;font-size:40px">✦</div>
-    
+
     <div class="welcome-title-container">
       <span class="welcome-subtitle">Welcome to</span>
       <span class="welcome-main-title">Imachui Gen AI Beta Test</span>
     </div>
-    
+
     <p>I am the Global King. I absorb the intelligence of multiple AI models to give you massive, powerful, and flawless answers.</p>
-    
+
     <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="maintenance-banner">
       <div class="maintenance-icon">🚀</div>
       <div class="maintenance-text">
@@ -441,14 +446,14 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 </section>
 <div class="composer-wrap">
 <form class="composer glass" id="composer" onsubmit="event.preventDefault();sendMessage();">
-  <textarea id="prompt" rows="2" placeholder="Message Imachui Gen AI..." maxlength="12000"></textarea>
+  <textarea id="prompt" rows="1" placeholder="Message Imachui Gen AI..." maxlength="12000"></textarea>
   <div class="att-list" id="attachments"></div>
   <div class="composer-bottom">
     <div class="tools">
       <button type="button" class="tool" onclick="document.getElementById('fileInput').click()">＋ Attach</button>
       <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv,.json" style="display:none" onchange="handleFiles(event)">
       <button type="button" class="tool" onclick="toggleMic()" id="micBtn">🎙️ Mic</button>
-      
+
       <label class="toggle-label"><input type="checkbox" id="autoRead" checked> Auto-Read</label>
     </div>
     <div class="actions"><button type="submit" class="send" id="sendBtn">Send ↑</button></div>
@@ -486,7 +491,7 @@ function forceOpenBrowser(isAuto = false) {
   }
 }
 
-const APK_DOWNLOAD_URL = "https://github.com/imachui/imachui-gen-ai/releases/download/v1.0/Imachui.Gen.AI.apk"; 
+const APK_DOWNLOAD_URL = "https://github.com/imachui/imachui-gen-ai/releases/download/v1.0/Imachui.Gen.AI.apk";
 
 document.addEventListener('DOMContentLoaded', () => {
   const downloadBtn = document.getElementById('apkDownloadBtn');
@@ -508,8 +513,8 @@ var listening = false;
 var synth = window.speechSynthesis;
 var voices = [];
 
-function loadVoices() { voices = synth.getVoices(); if (voices.length === 0) setTimeout(loadVoices, 200); }
-if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+function loadVoices() { if (!synth) return; voices = synth.getVoices(); if (voices.length === 0) setTimeout(loadVoices, 200); }
+if (synth && synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
 loadVoices();
 
 var storageOK = false;
@@ -575,39 +580,55 @@ function handleUpload(event) {
   document.getElementById('uploadInput').value = '';
 }
 
-// ===== MAXIMUM GLITCH FORMATTER (With HTML Escaping) =====
+// ===== SAFE FORMATTER (HTML escaping + code, links, bold, glitch) =====
 function escapeHtml(unsafe) {
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function fmt(text) {
-  let f = text;
-  f = f.replace(/```([\s\S]*?)```/g, function(match, code) {
-      return '<pre><code>' + escapeHtml(code) + '</code></pre>';
-  });
-  
-  f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  
-  // UPDATE: Kayang basahin ang // at https:// pati na ang markdown links
-  f = f.replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/\/)[^\s<]+)\)/g, function(m, text, url) {
-    let finalUrl = url.startsWith('//') ? 'https:' + url : url;
-    return '<a href="' + finalUrl + '" target="_blank" style="color:#38bdf8;text-decoration:underline;">' + text + '</a>';
+  var store = [];
+  function keep(html) { store.push(html); return '\u0000' + (store.length - 1) + '\u0000'; }
+  var linkStyle = 'color:#38bdf8;text-decoration:underline;';
+  var f = String(text || '');
+
+  // 1. Code blocks
+  f = f.replace(/```[a-zA-Z0-9_+#.\-]*\n?([\s\S]*?)```/g, function(m, code) {
+    return keep('<pre><code>' + escapeHtml(code.replace(/\n$/, '')) + '</code></pre>');
   });
 
-  // UPDATE: Auto-link para sa mga raw links na walang brackets
-  f = f.replace(/(^|[^"'])((?:https?:\/\/|\/\/)[^\s<]+)/g, function(m,p,u) {
-    let finalUrl = u.startsWith('//') ? 'https:' + u : u;
-    return p + '<a href="' + finalUrl + '" target="_blank" style="color:#38bdf8;text-decoration:underline;">' + u + '</a>';
+  // 2. Inline code
+  f = f.replace(/`([^`\n]+)`/g, function(m, code) {
+    return keep('<code>' + escapeHtml(code) + '</code>');
   });
-  
+
+  // 3. Markdown links [text](url)
+  f = f.replace(/\[([^\]\n]+)\]\(((?:https?:\/\/|\/\/)[^\s)]+)\)/g, function(m, label, url) {
+    var u = url.indexOf('//') === 0 ? 'https:' + url : url;
+    return keep('<a href="' + escapeHtml(u) + '" target="_blank" rel="noopener" style="' + linkStyle + '">' + escapeHtml(label) + '</a>');
+  });
+
+  // 4. Raw links
+  f = f.replace(/https?:\/\/[^\s<>"'`\u0000]+/g, function(u) {
+    var trail = '';
+    var t = u.match(/[.,;:!?)\]]+$/);
+    if (t) { trail = t[0]; u = u.slice(0, u.length - trail.length); }
+    return keep('<a href="' + escapeHtml(u) + '" target="_blank" rel="noopener" style="' + linkStyle + '">' + escapeHtml(u) + '</a>') + trail;
+  });
+
+  // 5. Escape everything else, then bold and glitch
+  f = escapeHtml(f);
+  f = f.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   f = f.replace(/\b(Imachui|Nerts V|NertsV|Nerts)\b/gi, function(match) {
-    return `<span class="glitch-text" data-text="${match}">${match}</span>`;
+    return '<span class="glitch-text" data-text="' + match + '">' + match + '</span>';
   });
+
+  // 6. Put the protected pieces back
+  f = f.replace(/\u0000(\d+)\u0000/g, function(m, i) { return store[Number(i)] || ''; });
   return f;
 }
 
@@ -640,11 +661,21 @@ function toggleMic() {
   recognition.onresult = function(e) {
     var t = '';
     for (var i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) t += e.results[i][0].transcript; }
-    if (t) document.getElementById('prompt').value = t;
+    if (t) { document.getElementById('prompt').value = t; autoGrow(); }
   };
   recognition.onerror = function() { listening = false; btn.textContent = '🎙️ Mic'; };
   recognition.onend = function() { listening = false; btn.textContent = '🎙️ Mic'; };
   try { recognition.start(); } catch(e) { listening = false; btn.textContent = '🎙️ Mic'; }
+}
+
+// Auto-grow ng message box (maliit kapag walang laman, lumalaki lang kapag mahaba ang tina-type)
+function autoGrow() {
+  var p = document.getElementById('prompt');
+  if (!p) return;
+  var maxH = window.innerWidth > 768 ? 160 : 110;
+  var minH = window.innerWidth > 768 ? 42 : 40;
+  p.style.height = 'auto';
+  p.style.height = Math.max(minH, Math.min(p.scrollHeight, maxH)) + 'px';
 }
 
 function newChat() {
@@ -659,7 +690,7 @@ function newChat() {
 function renderHistory() {
   var h = document.getElementById('history');
   h.innerHTML = '';
-  
+
   if (!chats.length) {
     var empty = document.createElement('div');
     empty.className = 'empty';
@@ -672,23 +703,23 @@ function renderHistory() {
   chats.slice(0, 30).forEach(function(chat) {
     var row = document.createElement('div');
     row.className = 'history-row' + (chat.id === activeChatId ? ' active' : '');
-    
+
     var open = document.createElement('button');
-    open.className = 'history-open'; 
+    open.className = 'history-open';
     open.textContent = chat.title || 'New conversation';
     open.onclick = function() { openChat(chat.id); };
-    
+
     var del = document.createElement('button');
-    del.className = 'del-btn'; 
+    del.className = 'del-btn';
     del.textContent = '×';
     del.title = 'Delete conversation';
-    del.onclick = function(ev) { 
-      ev.stopPropagation(); 
-      deleteChat(chat.id); 
+    del.onclick = function(ev) {
+      ev.stopPropagation();
+      deleteChat(chat.id);
     };
-    
-    row.appendChild(open); 
-    row.appendChild(del); 
+
+    row.appendChild(open);
+    row.appendChild(del);
     h.appendChild(row);
   });
 }
@@ -702,7 +733,7 @@ function openChat(id) {
   document.getElementById('messages').innerHTML = '';
   document.getElementById('welcome').style.display = currentMessages.length > 0 ? 'none' : 'block';
   currentMessages.forEach(function(m) {
-    var display = Array.isArray(m.content) ? ((m.content.find(function(c) { return c.type === 'text'; }) || {}).text || '') : m.content;
+    var display = Array.isArray(m.content) ? m.content.filter(function(c) { return c.type === 'text'; }).map(function(c) { return c.text || ''; }).join('\n') : m.content;
     addMessage(m.role, display);
   });
   renderHistory(); closeSidebar(); scrollBottom();
@@ -718,9 +749,9 @@ function deleteChat(id) {
 
 function scrollBottom() {
   requestAnimationFrame(() => {
-    setTimeout(function() { 
-      var c = document.getElementById('chat'); 
-      if (c) c.scrollTop = c.scrollHeight; 
+    setTimeout(function() {
+      var c = document.getElementById('chat');
+      if (c) c.scrollTop = c.scrollHeight;
     }, 50);
   });
 }
@@ -744,7 +775,7 @@ function addMessage(role, content, options) {
   if (role === 'assistant' && content) {
     var rr = document.createElement('div'); rr.className = 'read-row';
     var rd = document.createElement('button'); rd.className = 'read-btn'; rd.textContent = '🔊 Read Aloud';
-    rd.onclick = function() { if (synth.speaking) { synth.cancel(); rd.textContent = '🔊 Read Aloud'; } else speak(t.textContent, rd); };
+    rd.onclick = function() { if (synth && synth.speaking) { synth.cancel(); rd.textContent = '🔊 Read Aloud'; } else speak(t.textContent, rd); };
     rr.appendChild(rd); body.appendChild(rr);
   }
   art.appendChild(av); art.appendChild(body); document.getElementById('messages').appendChild(art);
@@ -753,9 +784,9 @@ function addMessage(role, content, options) {
 
 function handleFiles(event) {
   var files = Array.from(event.target.files || []);
-  files.forEach(function(f) { 
+  files.forEach(function(f) {
     if (f.size > 4 * 1024 * 1024) { alert('⚠️ File is too large: ' + f.name + ' (Max 4MB).'); return; }
-    selectedFiles.push(f); 
+    selectedFiles.push(f);
   });
   if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
   renderAttachments(); event.target.value = '';
@@ -765,22 +796,23 @@ function renderAttachments() {
   var ae = document.getElementById('attachments'); ae.innerHTML = '';
   selectedFiles.forEach(function(f, i) {
     var chip = document.createElement('span'); chip.className = 'att-chip'; chip.textContent = '📎 ' + f.name;
-    var rm = document.createElement('button'); rm.textContent = ' ×'; rm.style.cssText = 'border:0;background:transparent;color:#ffb0bd;cursor:pointer';
+    var rm = document.createElement('button'); rm.type = 'button'; rm.textContent = ' ×'; rm.style.cssText = 'border:0;background:transparent;color:#ffb0bd;cursor:pointer';
     rm.onclick = function() { selectedFiles.splice(i, 1); renderAttachments(); };
     chip.appendChild(rm); ae.appendChild(chip);
   });
 }
 
+// Mas malinaw na larawan (1600px) para mabasa ang maliit na text at code
 function resizeImg(file) {
   return new Promise(function(resolve) {
     var r = new FileReader();
     r.onload = function(e) {
       var img = new Image();
       img.onload = function() {
-        var w = img.width, h = img.height; var max = 1024;
+        var w = img.width, h = img.height; var max = 1600;
         if (w > h && w > max) { h *= max / w; w = max; } else if (h > max) { w *= max / h; h = max; }
         var c = document.createElement('canvas'); c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h); resolve(c.toDataURL('image/jpeg', 0.8));
+        c.getContext('2d').drawImage(img, 0, 0, w, h); resolve(c.toDataURL('image/jpeg', 0.85));
       };
       img.src = e.target.result;
     };
@@ -792,7 +824,7 @@ async function extractPdfText(file) {
   var arrayBuffer = await file.arrayBuffer();
   var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   var fullText = '';
-  var maxPages = Math.min(pdf.numPages, 5); 
+  var maxPages = Math.min(pdf.numPages, 5);
   for (var i = 1; i <= maxPages; i++) {
     var page = await pdf.getPage(i);
     var textContent = await page.getTextContent();
@@ -803,103 +835,123 @@ async function extractPdfText(file) {
   return fullText.trim();
 }
 
+// Para hindi mapuno ang storage: hindi isinasama ang buong larawan sa naka-save na chat
+function lightContent(content) {
+  return content.map(function(p) { return p.type === 'image' ? {type: 'text', text: '[Image attached]'} : p; });
+}
+
+function finishBusy() {
+  var promptEl = document.getElementById('prompt');
+  busy = false;
+  document.getElementById('sendBtn').disabled = false;
+  promptEl.disabled = false;
+}
+
 async function sendMessage() {
   var promptEl = document.getElementById('prompt');
   var text = promptEl.value.trim();
   if ((!text && !selectedFiles.length) || busy) return;
   if (!activeChatId) newChat();
   busy = true; document.getElementById('sendBtn').disabled = true; promptEl.disabled = true;
-  
+
   var fileSnap = selectedFiles.slice(); var msgContent = [];
   if (text) msgContent.push({type: 'text', text: text});
-  
+
   for (var i = 0; i < fileSnap.length; i++) {
     var f = fileSnap[i];
     try {
-      if (f.type.indexOf('image/') === 0) { 
-        var data = await resizeImg(f); 
-        msgContent.push({type: 'image', image: data}); 
+      if (f.type.indexOf('image/') === 0) {
+        var data = await resizeImg(f);
+        msgContent.push({type: 'image', image: data});
       } else if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
         var pdfText = await extractPdfText(f);
         msgContent.push({type: 'text', text: '\n\n[PDF Document: ' + f.name + ']\n' + pdfText});
-      } else { 
-        var txt = await f.text(); 
-        msgContent.push({type: 'text', text: '\n\n[Document: ' + f.name + ']\n' + txt}); 
+      } else {
+        var txt = await f.text();
+        msgContent.push({type: 'text', text: '\n\n[Document: ' + f.name + ']\n' + txt});
       }
-    } catch(e) { 
-      console.error(e); 
+    } catch(e) {
+      console.error(e);
       msgContent.push({type: 'text', text: '\n\n[Error reading file: ' + f.name + ']'});
     }
   }
-  
+
   addMessage('user', text || 'Please review my attachment(s).', { images: msgContent.filter(function(c) { return c.type === 'image'; }).map(function(c) { return c.image; }) });
   currentMessages.push({role: 'user', content: msgContent});
-  
+
   var chat = null;
   for (var j = 0; j < chats.length; j++) if (chats[j].id === activeChatId) chat = chats[j];
   if (chat) {
-    chat.messages.push({role: 'user', content: msgContent});
+    chat.messages.push({role: 'user', content: lightContent(msgContent)});
     if (chat.title === 'New conversation') chat.title = (text || fileSnap[0].name || 'Attachment').slice(0, 40);
     chat.updated = Date.now(); save(); renderHistory();
   }
-  
-  promptEl.value = ''; selectedFiles = []; renderAttachments();
-  
+
+  promptEl.value = ''; autoGrow(); selectedFiles = []; renderAttachments();
+
   var am = addMessage('assistant', '');
   var te = am.querySelector('.text');
-  
+
   // ==========================================
-  // IMAGE GENERATION LOGIC
+  // IMAGE GENERATION LOGIC (gumagamit ng /api/image)
   // ==========================================
   var lowerText = text.toLowerCase();
-  var isImageRequest = lowerText.startsWith('/image ') || lowerText.startsWith('/imagine ') || 
-                       lowerText.includes('generate image') || lowerText.includes('gumawa ng larawan') || 
-                       lowerText.includes('picture of') || lowerText.includes('draw a');
+  var isImageRequest = !fileSnap.length && (lowerText.startsWith('/image ') || lowerText.startsWith('/imagine ') ||
+                       lowerText.includes('generate image') || lowerText.includes('gumawa ng larawan') ||
+                       lowerText.includes('picture of') || lowerText.includes('draw a'));
 
   if (isImageRequest) {
     var imagePrompt = text;
-    imagePrompt = imagePrompt.replace(/^\/(image|imagine)\s+/gi, ''); 
-    imagePrompt = imagePrompt.replace(/^(bigyan|mo|ako|ng|nang|gumawa|ka|isang|larawan|image|picture|pic)\s+/gi, ''); 
+    imagePrompt = imagePrompt.replace(/^\/(image|imagine)\s+/gi, '');
+    imagePrompt = imagePrompt.replace(/^(bigyan|mo|ako|ng|nang|gumawa|ka|isang|larawan|image|picture|pic)\s+/gi, '');
     imagePrompt = imagePrompt.trim();
-    
+
     if (!imagePrompt || imagePrompt.length < 3) imagePrompt = text;
 
     te.innerHTML = '<span class="typing">🎨 Generating image, please wait...</span>';
-    
+
     try {
-      var finalPrompt = encodeURIComponent(imagePrompt + ", high quality, highly detailed, masterpiece");
-      var imageUrl = `https://image.pollinations.ai/prompt/${finalPrompt}?width=1024&height=1024&model=flux&nologo=true&seed=${Math.floor(Math.random() * 100000)}`;
-      
+      var IMG_API = location.hostname === 'imachui.github.io' ? 'https://imachui-gen-ai.vercel.app/api/image' : '/api/image';
+      var ir = await fetch(IMG_API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ prompt: imagePrompt })
+      });
+      var idata = await ir.json().catch(function() { return {}; });
+      if (!ir.ok || !idata.image) throw new Error(idata.error || 'Image generation unavailable.');
+
       var imgElement = document.createElement('img');
-      imgElement.src = imageUrl;
+      imgElement.src = idata.image;
       imgElement.style.cssText = 'max-width:100%; border-radius:12px; margin-top:12px; border: 1px solid var(--glass-border);';
-      
-      te.innerHTML = `<strong>🎨 Generated Image for:</strong> <em>"${imagePrompt}"</em><br><span style="font-size:12px; color:gray;">(Note: Free AI creates a NEW image from text. It cannot directly edit the pixels of your uploaded photo.)</span>`;
+
+      te.innerHTML = '<strong>🎨 Generated Image for:</strong> <em>"' + escapeHtml(imagePrompt) + '"</em>';
       te.appendChild(imgElement);
-      
-      currentMessages.push({role: 'assistant', content: `[Generated Image: ${imagePrompt}]`});
-      if (chat) { chat.messages.push({role: 'assistant', content: `[Generated Image: ${imagePrompt}]`}); chat.updated = Date.now(); save(); }
-      
-      busy = false; document.getElementById('sendBtn').disabled = false; promptEl.disabled = false;
-      return; 
-      
+
+      currentMessages.push({role: 'assistant', content: '[Generated Image: ' + imagePrompt + ']'});
+      if (chat) { chat.messages.push({role: 'assistant', content: '[Generated Image: ' + imagePrompt + ']'}); chat.updated = Date.now(); save(); }
     } catch (imgErr) {
       te.textContent = 'Image System Error: ' + imgErr.message;
-      busy = false; document.getElementById('sendBtn').disabled = false; promptEl.disabled = false;
-      return;
     }
+    finishBusy();
+    return;
   }
 
   te.innerHTML = '<span class="typing">Routing to best AI & searching web...</span>';
-  
+
   try {
     var API_URL = location.hostname === 'imachui.github.io' ? 'https://imachui-gen-ai.vercel.app/api/chat' : '/api/chat';
-    
+
+    // Ang huling larawan lang ang ipapadala; tinatanggal ang mga lumang larawan para hindi lumaki ang request
+    var outgoing = currentMessages.slice(-20).map(function(m, idx, arr) {
+      if (idx === arr.length - 1 || !Array.isArray(m.content)) return m;
+      return {role: m.role, content: m.content.filter(function(c) { return c.type !== 'image'; })};
+    });
+
     var resp = await fetch(API_URL, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        message: text, 
-        messages: currentMessages.slice(-20)
+        message: text,
+        messages: outgoing
       })
     });
     if (!resp.ok) { var err = await resp.json().catch(function() { return {}; }); throw new Error(err.error || 'API error (' + resp.status + ')'); }
@@ -913,7 +965,7 @@ async function sendMessage() {
     te.innerHTML = fmt(full);
     var rr = document.createElement('div'); rr.className = 'read-row';
     var rd = document.createElement('button'); rd.className = 'read-btn'; rd.textContent = '🔊 Read Aloud';
-    rd.onclick = function() { if (synth.speaking) { synth.cancel(); rd.textContent = '🔊 Read Aloud'; } else speak(te.textContent, rd); };
+    rd.onclick = function() { if (synth && synth.speaking) { synth.cancel(); rd.textContent = '🔊 Read Aloud'; } else speak(te.textContent, rd); };
     rr.appendChild(rd); am.querySelector('.body').appendChild(rr);
     if (document.getElementById('autoRead').checked) { setTimeout(function() { speak(te.textContent, rd); }, 300); }
     currentMessages.push({role: 'assistant', content: full});
@@ -921,10 +973,13 @@ async function sendMessage() {
   } catch(e) {
     te.textContent = 'System Error: ' + (e.message || 'Try again.');
   } finally {
-    busy = false; document.getElementById('sendBtn').disabled = false; promptEl.disabled = false;
+    finishBusy();
     if (window.innerWidth > 768) promptEl.focus();
   }
 }
+
+document.getElementById('prompt').addEventListener('input', autoGrow);
+window.addEventListener('resize', autoGrow);
 
 var chatArea = document.getElementById('chat');
 chatArea.addEventListener('dragover', function(e) { e.preventDefault(); chatArea.classList.add('drag-over'); });
@@ -933,9 +988,9 @@ chatArea.addEventListener('drop', function(e) {
   e.preventDefault(); chatArea.classList.remove('drag-over');
   if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
     var files = Array.from(e.dataTransfer.files);
-    files.forEach(function(f) { 
+    files.forEach(function(f) {
       if (f.size > 4 * 1024 * 1024) { alert('⚠️ File is too large: ' + f.name); return; }
-      selectedFiles.push(f); 
+      selectedFiles.push(f);
     });
     if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
     renderAttachments();
@@ -953,7 +1008,7 @@ document.addEventListener('paste', function(e) {
         selectedFiles.push(file);
         if (selectedFiles.length > 3) selectedFiles = selectedFiles.slice(0, 3);
         renderAttachments();
-        e.preventDefault(); 
+        e.preventDefault();
       }
     }
   }
@@ -971,6 +1026,7 @@ if (chats.length > 0) {
   if (!found) toOpen = chats[0].id;
   openChat(toOpen);
 } else { newChat(); }
+autoGrow();
 </script>
 </body>
 </html>
