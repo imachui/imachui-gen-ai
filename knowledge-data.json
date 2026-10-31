@@ -1,1 +1,10 @@
-
+[
+  {
+    "id": "about-imachui-gen-ai",
+    "type": "info",
+    "group": "Other",
+    "name": "What is Imachui Gen AI",
+    "aliases": ["imachui gen ai", "global king", "imachui ai", "imachui app"],
+    "description": "Imachui Gen AI is a multi-AI assistant created by Nerts V (Imachui). It combines several AI models, searches Google for current information, reads images and code screenshots, and knows the members of the REAPER (RPR) clan and the hospital staff."
+  }
+]
