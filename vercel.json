@@ -1,8 +1,11 @@
 {
   "functions": {
     "api/chat.js": {
-      "maxDuration": 30,
+      "maxDuration": 60,
       "includeFiles": "*-data.json"
+    },
+    "api/image.js": {
+      "maxDuration": 60
     }
   },
   "headers": [
