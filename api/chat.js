@@ -3,7 +3,14 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.js';
-import { getExtraEntries } from '../lib/knowledge.js';
+// Ang dagdag na database ay opsyonal: kapag may problema sa lib/knowledge.js, gagana pa rin ang chat.
+let getExtraEntries = async () => [];
+try {
+  const knowledge = await import('../lib/knowledge.js');
+  if (typeof knowledge.getExtraEntries === 'function') getExtraEntries = knowledge.getExtraEntries;
+} catch (e) {
+  console.error('lib/knowledge.js was not loaded:', e.message);
+}
 
 // ==========================================
 // DATABASE LOADING (rpr-data.json + staff-data.json)
