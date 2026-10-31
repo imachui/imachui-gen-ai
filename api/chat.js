@@ -353,16 +353,21 @@ function buildPersonTail(name, profiles, lang) {
 }
 
 // ==========================================
-// IMAGE ANALYSIS (Gemini + Mistral + OpenRouter, unahan)
+// IMAGE UNDERSTANDING  (maraming AI na pinagsama)
+// 1) Vision AIs (Gemini, Mistral, OpenRouter): basa ng larawan, OCR, code
+// 2) Gemini + Google Search: sariling paliwanag na may web grounding
+// 3) Serper (Google): hanap ng konteksto gamit ang text/headline sa larawan
+// 4) DeepSeek / Mistral / OpenRouter: pinal na paliwanag
 // ==========================================
-async function analyzeImage(base64Data, mimeType, userMessage) {
-  const dataUri = `data:${mimeType};base64,${base64Data}`;
-  const promptText = `You are IMACHUI GEN AI. Describe this image in detail, accurately and directly. Reply in the same language as the user's prompt (English by default). User's prompt: "${userMessage || 'Describe this image'}"`;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const DEFAULT_IMAGE_QUESTION = 'Explain this image: what it shows, and the context, meaning, and reasons behind it.';
 
+async function runVision(promptText, base64Data, mimeType, { maxTokens = 2048, timeout = 12000 } = {}) {
+  const dataUri = `data:${mimeType};base64,${base64Data}`;
   const promises = [];
 
   if (process.env.GEMINI_API_KEY) {
-    for (const gModel of ['gemini-2.5-flash', 'gemini-2.5-flash-lite']) {
+    for (const gModel of [...new Set([GEMINI_MODEL, 'gemini-2.5-flash-lite'])]) {
       promises.push((async () => {
         const res = await fetchWithTimeout(
           `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -371,8 +376,9 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
-              generationConfig: { maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } }
-            })
+              generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens, thinkingConfig: { thinkingBudget: 0 } }
+            }),
+            timeout
           }
         );
         const data = await res.json();
@@ -390,9 +396,11 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.MISTRAL_API_KEY}` },
         body: JSON.stringify({
           model: 'mistral-small-latest',
-          max_tokens: 1024,
+          max_tokens: maxTokens,
+          temperature: 0.2,
           messages: [{ role: 'user', content: [{ type: 'text', text: promptText }, { type: 'image_url', image_url: dataUri }] }]
-        })
+        }),
+        timeout
       });
       const data = await res.json();
       const text = data.choices?.[0]?.message?.content;
@@ -408,9 +416,11 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` },
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
-          max_tokens: 1024,
+          max_tokens: Math.min(maxTokens, 2048),
+          temperature: 0.2,
           messages: [{ role: 'user', content: [{ type: 'text', text: promptText }, { type: 'image_url', image_url: { url: dataUri } }] }]
-        })
+        }),
+        timeout
       });
       const data = await res.json();
       const text = data.choices?.[0]?.message?.content;
@@ -419,15 +429,156 @@ async function analyzeImage(base64Data, mimeType, userMessage) {
     })());
   }
 
-  if (promises.length === 0) return '⚠️ No API keys are available.';
-
+  if (!promises.length) throw new Error('No vision API keys are set.');
   try {
     return await Promise.any(promises);
   } catch (aggErr) {
     const reasons = (aggErr.errors || []).map((e) => e.message);
     console.error('Vision failed:', reasons);
-    return `⚠️ I cannot read this image right now.\n\n(${reasons.join(' | ').slice(0, 300)})`;
+    throw new Error(reasons.join(' | ').slice(0, 300) || 'Vision failed');
   }
+}
+
+function extractionPrompt(question) {
+  return `You are the eyes of an AI assistant. Analyze this image very carefully and return ONLY valid JSON (no markdown fences, no extra text) with exactly these keys:
+{
+  "type": one of "news", "code", "error_screenshot", "document", "chat_screenshot", "meme", "chart", "product", "photo", "other",
+  "description": "a detailed, factual description of everything visible: scene, objects, logos, layout, and the appearance of people. Do NOT name any real person from their face. Use a name only if it is written in the image.",
+  "visible_text": "ALL readable text in the image, exactly as written, in reading order. If the image shows code, copy the code EXACTLY with its indentation and line breaks.",
+  "code_language": "the programming language if code is visible, otherwise an empty string",
+  "search_query": "the best Google search query (maximum 12 words, in the same language as the text in the image) to find the source, background, or meaning of this image or its headline. Use an empty string if searching would not help (for example plain code or a personal photo)."
+}
+The user's question about the image: "${question || DEFAULT_IMAGE_QUESTION}"`;
+}
+
+function parseExtraction(raw) {
+  const text = String(raw || '').replace(/```json|```/gi, '').trim();
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    try {
+      const j = JSON.parse(text.slice(start, end + 1));
+      return {
+        type: String(j.type || 'other').toLowerCase(),
+        description: String(j.description || ''),
+        visible_text: String(j.visible_text || ''),
+        code_language: String(j.code_language || ''),
+        search_query: String(j.search_query || '').trim()
+      };
+    } catch (e) {}
+  }
+  return { type: 'other', description: text, visible_text: '', code_language: '', search_query: '' };
+}
+
+const IMAGE_ANSWER_RULES = `IMAGE ANSWER FORMAT:
+1. **What's in the image** — 1 to 3 sentences.
+2. **Explanation** — this is the most important part. Explain the context, the meaning, and the cause:
+   - News or event: what happened, when, where, and who (only from the visible text and the web results), WHY it happened, and the background.
+   - Meme: the joke and where it comes from.
+   - Chart or document: what it shows, the key numbers or points, and the conclusion.
+   - Error screenshot: the exact cause and the exact fix.
+   - Code: what it does (purpose, flow, important lines), any bugs or risks, and the corrected code in a code block when needed.
+   - Chat screenshot: summarize the conversation and the situation.
+3. **Sources** — only the raw https URLs from the web results that you actually used, one per line. Leave this section out if none were used.
+
+RULES:
+- Never identify a real person from their face. Use a person's name only if it is written in the image text, or clearly given by the web results for this same headline or caption.
+- Prefer facts supported by BOTH the image text and the web results. If the web results do not clearly match the image, say you could not verify the context, and explain only what is visible. Never invent facts, numbers, or quotes.
+- For code, copy from VISIBLE_TEXT. If some characters are unclear, say so instead of guessing.
+- Be direct and accurate. No greetings and no filler.`;
+
+async function geminiVisionDraft(base64Data, mimeType, question) {
+  const instruction = `You are a careful, accurate assistant. Look at this image and answer the user's question. Use Google Search to verify the context (news, memes, events, products, errors) when it helps.\n\n${IMAGE_ANSWER_RULES}\n\nUser's question: "${question || DEFAULT_IMAGE_QUESTION}"\nReply in the same language as the user's question (English by default).`;
+  const r = await fetchWithTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: instruction }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
+        tools: [{ google_search: {} }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } }
+      }),
+      timeout: 14000
+    }
+  );
+  const d = await r.json();
+  const text = d.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join('');
+  if (!text) throw new Error('Gemini draft: ' + (d.error?.message || 'no text'));
+  return text.trim();
+}
+
+async function explainImage({ res, base64Data, mimeType, userMessage }) {
+  const question = String(userMessage || '').trim().slice(0, 1000);
+  const lang = question ? detectLang(question) : 'en';
+  const phTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila', dateStyle: 'full', timeStyle: 'long' });
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+
+  // Phase 1 (sabay): basa ng larawan + Gemini na may Google Search
+  const [extractRaw, geminiDraft] = await Promise.all([
+    runVision(extractionPrompt(question), base64Data, mimeType, { maxTokens: 2048, timeout: 12000 }).catch((e) => {
+      console.error('Extraction failed:', e.message);
+      return null;
+    }),
+    process.env.GEMINI_API_KEY
+      ? geminiVisionDraft(base64Data, mimeType, question).catch((e) => { console.error(e.message); return null; })
+      : Promise.resolve(null)
+  ]);
+
+  if (!extractRaw && !geminiDraft) {
+    return res.status(200).send('⚠️ I cannot read this image right now. Please try again in a moment.');
+  }
+  if (!extractRaw) return res.status(200).send(geminiDraft);
+
+  const info = parseExtraction(extractRaw);
+
+  // Phase 2: Google search gamit ang headline/text sa larawan
+  let webLines = [];
+  if (info.search_query && info.type !== 'code') {
+    const items = await serperSearch(info.search_query);
+    webLines = items.slice(0, 5).map((it) => `Title: ${it.title}\nSnippet: ${it.snippet || ''}\nSource: ${it.link}`);
+  }
+
+  // Phase 3: pinal na paliwanag
+  let systemContent = `You are IMACHUI GEN AI, created by Nerts V (Imachui).
+Current Date and Time (Philippines): ${phTime}.
+
+The user sent an image. You cannot see it directly. You receive a careful analysis made by vision AIs, Google search results, and a draft answer from another AI. Combine them into ONE final, accurate answer.
+
+LANGUAGE RULES:
+- English is the default language. Reply in the SAME language as the user's question. If the question is empty, reply in English.
+- Detected language: ${LANG_LABEL[lang]}.
+- Always use perfect grammar, spelling, and punctuation.
+
+${IMAGE_ANSWER_RULES}
+
+=== IMAGE ANALYSIS ===
+TYPE: ${info.type}
+${info.code_language ? `CODE LANGUAGE: ${info.code_language}\n` : ''}DESCRIPTION:
+${info.description}
+
+VISIBLE_TEXT:
+${info.visible_text || '(none)'}
+`;
+
+  if (webLines.length) {
+    systemContent += `\n=== WEB RESULTS (Google search: "${info.search_query}") ===\n${webLines.join('\n\n')}\n`;
+  }
+  if (geminiDraft) {
+    systemContent += `\n=== DRAFT ANSWER FROM ANOTHER AI (verify it against the analysis and web results; drop anything doubtful) ===\n${geminiDraft.slice(0, 6000)}\n`;
+  }
+
+  const messages = [
+    { role: 'system', content: systemContent },
+    { role: 'user', content: question || DEFAULT_IMAGE_QUESTION }
+  ];
+
+  const ok = await streamFromProviders(messages, res);
+  if (ok) return;
+
+  // Kung pumalya ang lahat ng writer AI
+  if (geminiDraft) return res.status(200).send(geminiDraft);
+  return res.status(200).send(`**What's in the image**\n${info.description}\n\n${info.visible_text ? `**Text in the image**\n${info.visible_text}` : ''}`.trim());
 }
 
 // ==========================================
@@ -467,7 +618,7 @@ async function callGemini(apiMessages, { grounded = false } = {}) {
   while (contents.length && contents[0].role !== 'user') contents.shift();
   if (!contents.length) throw new Error('Gemini: no user message');
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
   const attempt = async (useTools, timeout) => {
     const r = await fetchWithTimeout(url, {
       method: 'POST',
@@ -579,17 +730,22 @@ export default async function handler(req, res) {
 
   // ---------- IMAGE LOGIC ----------
   if (hasImage) {
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     try {
       if (typeof imageBase64 !== 'string' || !imageBase64.includes(',')) {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         return res.status(200).send('⚠️ Invalid image format.');
       }
       const base64Data = imageBase64.split(',')[1];
       const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
-      const answer = await analyzeImage(base64Data, mimeType, userMessage);
-      return res.status(200).send(answer);
+      await explainImage({ res, base64Data, mimeType, userMessage });
+      return;
     } catch (e) {
-      return res.status(200).send(`⚠️ Error: ${e.message}`);
+      console.error('Image error:', e);
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        return res.status(200).send(`⚠️ Error: ${e.message}`);
+      }
+      return res.end();
     }
   }
 
