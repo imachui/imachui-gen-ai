@@ -6,6 +6,16 @@
     },
     "api/image.js": {
       "maxDuration": 60
+    },
+    "api/memory.js": {
+      "maxDuration": 30
+    },
+    "api/feedback.js": {
+      "maxDuration": 15
+    },
+    "api/admin.js": {
+      "maxDuration": 15,
+      "includeFiles": "*-data.json"
     }
   },
   "headers": [
