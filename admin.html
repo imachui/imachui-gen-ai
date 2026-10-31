@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Imachui Gen AI — Admin</title>
+<style>
+  :root { color-scheme: dark; --bg:#0b1120; --card:rgba(30,41,59,.55); --border:rgba(255,255,255,.12); --text:#f8fafc; --muted:#94a3b8; --accent:#38bdf8; --accent2:#818cf8; --danger:#ff8d9a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.5; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:16px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:10px 0 4px; font-weight:600; }
+  input, select, textarea { width:100%; background:rgba(0,0,0,.35); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px 12px; font:inherit; font-size:14px; }
+  textarea { min-height: 90px; resize: vertical; }
+  button { border:1px solid var(--border); background:rgba(255,255,255,.07); color:var(--text); border-radius:10px; padding:9px 14px; font:inherit; font-size:13px; cursor:pointer; }
+  button.primary { border:0; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#05070a; font-weight:800; }
+  button.danger { color:var(--danger); }
+  button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .row > * { flex: 1 1 160px; }
+  .row.tight > * { flex: 0 0 auto; }
+  .tabs { display:flex; gap:8px; margin-bottom:14px; }
+  .tabs button.active { border-color:var(--accent); color:var(--accent); }
+  .badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); margin-left:6px; vertical-align:middle; }
+  .item { border-top:1px solid var(--border); padding:12px 0; }
+  .item:first-child { border-top:0; }
+  .item h3 { margin:0 0 2px; font-size:15px; }
+  .item p { margin:4px 0; font-size:13px; color:#cbd5e1; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .meta { font-size:11px; color:var(--muted); }
+  .msg { font-size:13px; padding:10px 12px; border-radius:10px; margin-bottom:12px; }
+  .msg.err { background:rgba(255,141,154,.12); border:1px solid rgba(255,141,154,.4); color:var(--danger); }
+  .msg.ok { background:rgba(56,189,248,.12); border:1px solid rgba(56,189,248,.4); color:var(--accent); }
+  .msg.warn { background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.4); color:#fcd34d; }
+  .hidden { display:none !important; }
+  .up { color:#4ade80; } .down { color:var(--danger); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Imachui Gen AI — Admin</h1>
+  <div class="sub">Manage the extra database (people and information) and review feedback.</div>
+
+  <div id="message"></div>
+
+  <!-- LOGIN -->
+  <div class="card" id="loginCard">
+    <label for="adminKey">Admin key</label>
+    <div class="row">
+      <input id="adminKey" type="password" placeholder="ADMIN_KEY from Vercel" autocomplete="off">
+      <button class="primary" id="loginBtn" type="button">Connect</button>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="hidden">
+    <div class="tabs">
+      <button type="button" id="tabDb" class="active">Database</button>
+      <button type="button" id="tabFb">Feedback</button>
+      <button type="button" id="logoutBtn" style="margin-left:auto">Log out</button>
+    </div>
+
+    <!-- DATABASE TAB -->
+    <div id="paneDb">
+      <div class="card">
+        <strong id="formTitle">Add an entry</strong>
+        <div class="row">
+          <div>
+            <label for="fType">Type</label>
+            <select id="fType">
+              <option value="person">Person (shown as a profile card)</option>
+              <option value="info">Info (facts the AI can use in answers)</option>
+            </select>
+          </div>
+          <div id="groupWrap">
+            <label for="fGroup">Group</label>
+            <select id="fGroup">
+              <option value="RPR">RPR clan</option>
+              <option value="Hospital">Hospital</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <label for="fName" id="nameLabel">Full name</label>
+        <input id="fName" maxlength="120" placeholder="Juan Dela Cruz">
+        <div id="roleWrap">
+          <label for="fRole">Role or job title (optional)</label>
+          <input id="fRole" maxlength="120" placeholder="Nurse, Admin, Member...">
+        </div>
+        <label for="fAliases">Nicknames or keywords (comma separated, optional)</label>
+        <input id="fAliases" placeholder="Johnny, Kuya Juan">
+        <label for="fDesc" id="descLabel">Description</label>
+        <textarea id="fDesc" maxlength="1500" placeholder="Short description"></textarea>
+        <div class="row tight" style="margin-top:12px">
+          <button class="primary" id="saveBtn" type="button">Save</button>
+          <button id="cancelBtn" type="button" class="hidden">Cancel edit</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row tight" style="justify-content:space-between">
+          <strong id="countLabel">Entries</strong>
+          <button id="reloadDb" type="button">Reload</button>
+        </div>
+        <div id="dbList"></div>
+      </div>
+    </div>
+
+    <!-- FEEDBACK TAB -->
+    <div id="paneFb" class="hidden">
+      <div class="card">
+        <div class="row tight">
+          <button id="fbAll" type="button" class="active">All</button>
+          <button id="fbDown" type="button">👎 only</button>
+          <button id="reloadFb" type="button">Reload</button>
+          <button id="clearFb" type="button" class="danger">Clear all</button>
+        </div>
+      </div>
+      <div class="card"><div id="fbList"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var API = location.hostname === 'imachui.github.io' ? 'https://imachui-gen-ai.vercel.app' : '';
+  var KEY_STORE = 'imachui_admin_key';
+  var adminKey = '';
+  var entries = [];
+  var feedback = [];
+  var fbOnlyDown = false;
+  var editingId = null;
+
+  function $(id) { return document.getElementById(id); }
+
+  function show(text, kind) {
+    var box = $('message');
+    box.innerHTML = '';
+    if (!text) return;
+    var d = document.createElement('div');
+    d.className = 'msg ' + (kind || 'ok');
+    d.textContent = text;
+    box.appendChild(d);
+  }
+
+  async function api(path, options) {
+    options = options || {};
+    var headers = { 'Authorization': 'Bearer ' + adminKey };
+    if (options.body) headers['Content-Type'] = 'application/json';
+    var res = await fetch(API + path, { method: options.method || 'GET', headers: headers, body: options.body });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.error || ('Request failed (' + res.status + ')'));
+    return data;
+  }
+
+  // ---------- LOGIN ----------
+  async function connect(key) {
+    adminKey = key;
+    try {
+      await loadDb();
+      try { sessionStorage.setItem(KEY_STORE, key); } catch (e) {}
+      $('loginCard').classList.add('hidden');
+      $('app').classList.remove('hidden');
+      show('', '');
+    } catch (e) {
+      adminKey = '';
+      show(e.message, 'err');
+    }
+  }
+
+  $('loginBtn').onclick = function () { var k = $('adminKey').value.trim(); if (k) connect(k); };
+  $('adminKey').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('loginBtn').click(); });
+  $('logoutBtn').onclick = function () {
+    try { sessionStorage.removeItem(KEY_STORE); } catch (e) {}
+    adminKey = ''; $('adminKey').value = '';
+    $('app').classList.add('hidden'); $('loginCard').classList.remove('hidden'); show('', '');
+  };
+
+  // ---------- TABS ----------
+  function setTab(name) {
+    $('paneDb').classList.toggle('hidden', name !== 'db');
+    $('paneFb').classList.toggle('hidden', name !== 'fb');
+    $('tabDb').classList.toggle('active', name === 'db');
+    $('tabFb').classList.toggle('active', name === 'fb');
+    if (name === 'fb') loadFeedback();
+  }
+  $('tabDb').onclick = function () { setTab('db'); };
+  $('tabFb').onclick = function () { setTab('fb'); };
+
+  // ---------- DATABASE ----------
+  function syncFormType() {
+    var isInfo = $('fType').value === 'info';
+    $('groupWrap').classList.toggle('hidden', isInfo);
+    $('roleWrap').classList.toggle('hidden', isInfo);
+    $('nameLabel').textContent = isInfo ? 'Topic or question' : 'Full name';
+    $('descLabel').textContent = isInfo ? 'Answer or information' : 'Description';
+    $('fName').placeholder = isInfo ? 'What are the visiting hours?' : 'Juan Dela Cruz';
+  }
+  $('fType').onchange = syncFormType;
+
+  function resetForm() {
+    editingId = null;
+    $('fType').value = 'person'; $('fGroup').value = 'RPR';
+    $('fName').value = ''; $('fRole').value = ''; $('fAliases').value = ''; $('fDesc').value = '';
+    $('formTitle').textContent = 'Add an entry';
+    $('cancelBtn').classList.add('hidden');
+    syncFormType();
+  }
+  $('cancelBtn').onclick = resetForm;
+
+  function fillForm(e) {
+    editingId = e.id;
+    $('fType').value = e.type; syncFormType();
+    $('fGroup').value = e.group || 'Other';
+    $('fName').value = e.name || ''; $('fRole').value = e.role || '';
+    $('fAliases').value = (e.aliases || []).join(', '); $('fDesc').value = e.description || '';
+    $('formTitle').textContent = 'Edit entry';
+    $('cancelBtn').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function loadDb() {
+    var data = await api('/api/admin');
+    entries = data.entries || [];
+    renderDb();
+    if (!data.configured) {
+      show('Storage is not connected yet, so you can read entries but not add new ones from this page. Add the Upstash Redis variables in Vercel (see the setup notes). Entries in knowledge-data.json still work.', 'warn');
+    }
+  }
+
+  function renderDb() {
+    var list = $('dbList');
+    list.innerHTML = '';
+    $('countLabel').textContent = 'Entries (' + entries.length + ')';
+    if (!entries.length) {
+      var empty = document.createElement('div'); empty.className = 'meta'; empty.textContent = 'No entries yet.'; list.appendChild(empty); return;
+    }
+    entries.forEach(function (e) {
+      var item = document.createElement('div'); item.className = 'item';
+      var h = document.createElement('h3'); h.textContent = e.name;
+      var b1 = document.createElement('span'); b1.className = 'badge'; b1.textContent = e.type === 'info' ? 'info' : (e.group || 'Other');
+      var b2 = document.createElement('span'); b2.className = 'badge'; b2.textContent = e.source === 'file' ? 'from file (read only)' : 'admin page';
+      h.appendChild(b1); h.appendChild(b2);
+      item.appendChild(h);
+      if (e.role) { var r = document.createElement('div'); r.className = 'meta'; r.textContent = e.role; item.appendChild(r); }
+      if (e.aliases && e.aliases.length) { var a = document.createElement('div'); a.className = 'meta'; a.textContent = 'Keywords: ' + e.aliases.join(', '); item.appendChild(a); }
+      if (e.description) { var p = document.createElement('p'); p.textContent = e.description; item.appendChild(p); }
+      if (e.source !== 'file') {
+        var row = document.createElement('div'); row.className = 'row tight';
+        var edit = document.createElement('button'); edit.type = 'button'; edit.textContent = 'Edit'; edit.onclick = function () { fillForm(e); };
+        var del = document.createElement('button'); del.type = 'button'; del.className = 'danger'; del.textContent = 'Delete';
+        del.onclick = async function () {
+          if (!confirm('Delete "' + e.name + '"?')) return;
+          try { await api('/api/admin?id=' + encodeURIComponent(e.id), { method: 'DELETE' }); show('Deleted.', 'ok'); await loadDb(); }
+          catch (err) { show(err.message, 'err'); }
+        };
+        row.appendChild(edit); row.appendChild(del); item.appendChild(row);
+      }
+      list.appendChild(item);
+    });
+  }
+
+  $('saveBtn').onclick = async function () {
+    var payload = {
+      id: editingId || undefined,
+      type: $('fType').value,
+      group: $('fGroup').value,
+      name: $('fName').value,
+      role: $('fRole').value,
+      aliases: $('fAliases').value,
+      description: $('fDesc').value
+    };
+    if (!payload.name.trim()) { show('Please enter a name or topic.', 'err'); return; }
+    if (payload.type === 'info' && !payload.description.trim()) { show('Please enter the answer or information.', 'err'); return; }
+    $('saveBtn').disabled = true;
+    try {
+      await api('/api/admin', { method: 'POST', body: JSON.stringify(payload) });
+      show('Saved. The AI will use it within about a minute.', 'ok');
+      resetForm();
+      await loadDb();
+    } catch (e) { show(e.message, 'err'); }
+    $('saveBtn').disabled = false;
+  };
+  $('reloadDb').onclick = function () { loadDb().catch(function (e) { show(e.message, 'err'); }); };
+
+  // ---------- FEEDBACK ----------
+  async function loadFeedback() {
+    try {
+      var data = await api('/api/feedback');
+      feedback = data.items || [];
+      renderFeedback();
+      if (data.configured === false) show('Storage is not connected, so feedback is only in the Vercel logs (search for "FEEDBACK").', 'warn');
+    } catch (e) { show(e.message, 'err'); }
+  }
+
+  function renderFeedback() {
+    var list = $('fbList'); list.innerHTML = '';
+    var rows = feedback.filter(function (f) { return !fbOnlyDown || f.vote === 'down'; });
+    if (!rows.length) { var empty = document.createElement('div'); empty.className = 'meta'; empty.textContent = 'No feedback yet.'; list.appendChild(empty); return; }
+    rows.forEach(function (f) {
+      var item = document.createElement('div'); item.className = 'item';
+      var h = document.createElement('div');
+      var v = document.createElement('strong'); v.className = f.vote === 'up' ? 'up' : 'down'; v.textContent = f.vote === 'up' ? '👍 Good' : '👎 Bad';
+      var m = document.createElement('span'); m.className = 'meta'; m.textContent = '  ' + (f.t ? new Date(f.t).toLocaleString() : '');
+      h.appendChild(v); h.appendChild(m); item.appendChild(h);
+      var q = document.createElement('p'); q.textContent = 'Question: ' + (f.question || ''); item.appendChild(q);
+      var a = document.createElement('p'); a.textContent = 'Answer: ' + (f.answer || '').slice(0, 600); item.appendChild(a);
+      if (f.comment) { var c = document.createElement('p'); c.style.color = '#fcd34d'; c.textContent = 'Comment: ' + f.comment; item.appendChild(c); }
+      if (f.vote === 'down') {
+        var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'Add a correction';
+        btn.onclick = function () {
+          setTab('db'); resetForm();
+          $('fType').value = 'info'; syncFormType();
+          $('fName').value = (f.question || '').slice(0, 120);
+          $('fDesc').value = '';
+          $('fDesc').focus();
+        };
+        item.appendChild(btn);
+      }
+      list.appendChild(item);
+    });
+  }
+
+  $('fbAll').onclick = function () { fbOnlyDown = false; $('fbAll').classList.add('active'); $('fbDown').classList.remove('active'); renderFeedback(); };
+  $('fbDown').onclick = function () { fbOnlyDown = true; $('fbDown').classList.add('active'); $('fbAll').classList.remove('active'); renderFeedback(); };
+  $('reloadFb').onclick = loadFeedback;
+  $('clearFb').onclick = async function () {
+    if (!confirm('Delete ALL feedback?')) return;
+    try { await api('/api/feedback', { method: 'DELETE' }); show('Feedback cleared.', 'ok'); await loadFeedback(); }
+    catch (e) { show(e.message, 'err'); }
+  };
+
+  // ---------- START ----------
+  syncFormType();
+  try { var saved = sessionStorage.getItem(KEY_STORE); if (saved) connect(saved); } catch (e) {}
+})();
+</script>
+</body>
+</html>
