@@ -392,9 +392,10 @@ function fbProfiles(items, tokens) {
   return out;
 }
 
-function buildPersonTail(name, profiles, lang) {
+function buildPersonTail(name, profiles, lang, meaning = '') {
   const searchUrl = `https://www.facebook.com/search/people/?q=${encodeURIComponent(name)}`;
-  let tail = `\n\n🔎 **${T(lang, 'Facebook search for', 'Facebook search para kay')} "${titleCase(name)}":**\n${searchUrl}`;
+  let tail = meaning ? `\n\n✨ **${T(lang, 'Meaning of the name', 'Kahulugan ng pangalan')}**\n${meaning}` : '';
+  tail += `\n\n🔎 **${T(lang, 'Facebook search for', 'Facebook search para kay')} "${titleCase(name)}":**\n${searchUrl}`;
   if (profiles.length) {
     tail += `\n\n**${T(lang, 'Possible Facebook profiles', 'Mga posibleng Facebook profile')}** (${T(lang, 'please verify before trusting', 'paki-verify muna bago maniwala')}):\n`;
     tail += profiles.map((p) => `${p.title}\n${p.link}`).join('\n\n');
@@ -744,6 +745,55 @@ async function callGemini(apiMessages, { grounded = false } = {}) {
   return attempt(false, 15000);
 }
 
+// ==========================================
+// NAME MEANING (positibo lang, para ngumiti ang taong hinahanap)
+// ==========================================
+function nameMeaningPrompt(languageLabel) {
+  return `You write a short, warm "name meaning" note for a friendly community chat app. A user searched for a person's name. Explain the meaning and origin of the GIVEN NAME (the first name) in that full name, in a positive and uplifting way, so the person smiles when they read it.
+
+Rules:
+- Be positive only. Never say anything negative, mocking, sexual, or insulting, even as a joke. If the name has a negative meaning or association, or no known meaning, focus on a warm and truthful positive message instead (for example, the joy of having a unique name).
+- Be honest about the meaning. State a meaning only if you are fairly sure. If the spelling is uncommon, say it is likely a variant of a known name and give that name's meaning, using words such as "likely" or "may come from". If you do not know the origin, say it is not well documented and add a short, kind wish. Never invent a meaning or an origin.
+- Write about the NAME, not about the real person. Do not claim facts, personality traits, or predictions about the person.
+- If the surname has a well-known meaning, add one short sentence about it. Otherwise ignore the surname.
+- Use 2 to 4 short sentences. One fitting emoji is allowed. No lists, no headings, no links.
+- If the text is clearly NOT a personal name (for example a nickname with a negative meaning, a place, a company, or an object), reply with exactly: SKIP
+- Write in ${languageLabel}. Use perfect grammar, spelling, and punctuation.`;
+}
+
+async function getNameMeaning(fullName, lang) {
+  const messages = [
+    { role: 'system', content: nameMeaningPrompt(LANG_LABEL[lang] || 'English') },
+    { role: 'user', content: `Name: ${titleCase(fullName)}` }
+  ];
+
+  let text = '';
+  try {
+    for (const p of OPENAI_PROVIDERS) {
+      if (!process.env[p.key]) continue;
+      try {
+        text = await callOpenAICompat({ ...p, extra: { temperature: 0.5, max_tokens: 260 } }, messages, 9000);
+        if (text) break;
+      } catch (e) {
+        console.error(`Name meaning (${p.name}) failed:`, e.message);
+      }
+    }
+    if (!text && process.env.GEMINI_API_KEY) {
+      try { text = await callGemini(messages); } catch (e) { console.error('Name meaning (Gemini) failed:', e.message); }
+    }
+  } catch (e) {
+    console.error('Name meaning failed:', e.message);
+  }
+
+  text = String(text || '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/[#*_`>]/g, '')
+    .trim();
+  if (!text || /^SKIP\b/i.test(text)) return '';
+  return text.slice(0, 700);
+}
+
 // Kuha ng drafts mula sa LAHAT ng available na API nang sabay-sabay
 async function gatherDrafts(apiMessages) {
   const jobs = [];
@@ -934,13 +984,14 @@ export default async function handler(req, res) {
 
   if (lookupName) {
     const nameTokens = queryTokens(lookupName);
-    const [fbResults, webResults] = await Promise.all([
+    const [fbResults, webResults, nameMeaning] = await Promise.all([
       serperSearch(`site:facebook.com "${lookupName}"`),
-      serperSearch(`"${lookupName}"`)
+      serperSearch(`"${lookupName}"`),
+      personName ? getNameMeaning(personName, lang) : Promise.resolve('')
     ]);
 
     const profiles = fbProfiles([...fbResults, ...webResults], nameTokens);
-    personTail = buildPersonTail(lookupName, profiles, lang);
+    personTail = buildPersonTail(lookupName, profiles, lang, nameMeaning);
 
     const webLines = [];
     const seenLinks = new Set();
