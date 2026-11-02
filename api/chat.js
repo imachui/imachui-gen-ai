@@ -300,9 +300,9 @@ const NOT_NAME = new Set([
 
 const PERSON_PREFIX_RX = /^(?:please\s+|pls\s+|paki\s+)?(?:who\s+is|who\s+are|who's|sino\s+(?:po\s+)?(?:si|sina|ang)|sino\s+kaya\s+si|kilala\s+mo\s+ba\s+(?:si\s+|sina\s+)?|kilala\s+mo\s+(?:si\s+|sina\s+)?|kilala\s+ba\s+(?:si\s+)?|hanapin\s+(?:mo\s+)?(?:si\s+|sina\s+)?|facebook\s+(?:ni|of|ng)\s+|fb\s+(?:ni|of)\s+|profile\s+(?:ni|of)\s+|find\s+(?:the\s+)?facebook\s+(?:of|ni)\s+|kinsa\s+(?:si|sila)\s+|kilala\s+nimo\s+(?:si\s+)?)/i;
 
-function extractPersonName(msg) {
+function extractNameWith(rx, msg) {
   const m = msg.trim().slice(0, 200);
-  const hit = m.match(PERSON_PREFIX_RX);
+  const hit = m.match(rx);
   if (!hit) return null;
   const name = m
     .slice(hit[0].length)
@@ -315,6 +315,41 @@ function extractPersonName(msg) {
   if (toks.some((t) => NOT_NAME.has(t))) return null;
   return name;
 }
+
+// Malinaw na tanong tungkol sa tao: "who is ...", "sino si ..."
+const extractPersonName = (msg) => extractNameWith(PERSON_PREFIX_RX, msg);
+
+// Hindi gaanong malinaw ("tell me about ...", "find ..."): kailangan munang pumasa sa name check
+const LOOSE_PREFIX_RX = /^(?:please\s+|pls\s+|paki\s+)?(?:tell\s+me\s+(?:something\s+)?about|what\s+do\s+you\s+know\s+about|do\s+you\s+know|know\s+about|info(?:rmation)?\s+(?:about|on)|search\s+(?:for\s+)?|find\s+|look\s*up\s+|ano\s+(?:ang\s+)?alam\s+mo\s+(?:kay|tungkol\s+kay|sa)\s+|alam\s+mo\s+ba\s+(?:si\s+)?|ikuwento\s+(?:mo\s+)?(?:si\s+)?|kwento\s+(?:mo\s+)?(?:si\s+)?|tungkol\s+(?:kay|kay\s+si)\s+|pakisearch\s+(?:si\s+|ng\s+)?)/i;
+const extractLooseName = (msg) => extractNameWith(LOOSE_PREFIX_RX, msg);
+
+// Mga karaniwang salita na hindi pangalan (para hindi na kailangang tanungin ang AI)
+const COMMON_WORDS = new Set([
+  'hello', 'hi', 'hey', 'helo', 'hola', 'thanks', 'thank', 'thankyou', 'salamat', 'okay', 'ok', 'yes', 'bye',
+  'goodbye', 'help', 'test', 'testing', 'menu', 'start', 'stop', 'again', 'more', 'next', 'continue', 'sige',
+  'wow', 'haha', 'hahaha', 'lol', 'good', 'morning', 'afternoon', 'evening', 'night', 'welcome', 'sorry',
+  'weather', 'news', 'time', 'date', 'today', 'tomorrow', 'balita', 'panahon', 'video', 'image', 'picture',
+  'larawan', 'music', 'game', 'games', 'python', 'javascript', 'html', 'css', 'java', 'code', 'download', 'upload'
+]);
+
+// Pangalan lang ang tinype (1 hanggang 4 na salita, puro letra): hal. "elizabeth gemina cambio"
+function bareNameCandidate(msg) {
+  const text = String(msg || '').trim().replace(/[.,!]+$/g, '');
+  if (!text || text.length > 60) return null;
+  if (/[?\d@#:/\\]/.test(text) || /https?:/i.test(text)) return null;
+  if (NON_LATIN_RX.test(text)) return null;
+  const words = text.split(/\s+/);
+  if (words.length < 1 || words.length > 4) return null;
+  if (!words.every((w) => /^\p{L}[\p{L}.'’\-]*$/u.test(w))) return null;
+  const toks = norm(text).split(' ').filter(Boolean);
+  if (!toks.length) return null;
+  if (toks.some((t) => COMMON_WORDS.has(t))) return null;
+  const fnCount = toks.filter((t) => EN_WORDS.has(t) || TL_WORDS.has(t) || CEB_WORDS.has(t)).length;
+  if (fnCount >= 2 || (fnCount === 1 && toks.length === 1)) return null;
+  return text;
+}
+
+const CODING_RX = /\b(code|coding|html|css|javascript|js|python|java|php|sql|react|node|website|script|function|api|bug|error|program|app|component|regex|json)\b/i;
 
 // ==========================================
 // FETCH HELPERS
@@ -757,7 +792,7 @@ Rules:
 - Write about the NAME, not about the real person. Do not claim facts, personality traits, or predictions about the person.
 - If the surname has a well-known meaning, add one short sentence about it. Otherwise ignore the surname.
 - Use 2 to 4 short sentences. One fitting emoji is allowed. No lists, no headings, no links.
-- If the text is clearly NOT a personal name (for example a nickname with a negative meaning, a place, a company, or an object), reply with exactly: SKIP
+- Continue ONLY if the text looks like a real person's name (a given name, optionally with a surname). For anything else, reply with exactly: SKIP. That includes greetings, common words, phrases, topics, programming terms, places, brands, objects, and nicknames or gamertags.
 - Write in ${languageLabel}. Use perfect grammar, spelling, and punctuation.`;
 }
 
@@ -909,7 +944,7 @@ export default async function handler(req, res) {
   // ==========================================
   const shortMsg = userMessage.slice(0, 300);
   const lowerUserMessage = shortMsg.toLowerCase();
-  const lang = detectLang(shortMsg);
+  let lang = detectLang(shortMsg);
   const now = new Date();
   const phTime = now.toLocaleString('en-US', { timeZone: 'Asia/Manila', dateStyle: 'full', timeStyle: 'long' });
 
@@ -971,7 +1006,22 @@ export default async function handler(req, res) {
   const memoryFacts = Array.isArray(body && body.memory)
     ? body.memory.map((x) => String(x || '').replace(/\s+/g, ' ').trim().slice(0, 200)).filter(Boolean).slice(0, 30)
     : [];
-  const personName = extractPersonName(shortMsg);
+  let personName = extractPersonName(shortMsg);
+  let prefetchedMeaning = null;
+
+  // Pangalan lang ang tinype (o "tell me about ..."): tatanungin muna ang AI kung pangalan ng tao ito
+  if (!personName && !CODING_RX.test(lowerUserMessage)) {
+    const candidate = extractLooseName(shortMsg) || bareNameCandidate(shortMsg);
+    if (candidate) {
+      const meaningLang = lang === 'other' ? 'en' : lang;
+      const meaning = await getNameMeaning(candidate, meaningLang);
+      if (meaning) {
+        personName = candidate;
+        prefetchedMeaning = meaning;
+        if (lang === 'other') lang = 'en';
+      }
+    }
+  }
   const wordCount = shortMsg.trim().split(/\s+/).length;
   const lookupText = personName || (wordCount <= 4 ? shortMsg : '');
   const local = findLocal(queryTokens(lookupText), extras);
@@ -987,7 +1037,7 @@ export default async function handler(req, res) {
     const [fbResults, webResults, nameMeaning] = await Promise.all([
       serperSearch(`site:facebook.com "${lookupName}"`),
       serperSearch(`"${lookupName}"`),
-      personName ? getNameMeaning(personName, lang) : Promise.resolve('')
+      personName ? (prefetchedMeaning !== null ? Promise.resolve(prefetchedMeaning) : getNameMeaning(personName, lang)) : Promise.resolve('')
     ]);
 
     const profiles = fbProfiles([...fbResults, ...webResults], nameTokens);
@@ -1010,7 +1060,7 @@ export default async function handler(req, res) {
 
   // ---------- 4. GENERAL WEB SEARCH ----------
   let searchResults = '';
-  const isCodingQuestion = /\b(code|coding|html|css|javascript|js|python|java|php|sql|react|node|website|script|function|api|bug|error|program|app|component|regex|json)\b/i.test(lowerUserMessage);
+  const isCodingQuestion = CODING_RX.test(lowerUserMessage);
 
   if (!lookupName && process.env.SERPER_API_KEY && shortMsg.length > 3 && !isCodingQuestion) {
     const items = await serperSearch(shortMsg);
@@ -1048,7 +1098,7 @@ ANSWER RULES:
     systemContent += `\n=== PERSON LOOKUP ===\nThe user is looking for: "${lookupName}".\n`;
     if (foundLocal) {
       systemContent += `The profile of this person is ALREADY shown to the user above your answer. Do NOT repeat it.
-Your job: in at most 2 short sentences, add only facts from the WEB RESULTS that clearly refer to this same person (the full name must appear in the title or snippet). Do not say the web result "matches" the profile and do not claim it is the same person; say "Online, a person with this name..." only if unsure. If nothing clear, write one short sentence saying no extra public information was found.\n`;
+Your job: in at most 2 short sentences, add only facts from the WEB RESULTS that clearly refer to this same person (the full name must appear in the title or snippet). Do not say the web result "matches" the profile and do not claim it is the same person; say "Online, a person with this name..." only if unsure. If nothing clear, write one short sentence saying no extra public information was found. Do NOT write any URLs: the system adds the Facebook links automatically.\n`;
     } else {
       systemContent += `This person has no profile in the DATABASE. Use only the WEB RESULTS below, and never claim this person belongs to REAPER (RPR) or the hospital. Only say a result is about this person if the full name clearly appears in the title or snippet. A Facebook post or video where the name appears only as a commenter is NOT information about the person. If nothing clear is found, say the person is private or not indexed. Do NOT write any URLs: the system adds the Facebook links automatically. Keep it short.\n`;
     }
