@@ -8,12 +8,11 @@
     "description": "Imachui Gen AI is a multi-AI assistant created by Nerts V (Imachui). It combines several AI models, searches Google for current information, reads images and code screenshots, and knows the members of the REAPER (RPR) clan and the hospital staff."
   },
   {
-    "id": "uzziel-gemina-vinson",
-    "type": "person",
+    "id": "csc-cse-pr-2026",
+    "type": "info",
     "group": "Other",
-    "name": "Uzziel Gemina Vinson",
-    "role": "Teacher",
-    "aliases": ["Payuss", "Uzziel", "Mrs. Vinson"],
-    "description": "Uzziel is a beautiful, kind-hearted, and always smiling teacher. She can be a bit feisty with her husband, but she has a genuinely good nature. She is married to Nerts Vinson, a handsome man who never gets angry at his wife."
+    "name": "Civil Service Exam additional points (CSE-PR)",
+    "aliases": ["cse-pr", "cse pr", "preference rating", "career service eligibility preference rating", "civil service additional points", "civil service 5 years", "csc additional points", "jocosc6", "job order civil service eligibility"],
+    "description": "CSE-PR (Career Service Eligibility - Preference Rating) of the Philippine Civil Service Commission lets qualified government workers who took the Career Service Examination and scored 70.00 to 79.99 receive additional points, up to a maximum of 10, so that the rating can reach the 80.00 passing mark. It is NOT a flat 10 points for 5 years of work. Under the CSC's 2026 Omnibus Guidelines, the minimum is five (5) aggregate years of government service (the 2024 rules required ten (10) years for job order and contract-of-service workers). The worker must also meet the required performance rating for the latest rating periods, and must apply within six (6) months from the release of the exam results. The exact performance rating, the covered groups, and the documents are listed in the Omnibus Guidelines, so always confirm them on the official CSC website (csc.gov.ph) before applying."
   }
 ]
