@@ -468,7 +468,7 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 </section>
 <div class="composer-wrap">
 <form class="composer glass" id="composer" onsubmit="event.preventDefault();sendMessage();">
-  <textarea id="prompt" rows="1" placeholder="Message Imachui Gen AI..." maxlength="12000"></textarea>
+  <textarea id="prompt" rows="1" placeholder="Message Imachui Gen AI..."></textarea>
   <div class="att-list" id="attachments"></div>
   <div class="composer-bottom">
     <div class="tools">
@@ -525,6 +525,8 @@ if (typeof pdfjsLib !== 'undefined') {
 }
 
 var MAX_FILES = 6;               // hanggang 6 na file/larawan kada mensahe
+var LONG_PROMPT_MIN = 12000;      // mula dito, ipapadala bilang "long message" (isang kopya lang)
+var LONG_PROMPT_MAX = 3000000;    // ~ 600,000 na salita (higit sa isang libro)
 var MAX_BODY_CHARS = 3800000;    // limit ng Vercel ay 4.5MB kada request
 var STORAGE_KEY = 'imachui_v46_data';
 var chats = [];
@@ -1031,13 +1033,28 @@ async function sendMessage() {
     return;
   }
 
-  addMessage('user', text || 'Please review my attachment(s).', { images: msgContent.filter(function(c) { return c.type === 'image'; }).map(function(c) { return c.image; }) });
-  currentMessages.push({role: 'user', content: msgContent});
+  // Mahabang prompt (hanggang isang libro): isang kopya lang ang ipapadala sa server
+  var fullText = msgContent.filter(function(c) { return c.type === 'text'; }).map(function(c) { return c.text || ''; }).join('\n').trim();
+  var isLong = !imageJobs.length && fullText.length > LONG_PROMPT_MIN;
+  if (isLong && fullText.length > LONG_PROMPT_MAX) {
+    alert('⚠️ The message is too long (' + fullText.length.toLocaleString('en-US') + ' characters). The maximum is ' + LONG_PROMPT_MAX.toLocaleString('en-US') + ' characters. Please split it into parts.');
+    finishBusy();
+    return;
+  }
+  var storedContent = msgContent;
+  var shownText = text || 'Please review my attachment(s).';
+  if (isLong) {
+    shownText = fullText.slice(0, 3000) + '\n\n[... ' + fullText.length.toLocaleString('en-US') + ' characters sent ...]';
+    storedContent = [{type: 'text', text: shownText}];
+  }
+
+  addMessage('user', shownText, { images: msgContent.filter(function(c) { return c.type === 'image'; }).map(function(c) { return c.image; }) });
+  currentMessages.push({role: 'user', content: storedContent});
 
   var chat = null;
   for (var j = 0; j < chats.length; j++) if (chats[j].id === activeChatId) chat = chats[j];
   if (chat) {
-    chat.messages.push({role: 'user', content: lightContent(msgContent)});
+    chat.messages.push({role: 'user', content: lightContent(storedContent)});
     if (chat.title === 'New conversation') chat.title = (text || fileSnap[0].name || 'Attachment').slice(0, 40);
     chat.updated = Date.now(); save(); renderHistory();
   }
@@ -1105,8 +1122,10 @@ async function sendMessage() {
     var resp = await fetch(API_URL, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        message: text,
+        message: isLong ? '' : text,
         messages: outgoing,
+        documents: isLong ? [{ name: 'Long message', text: fullText }] : [],
+        promptMode: isLong,
         memory: memory.enabled ? memory.facts : []
       })
     });
