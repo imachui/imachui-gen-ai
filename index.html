@@ -970,6 +970,26 @@ function lightContent(content) {
   return content.map(function(p) { return p.type === 'image' ? {type: 'text', text: '[Image attached]'} : p; });
 }
 
+// Pinakabagong mensahe ang buo; ang mga luma ay pinaiikli para hindi lumampas sa limit ng request
+var HISTORY_BUDGET = 80000;
+function trimHistory(list, budget) {
+  var out = [];
+  for (var i = list.length - 1; i >= 0; i--) {
+    var m = list[i];
+    if (i === list.length - 1) { out.unshift(m); continue; }
+    var c = m.content;
+    if (typeof c !== 'string') {
+      c = (c || []).filter(function(p) { return p.type === 'text'; }).map(function(p) { return p.text || ''; }).join('\n');
+    }
+    if (!c.trim()) continue;
+    if (budget <= 0) break;
+    if (c.length > budget) c = c.slice(0, budget) + '\n[...trimmed...]';
+    budget -= c.length;
+    out.unshift({role: m.role, content: c});
+  }
+  return out;
+}
+
 function finishBusy() {
   var promptEl = document.getElementById('prompt');
   busy = false;
@@ -1114,10 +1134,7 @@ async function sendMessage() {
     var API_URL = apiUrl('/api/chat');
 
     // Ang huling larawan lang ang ipapadala; tinatanggal ang mga lumang larawan para hindi lumaki ang request
-    var outgoing = currentMessages.slice(-20).map(function(m, idx, arr) {
-      if (idx === arr.length - 1 || !Array.isArray(m.content)) return m;
-      return {role: m.role, content: m.content.filter(function(c) { return c.type !== 'image'; })};
-    });
+    var outgoing = trimHistory(currentMessages.slice(-20), HISTORY_BUDGET);
 
     var resp = await fetch(API_URL, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
