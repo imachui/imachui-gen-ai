@@ -60,6 +60,7 @@
     <div class="tabs">
       <button type="button" id="tabDb" class="active">Database</button>
       <button type="button" id="tabFb">Feedback</button>
+      <button type="button" id="tabHealth">Health</button>
       <button type="button" id="logoutBtn" style="margin-left:auto">Log out</button>
     </div>
 
@@ -120,6 +121,19 @@
         </div>
       </div>
       <div class="card"><div id="fbList"></div></div>
+    </div>
+
+    <!-- HEALTH TAB -->
+    <div id="paneHealth" class="hidden">
+      <div class="card">
+        <div class="row tight">
+          <button type="button" id="healthBtn" class="primary">Check now</button>
+          <span class="meta" id="healthTime"></span>
+        </div>
+        <div id="healthSummary" style="margin-top:10px;font-weight:700"></div>
+        <div class="meta" style="margin-top:6px">Each AI gets a tiny live test (almost free). Keys are never shown.</div>
+      </div>
+      <div class="card"><div id="healthList"></div></div>
     </div>
   </div>
 </div>
@@ -187,10 +201,14 @@
     $('paneFb').classList.toggle('hidden', name !== 'fb');
     $('tabDb').classList.toggle('active', name === 'db');
     $('tabFb').classList.toggle('active', name === 'fb');
+    $('paneHealth').classList.toggle('hidden', name !== 'health');
+    $('tabHealth').classList.toggle('active', name === 'health');
     if (name === 'fb') loadFeedback();
+    if (name === 'health') loadHealth();
   }
   $('tabDb').onclick = function () { setTab('db'); };
   $('tabFb').onclick = function () { setTab('fb'); };
+  $('tabHealth').onclick = function () { setTab('health'); };
 
   // ---------- DATABASE ----------
   function syncFormType() {
@@ -334,6 +352,43 @@
     try { await api('/api/feedback', { method: 'DELETE' }); show('Feedback cleared.', 'ok'); await loadFeedback(); }
     catch (e) { show(e.message, 'err'); }
   };
+
+  // ---------- HEALTH ----------
+  function renderHealth(data) {
+    var sum = data.summary || {};
+    var s = $('healthSummary');
+    s.textContent = sum.chatWorks
+      ? ('Chat is working: ' + sum.aiOk + ' of ' + sum.aiTotal + ' AI providers are OK.')
+      : 'Chat is DOWN: no AI provider is working right now.';
+    s.className = sum.chatWorks ? 'up' : 'down';
+    $('healthTime').textContent = data.checkedAt ? ('Checked ' + new Date(data.checkedAt).toLocaleTimeString()) : '';
+    var list = $('healthList');
+    list.innerHTML = '';
+    (data.results || []).forEach(function (r) {
+      var item = document.createElement('div'); item.className = 'item';
+      var h = document.createElement('h3');
+      var icon = !r.configured ? '⚪' : (r.ok ? '✅' : '❌');
+      h.textContent = icon + ' ' + r.name;
+      var badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = r.group; h.appendChild(badge);
+      item.appendChild(h);
+      var meta = [];
+      if (r.model) meta.push('model: ' + r.model);
+      if (r.status) meta.push('status ' + r.status);
+      if (r.ms) meta.push(r.ms + ' ms');
+      if (meta.length) { var m = document.createElement('div'); m.className = 'meta'; m.textContent = meta.join(' · '); item.appendChild(m); }
+      var d = document.createElement('p'); d.textContent = r.detail || ''; item.appendChild(d);
+      if (r.hint) { var hp = document.createElement('p'); hp.className = 'down'; hp.textContent = '→ ' + r.hint; item.appendChild(hp); }
+      list.appendChild(item);
+    });
+  }
+  async function loadHealth() {
+    var btn = $('healthBtn');
+    btn.disabled = true; btn.textContent = 'Checking...';
+    try { renderHealth(await api('/api/health')); }
+    catch (e) { show(e.message, 'err'); }
+    btn.disabled = false; btn.textContent = 'Check now';
+  }
+  $('healthBtn').onclick = function () { loadHealth(); };
 
   // ---------- START ----------
   syncFormType();
