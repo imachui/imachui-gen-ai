@@ -13,6 +13,9 @@
     "api/feedback.js": {
       "maxDuration": 15
     },
+    "api/health.js": {
+      "maxDuration": 20
+    },
     "api/admin.js": {
       "maxDuration": 15,
       "includeFiles": "*-data.json"
