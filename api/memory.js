@@ -46,7 +46,7 @@ async function askJson(userContent) {
   const providers = [
     { key: 'DEEPSEEK_API_KEY', url: 'https://api.deepseek.com/chat/completions', model: 'deepseek-chat' },
     { key: 'MISTRAL_API_KEY', url: 'https://api.mistral.ai/v1/chat/completions', model: 'mistral-small-latest' },
-    { key: 'OPENROUTER_API_KEY', url: 'https://openrouter.ai/api/v1/chat/completions', model: 'meta-llama/llama-3-8b-instruct' }
+    { key: 'OPENROUTER_API_KEY', url: 'https://openrouter.ai/api/v1/chat/completions', model: process.env.OPENROUTER_MODEL || 'openrouter/free' }
   ];
 
   for (const p of providers) {
@@ -68,7 +68,7 @@ async function askJson(userContent) {
 
   if (process.env.GEMINI_API_KEY) {
     try {
-      const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+      const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
       const r = await fetchWithTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
@@ -77,7 +77,7 @@ async function askJson(userContent) {
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: [{ role: 'user', parts: [{ text: userContent }] }],
-            generationConfig: { temperature: 0, maxOutputTokens: 900, thinkingConfig: { thinkingBudget: 0 } }
+            generationConfig: { temperature: 0, maxOutputTokens: 900 }
           })
         },
         12000
