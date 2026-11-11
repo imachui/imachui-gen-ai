@@ -1200,7 +1200,8 @@ async function streamFromProviders(apiMessages, res, head = '', tail = '', opts 
         await streamResponse(response, res, head, tail);
         return true;
       }
-      console.error(`${p.name} status:`, response.status);
+      const errBody = await response.text().catch(() => '');
+      console.error(`${p.name} status:`, response.status, errBody.slice(0, 300));
     } catch (e) {
       console.error(`${p.name} failed:`, e.message);
     }
@@ -1821,7 +1822,7 @@ Write ONE final answer for the user. Keep the parts that are correct and agree w
     return sendPlain(body + personTail);
   }
 
-  return res.status(500).json({ error: 'All AI providers failed.' });
+  return res.status(503).json({ error: 'The AI is very busy right now. Please try again in a moment.' });
 }
 
 // ==========================================
