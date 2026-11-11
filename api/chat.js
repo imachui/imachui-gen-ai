@@ -785,7 +785,9 @@ function buildPersonTail(name, profiles, lang, meaning = '') {
 // 3) Serper (Google): hanap ng konteksto gamit ang text/headline sa larawan
 // 4) DeepSeek / Mistral / OpenRouter: pinal na paliwanag
 // ==========================================
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+// Ang thinkingBudget:0 ay para lang sa Gemini 2.5; sa mga bagong model, hayaan ang default
+const thinkCfg = (m) => (/2\.5/.test(String(m)) ? { thinkingConfig: { thinkingBudget: 0 } } : {});
 const DEFAULT_IMAGE_QUESTION = 'Explain this image: what it shows, and the context, meaning, and reasons behind it.';
 
 function visionAttempts(promptText, base64Data, mimeType, { maxTokens = 2048, timeout = 12000 } = {}) {
@@ -793,7 +795,7 @@ function visionAttempts(promptText, base64Data, mimeType, { maxTokens = 2048, ti
   const attempts = [];
 
   if (process.env.GEMINI_API_KEY) {
-    for (const gModel of [...new Set([GEMINI_MODEL, 'gemini-2.5-flash-lite'])]) {
+    for (const gModel of [...new Set([GEMINI_MODEL, 'gemini-3.1-flash-lite'])]) {
       attempts.push(() => (async () => {
         const res = await fetchWithTimeout(
           `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -802,7 +804,7 @@ function visionAttempts(promptText, base64Data, mimeType, { maxTokens = 2048, ti
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
-              generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens, thinkingConfig: { thinkingBudget: 0 } }
+              generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens, ...thinkCfg(GEMINI_MODEL) }
             }),
             timeout
           }
@@ -841,7 +843,7 @@ function visionAttempts(promptText, base64Data, mimeType, { maxTokens = 2048, ti
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: process.env.OPENROUTER_VISION_MODEL || 'openrouter/free',
           max_tokens: Math.min(maxTokens, 2048),
           temperature: 0.2,
           messages: [{ role: 'user', content: [{ type: 'text', text: promptText }, { type: 'image_url', image_url: { url: dataUri } }] }]
@@ -955,7 +957,7 @@ async function geminiVisionDraft(images, question) {
       body: JSON.stringify({
         contents: [{ parts }],
         tools: [{ google_search: {} }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: multi ? 3072 : 2048, thinkingConfig: { thinkingBudget: 0 } }
+        generationConfig: { temperature: 0.3, maxOutputTokens: multi ? 3072 : 2048, ...thinkCfg(GEMINI_MODEL) }
       }),
       timeout: multi ? 22000 : 14000
     }
@@ -1058,10 +1060,11 @@ ${analysisBlocks}
 // ==========================================
 // AI ENGINES (DeepSeek, Mistral, OpenRouter, Gemini)
 // ==========================================
+const deadUntil = {}; // provider na may 401/402/404: lalaktawan ng 10 minuto
 const OPENAI_PROVIDERS = [
   { name: 'DeepSeek', key: 'DEEPSEEK_API_KEY', url: 'https://api.deepseek.com/chat/completions', model: 'deepseek-chat', extra: { temperature: 0.4, max_tokens: 8192 } },
   { name: 'Mistral', key: 'MISTRAL_API_KEY', url: 'https://api.mistral.ai/v1/chat/completions', model: 'mistral-small-latest', extra: { temperature: 0.4, max_tokens: 4096 } },
-  { name: 'OpenRouter', key: 'OPENROUTER_API_KEY', url: 'https://openrouter.ai/api/v1/chat/completions', model: 'meta-llama/llama-3-8b-instruct', extra: { temperature: 0.4, max_tokens: 2048 } }
+  { name: 'OpenRouter', key: 'OPENROUTER_API_KEY', url: 'https://openrouter.ai/api/v1/chat/completions', model: process.env.OPENROUTER_MODEL || 'openrouter/free', extra: { temperature: 0.4, max_tokens: 2048 } }
 ];
 
 // Non-streaming call (para sa drafts at fallback)
@@ -1100,7 +1103,7 @@ async function callGemini(apiMessages, { grounded = false } = {}) {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: sys }] },
         contents,
-        generationConfig: { temperature: 0.4, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } },
+        generationConfig: { temperature: 0.4, maxOutputTokens: 2048, ...thinkCfg(GEMINI_MODEL) },
         ...(useTools ? { tools: [{ google_search: {} }] } : {})
       }),
       timeout
@@ -1186,9 +1189,9 @@ async function gatherDrafts(apiMessages) {
 async function streamFromProviders(apiMessages, res, head = '', tail = '', opts = {}) {
   const { skip = [], noGemini = false, timeout = 20000, reasoner = false } = opts;
   for (const p of OPENAI_PROVIDERS) {
-    if (!process.env[p.key] || skip.includes(p.name)) continue;
+    if (!process.env[p.key] || skip.includes(p.name) || (deadUntil[p.name] || 0) > Date.now()) continue;
     try {
-      const response = await fetchWithTimeout(p.url, {
+      const doFetch = () => fetchWithTimeout(p.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env[p.key]}` },
         body: JSON.stringify(reasoner && p.name === 'DeepSeek'
@@ -1196,12 +1199,15 @@ async function streamFromProviders(apiMessages, res, head = '', tail = '', opts 
           : { model: p.model, messages: apiMessages, stream: true, ...p.extra }),
         timeout
       });
+      let response = await doFetch();
+      if (response.status === 429) { await new Promise((r) => setTimeout(r, 1500)); response = await doFetch(); }
       if (response.ok) {
         await streamResponse(response, res, head, tail);
         return true;
       }
       const errBody = await response.text().catch(() => '');
       console.error(`${p.name} status:`, response.status, errBody.slice(0, 300));
+      if ([401, 402, 404].includes(response.status)) deadUntil[p.name] = Date.now() + 10 * 60 * 1000;
     } catch (e) {
       console.error(`${p.name} failed:`, e.message);
     }
@@ -1335,7 +1341,7 @@ async function streamGeminiLong(res, system, userText) {
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: 'user', parts: [{ text: userText }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 0 } }
+      generationConfig: { temperature: 0.3, maxOutputTokens: 8192, ...thinkCfg(GEMINI_MODEL) }
     }),
     timeout: 40000
   });
