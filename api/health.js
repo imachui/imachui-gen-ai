@@ -11,7 +11,7 @@ const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'openrouter/free';
 
 const SECRET_ENVS = [
   'DEEPSEEK_API_KEY', 'MISTRAL_API_KEY', 'OPENROUTER_API_KEY', 'GEMINI_API_KEY', 'SERPER_API_KEY',
-  'ADMIN_KEY', 'CF_API_TOKEN', 'POLLINATIONS_API_KEY', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_TOKEN'
+  'ADMIN_KEY', 'GROQ_API_KEY', 'CF_API_TOKEN', 'POLLINATIONS_API_KEY', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_TOKEN'
 ];
 
 // Alisin ang anumang secret na nakasama sa teksto, at paikliin
@@ -105,8 +105,10 @@ const CHECKS = [
       return res;
     }
   },
+  { name: 'Groq', group: 'AI', envs: ['GROQ_API_KEY'], model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', run: chatCheck('https://api.groq.com/openai/v1/chat/completions', 'GROQ_API_KEY', process.env.GROQ_MODEL || 'llama-3.3-70b-versatile') },
   { name: 'Mistral', group: 'AI', envs: ['MISTRAL_API_KEY'], model: 'mistral-small-latest', run: chatCheck('https://api.mistral.ai/v1/chat/completions', 'MISTRAL_API_KEY', 'mistral-small-latest') },
   { name: 'OpenRouter', group: 'AI', envs: ['OPENROUTER_API_KEY'], model: OPENROUTER_MODEL, run: chatCheck('https://openrouter.ai/api/v1/chat/completions', 'OPENROUTER_API_KEY', OPENROUTER_MODEL) },
+  { name: 'Cloudflare Workers AI (text)', group: 'AI', envs: ['CF_ACCOUNT_ID', 'CF_API_TOKEN'], model: process.env.CF_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast', run: chatCheck(`https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/ai/v1/chat/completions`, 'CF_API_TOKEN', process.env.CF_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast') },
   {
     name: 'Gemini', group: 'AI', envs: ['GEMINI_API_KEY'], model: GEMINI_MODEL,
     run: async () => {
