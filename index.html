@@ -1171,7 +1171,7 @@ async function sendMessage() {
       currentMessages.push({role: 'assistant', content: full});
       if (chat) { chat.messages.push({role: 'assistant', content: full}); chat.updated = Date.now(); save(); }
     } else {
-      te.textContent = 'System Error: ' + (e.message || 'Try again.');
+      console.error(e); te.textContent = '🛠️ Imachui Gen AI is being updated right now. Please be patient and try again in a few minutes. Thank you!';
     }
   } finally {
     finishBusy();
