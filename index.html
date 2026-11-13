@@ -309,6 +309,10 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .text { white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; max-width: 100%; font-size: 15px; }
 .text pre { background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; overflow-x: auto; font-family: "SF Mono", Consolas, monospace; font-size: 13px; margin: 10px 0; border: 1px solid var(--glass-border); white-space: pre; }
 .text pre code { background: transparent; padding: 0; }
+.text .tbl-wrap { overflow-x: auto; margin: 10px 0; white-space: normal; }
+.text table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.5; }
+.text th, .text td { border: 1px solid var(--glass-border); padding: 8px 10px; text-align: left; vertical-align: top; }
+.text th { background: rgba(255,255,255,0.06); font-weight: 800; }
 .text code { font-family: "SF Mono", Consolas, monospace; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
 .text a { color: var(--accent); text-decoration: none; word-break: break-all; border-bottom: 1px solid var(--accent); }
 .text a:hover { border-bottom: 1px solid transparent; }
@@ -719,6 +723,47 @@ function escapeHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
+function buildTable(block) {
+  function cells(line) {
+    var t = line.trim();
+    if (t.charAt(0) === '|') t = t.slice(1);
+    if (t.charAt(t.length - 1) === '|') t = t.slice(0, -1);
+    return t.split('|');
+  }
+  function cellHtml(c) {
+    var s = escapeHtml(c.trim());
+    s = s.replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+    return s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+  var head = cells(block[0]);
+  var cols = head.length;
+  var html = '<div class="tbl-wrap"><table><thead><tr>';
+  head.forEach(function(c) { html += '<th>' + cellHtml(c) + '</th>'; });
+  html += '</tr></thead><tbody>';
+  for (var r = 1; r < block.length; r++) {
+    var row = cells(block[r]);
+    html += '<tr>';
+    for (var k = 0; k < Math.max(cols, row.length); k++) html += '<td>' + cellHtml(row[k] || '') + '</td>';
+    html += '</tr>';
+  }
+  return html + '</tbody></table></div>';
+}
+
+function renderTables(f, keep) {
+  var lines = f.split('\n'), out = [], i = 0;
+  var isRow = function(l) { return /^\s*\|.*\|\s*$/.test(l); };
+  var isSep = function(l) { return /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l); };
+  while (i < lines.length) {
+    if (isRow(lines[i]) && i + 1 < lines.length && isSep(lines[i + 1])) {
+      var block = [lines[i]], j = i + 2;
+      while (j < lines.length && isRow(lines[j])) { block.push(lines[j]); j++; }
+      out.push(keep(buildTable(block)));
+      i = j;
+    } else { out.push(lines[i]); i++; }
+  }
+  return out.join('\n');
+}
+
 function fmt(text) {
   var store = [];
   function keep(html) { store.push(html); return '\u0000' + (store.length - 1) + '\u0000'; }
@@ -749,6 +794,10 @@ function fmt(text) {
     return keep('<a href="' + escapeHtml(u) + '" target="_blank" rel="noopener" style="' + linkStyle + '">' + escapeHtml(u) + '</a>') + trail;
   });
 
+  // 4b. Tables, then stray <br> tags become line breaks
+  f = renderTables(f, keep);
+  f = f.replace(/<br\s*\/?>/gi, '\n');
+
   // 5. Escape everything else, then bold and glitch
   f = escapeHtml(f);
   f = f.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -757,7 +806,9 @@ function fmt(text) {
   });
 
   // 6. Put the protected pieces back
-  f = f.replace(/\u0000(\d+)\u0000/g, function(m, i) { return store[Number(i)] || ''; });
+  for (var pass = 0; pass < 3; pass++) {
+    f = f.replace(/\u0000(\d+)\u0000/g, function(m, i) { return store[Number(i)] || ''; });
+  }
   return f;
 }
 
