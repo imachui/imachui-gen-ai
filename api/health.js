@@ -10,7 +10,7 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'openrouter/free';
 
 const SECRET_ENVS = [
-  'DEEPSEEK_API_KEY', 'MISTRAL_API_KEY', 'OPENROUTER_API_KEY', 'GEMINI_API_KEY', 'SERPER_API_KEY',
+  'MISTRAL_API_KEY', 'OPENROUTER_API_KEY', 'GEMINI_API_KEY', 'SERPER_API_KEY',
   'ADMIN_KEY', 'GROQ_API_KEY', 'CF_API_TOKEN', 'POLLINATIONS_API_KEY', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_TOKEN'
 ];
 
@@ -90,22 +90,7 @@ const chatCheck = (url, keyEnv, model) => async () => {
 };
 
 const CHECKS = [
-  {
-    name: 'DeepSeek', group: 'AI', envs: ['DEEPSEEK_API_KEY'], model: 'deepseek-chat',
-    run: async () => {
-      const res = await chatCheck('https://api.deepseek.com/chat/completions', 'DEEPSEEK_API_KEY', 'deepseek-chat')();
-      try {
-        const b = await fetchT('https://api.deepseek.com/user/balance', { headers: { Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` } }, 6000);
-        if (b.ok) {
-          const j = await b.json();
-          const info = j.balance_infos && j.balance_infos[0];
-          if (info) res.detail = `${res.ok ? 'Working' : res.detail}. Balance: ${info.total_balance} ${info.currency}`;
-        }
-      } catch (e) { /* opsyonal */ }
-      return res;
-    }
-  },
-  { name: 'Groq', group: 'AI', envs: ['GROQ_API_KEY'], model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', run: chatCheck('https://api.groq.com/openai/v1/chat/completions', 'GROQ_API_KEY', process.env.GROQ_MODEL || 'llama-3.3-70b-versatile') },
+  { name: 'Groq', group: 'AI', envs: ['GROQ_API_KEY'], model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b', run: chatCheck('https://api.groq.com/openai/v1/chat/completions', 'GROQ_API_KEY', process.env.GROQ_MODEL || 'openai/gpt-oss-120b') },
   { name: 'Mistral', group: 'AI', envs: ['MISTRAL_API_KEY'], model: 'mistral-small-latest', run: chatCheck('https://api.mistral.ai/v1/chat/completions', 'MISTRAL_API_KEY', 'mistral-small-latest') },
   { name: 'OpenRouter', group: 'AI', envs: ['OPENROUTER_API_KEY'], model: OPENROUTER_MODEL, run: chatCheck('https://openrouter.ai/api/v1/chat/completions', 'OPENROUTER_API_KEY', OPENROUTER_MODEL) },
   { name: 'Cloudflare Workers AI (text)', group: 'AI', envs: ['CF_ACCOUNT_ID', 'CF_API_TOKEN'], model: process.env.CF_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast', run: chatCheck(`https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/ai/v1/chat/completions`, 'CF_API_TOKEN', process.env.CF_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast') },
@@ -116,7 +101,7 @@ const CHECKS = [
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
         body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with OK' }] }], generationConfig: { maxOutputTokens: 32 } })
-      }, 12000);
+      }, 25000);
       if (r.ok) return { ok: true, status: r.status, detail: 'Working' };
       return { ok: false, status: r.status, detail: await errorText(r) };
     }
