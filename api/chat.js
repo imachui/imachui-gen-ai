@@ -1060,17 +1060,16 @@ ${analysisBlocks}
 }
 
 // ==========================================
-// AI ENGINES (DeepSeek, Mistral, OpenRouter, Gemini)
+// AI ENGINES (all free tiers: Groq, Mistral, Cloudflare, OpenRouter, Gemini)
 // ==========================================
 // Mga provider na maliit ang limit o context: hindi gagamitin sa napakahabang dokumento
 const LOW_CONTEXT = ['OpenRouter', 'Groq', 'Cloudflare'];
 const deadUntil = {}; // provider na may 401/402/404: lalaktawan ng 10 minuto
 const OPENAI_PROVIDERS = [
-  { name: 'DeepSeek', key: 'DEEPSEEK_API_KEY', url: 'https://api.deepseek.com/chat/completions', model: 'deepseek-chat', extra: { temperature: 0.4, max_tokens: 8192 } },
-  { name: 'Groq', key: 'GROQ_API_KEY', url: 'https://api.groq.com/openai/v1/chat/completions', model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', extra: { temperature: 0.4, max_tokens: 4096 } },
+  { name: 'Groq', key: 'GROQ_API_KEY', url: 'https://api.groq.com/openai/v1/chat/completions', model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b', extra: { temperature: 0.4, max_tokens: 4096 } },
   { name: 'Mistral', key: 'MISTRAL_API_KEY', url: 'https://api.mistral.ai/v1/chat/completions', model: 'mistral-small-latest', extra: { temperature: 0.4, max_tokens: 4096 } },
-  { name: 'OpenRouter', key: 'OPENROUTER_API_KEY', url: 'https://openrouter.ai/api/v1/chat/completions', model: process.env.OPENROUTER_MODEL || 'openrouter/free', extra: { temperature: 0.4, max_tokens: 2048 } },
-  { name: 'Cloudflare', key: 'CF_API_TOKEN', url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/ai/v1/chat/completions`, model: process.env.CF_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast', extra: { temperature: 0.4, max_tokens: 2048 } }
+  { name: 'Cloudflare', key: 'CF_API_TOKEN', url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/ai/v1/chat/completions`, model: process.env.CF_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast', extra: { temperature: 0.4, max_tokens: 2048 } },
+  { name: 'OpenRouter', key: 'OPENROUTER_API_KEY', url: 'https://openrouter.ai/api/v1/chat/completions', model: process.env.OPENROUTER_MODEL || 'openrouter/free', extra: { temperature: 0.4, max_tokens: 2048 } }
 ];
 
 // Non-streaming call (para sa drafts at fallback)
@@ -1877,7 +1876,7 @@ Write ONE final answer for the user. Keep the parts that are correct and agree w
     return sendPlain(body + personTail);
   }
 
-  return res.status(503).json({ error: 'The AI is very busy right now. Please try again in a moment.' });
+  return res.status(503).json({ error: 'Imachui Gen AI is being updated right now. Please be patient and try again in a few minutes. Thank you!' });
 }
 
 // ==========================================
