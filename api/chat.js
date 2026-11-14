@@ -4,7 +4,11 @@ import { createHash } from 'crypto';
 import { redis, storeConfigured } from '../lib/store.js';
 import { extractUrls, readLinks } from '../lib/links.js';
 import { fetchAccountContext, makeTokenGetter } from '../lib/connectors.js';
-import { configuredProviders, oauthReady, SID_RX } from '../lib/oauth.js';
+import { configuredProviders, oauthReady, SID_RX, getUserProviders } from '../lib/oauth.js';
+import { AsyncLocalStorage } from 'async_hooks';
+
+// Dito nakalagay ang sariling AI keys ng user para sa kasalukuyang request lang
+const ownKeys = new AsyncLocalStorage();
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.js';
@@ -1196,12 +1200,15 @@ async function gatherDrafts(apiMessages) {
 // opts: { skip: LOW_CONTEXT, noGemini: true, timeout: 20000 }
 async function streamFromProviders(apiMessages, res, head = '', tail = '', opts = {}) {
   const { skip = [], noGemini = false, timeout = 20000, reasoner = false } = opts;
-  for (const p of OPENAI_PROVIDERS) {
-    if (!process.env[p.key] || skip.includes(p.name) || (deadUntil[p.name] || 0) > Date.now()) continue;
+  const store = ownKeys.getStore();
+  const mine = (store && store.userProviders) || [];
+  for (const p of [...mine, ...OPENAI_PROVIDERS]) {
+    const apiKey = p.own ? p.apiKey : process.env[p.key];
+    if (!apiKey || skip.includes(p.name) || (p.base && skip.includes(p.base)) || (!p.own && (deadUntil[p.name] || 0) > Date.now())) continue;
     try {
       const doFetch = () => fetchWithTimeout(p.url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env[p.key]}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify(reasoner && p.name === 'DeepSeek'
           ? { model: 'deepseek-reasoner', messages: apiMessages, stream: true, max_tokens: 8192 }
           : { model: p.model, messages: apiMessages, stream: true, ...p.extra }),
@@ -1215,7 +1222,7 @@ async function streamFromProviders(apiMessages, res, head = '', tail = '', opts 
       }
       const errBody = await response.text().catch(() => '');
       console.error(`${p.name} status:`, response.status, errBody.slice(0, 300));
-      if ([401, 402, 404].includes(response.status)) deadUntil[p.name] = Date.now() + 10 * 60 * 1000;
+      if (!p.own && [401, 402, 404].includes(response.status)) deadUntil[p.name] = Date.now() + 10 * 60 * 1000;
     } catch (e) {
       console.error(`${p.name} failed:`, e.message);
     }
@@ -1504,7 +1511,7 @@ async function isRateLimited(req) {
   }
 }
 
-export default async function handler(req, res) {
+async function handlerImpl(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST');
@@ -1785,7 +1792,7 @@ ANSWER RULES:
 10. DEPED AND LESSON PLANS (Philippine DepEd): Follow the DepEd style (Layunin, Paksa, Pamamaraan, Pagtataya, Takdang-Aralin, or Content Standard, Performance Standard, Learning Competency). Make the activity minutes add up exactly to the class time. For a Daily Lesson Log, write every requested day (Monday to Friday). NEVER invent a learning competency code, DepEd Order number, or curriculum reference. If you are not sure of the exact code, write the competency in plain words and add: "Please verify the exact competency code in the official DepEd MATATAG curriculum guide." Use the attached curriculum file as the source whenever one is provided.
 11. FORMAT: Markdown tables are allowed (header row, separator row, one row per line). Never write HTML tags such as <br> in your answer. If a table cell needs several items, separate them with semicolons or use a numbered list instead of a table.
 12. LINKS: When the user pastes a link, the system reads public web pages, YouTube videos, GitHub (repositories, files, issues, gists), public Google Docs, Sheets, and Slides, Wikipedia, Hacker News, Reddit posts, Stack Overflow and Stack Exchange questions, arXiv papers, npm and PyPI packages, Dev.to articles, and public Telegram channels, and puts the text in a LINK CONTENT block. Use that block to answer. Never claim to have read a link that is not in the LINK CONTENT block or that is marked COULD NOT BE READ. Facebook, Instagram, TikTok, X, Canva, private files, and Google Drive file links cannot be read: say so briefly and suggest pasting the text or attaching a screenshot or file.
-13. CONNECTED ACCOUNTS: If a CONNECTED ACCOUNT DATA block is present, answer only from it. It is private to this user: show only what they asked for. You can only READ their accounts: never say you sent, replied, edited, deleted, or scheduled anything. If the block says NOT CONNECTED, tell the user to open the menu and choose Connected Accounts. Never ask the user for a password, and never ask them to paste an access token.
+13. CONNECTED ACCOUNTS: If a CONNECTED ACCOUNT DATA block is present, answer only from it. It is private to this user: show only what they asked for. You can only READ their accounts: never say you sent, replied, edited, deleted, or scheduled anything. If the block says NOT CONNECTED, tell the user to open the menu and press Connect on the matching item under Sign in & Connect. Never ask the user for a password, and never ask them to paste an access token.
 ${intentGuide(intent, phTime)}
 `;
 
@@ -1947,4 +1954,16 @@ async function streamResponse(response, res, head = '', tail = '') {
 
   if (tail) res.write(tail);
   res.end();
+}
+
+// Kinukuha muna ang sariling AI keys ng user (kung meron), saka patatakbuhin ang chat
+export default async function handler(req, res) {
+  let userProviders = [];
+  try {
+    let b = req.body;
+    if (typeof b === 'string') b = JSON.parse(b);
+    const sid = String((b && b.sid) || '');
+    if (oauthReady() && SID_RX.test(sid)) userProviders = await getUserProviders(sid);
+  } catch (e) { /* walang sariling key */ }
+  return ownKeys.run({ userProviders }, () => handlerImpl(req, res));
 }
