@@ -309,6 +309,13 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .text { white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; max-width: 100%; font-size: 15px; }
 .text pre { background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; overflow-x: auto; font-family: "SF Mono", Consolas, monospace; font-size: 13px; margin: 10px 0; border: 1px solid var(--glass-border); white-space: pre; }
 .text pre code { background: transparent; padding: 0; }
+.plugin-note { font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.55); padding: 4px 6px 0; }
+.acct-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(255,255,255,0.03); }
+.acct-info { min-width: 0; }
+.acct-name { font-size: 14px; font-weight: 700; }
+.acct-sub { font-size: 12px; color: rgba(255,255,255,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-btn { flex: 0 0 auto; padding: 7px 12px; border-radius: 10px; border: 1px solid #38bdf8; background: rgba(56,189,248,0.12); color: #38bdf8; font-weight: 700; font-size: 12px; cursor: pointer; }
+.acct-btn.on { border-color: rgba(255,255,255,0.25); background: transparent; color: rgba(255,255,255,0.7); }
 .text .tbl-wrap { overflow-x: auto; margin: 10px 0; white-space: normal; }
 .text table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.5; }
 .text th, .text td { border: 1px solid var(--glass-border); padding: 8px 10px; text-align: left; vertical-align: top; }
@@ -406,6 +413,26 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <button class="side-btn" onclick="newChat();closeSidebar()">＋ New Conversation</button>
   <div class="side-label">Workspace</div>
   <button class="side-btn ask-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen AI</button>
+
+  <div class="side-label" style="margin-top: 15px;">🔌 Plugins</div>
+  <button class="side-btn" onclick="usePlugin('Summarize this web page: ')">🌐 Web Page Reader</button>
+  <button class="side-btn" onclick="usePlugin('Summarize this YouTube video: ')">▶️ YouTube Summary</button>
+  <button class="side-btn" onclick="usePlugin('Explain what this GitHub repository does: ')">🐙 GitHub Reader</button>
+  <button class="side-btn" onclick="usePlugin('Summarize this Google Doc, Sheet, or Slides: ')">📄 Google Docs / Sheets / Slides</button>
+  <button class="side-btn" onclick="usePlugin('Explain this Wikipedia article: ')">📚 Wikipedia</button>
+  <button class="side-btn" onclick="usePlugin('Summarize this discussion (Reddit or Hacker News): ')">💬 Reddit / Hacker News</button>
+  <button class="side-btn" onclick="usePlugin('Explain the best answer to this question: ')">🧑‍💻 Stack Overflow</button>
+  <button class="side-btn" onclick="usePlugin('Explain this research paper in simple words: ')">🔬 arXiv Research Papers</button>
+  <button class="side-btn" onclick="usePlugin('What does this package do and how do I use it? ')">📦 npm / PyPI Packages</button>
+  <button class="side-btn" onclick="usePlugin('Summarize this article: ')">✍️ Dev.to Articles</button>
+  <button class="side-btn" onclick="usePlugin('Summarize the latest posts of this public Telegram channel: ')">✈️ Telegram Channel</button>
+  <div class="plugin-note">Tap a plugin, then paste a public link. Public links only. Facebook, Instagram, TikTok, X, and Canva block automatic reading: paste the text or attach a screenshot instead.</div>
+
+  <div id="acct-section" style="display:none">
+    <div class="side-label" style="margin-top: 15px;">🔐 Connected Accounts</div>
+    <div id="acct-list"></div>
+    <div class="plugin-note">Optional. Sign in so the AI can read your private files, calendar, and email. Read-only: it can never send, edit, or delete anything. You can disconnect anytime.</div>
+  </div>
 
   <div class="side-label" style="margin-top: 15px;">Explore</div>
   <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="side-btn" style="display:block; text-align:center; color:#38bdf8; border-color:#38bdf8; background:rgba(56,189,248,0.1); font-weight:bold;">🚀 AI Launcher</a>
@@ -562,6 +589,86 @@ try {
   uid = localStorage.getItem(UID_KEY) || uid;
   localStorage.setItem(UID_KEY, uid);
 } catch (e) {}
+
+var SID_KEY = 'imachui_sid';
+var CONN_KEY = 'imachui_connected';
+function getSid() {
+  var s = '';
+  try { s = localStorage.getItem(SID_KEY) || ''; } catch (e) {}
+  if (!/^[a-f0-9]{32}$/.test(s)) {
+    var a = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    s = Array.prototype.map.call(a, function(b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    try { localStorage.setItem(SID_KEY, s); } catch (e) {}
+  }
+  return s;
+}
+function hasConnected() { try { return localStorage.getItem(CONN_KEY) === '1'; } catch (e) { return false; } }
+function setConnected(v) { try { if (v) localStorage.setItem(CONN_KEY, '1'); else localStorage.removeItem(CONN_KEY); } catch (e) {} }
+
+var accts = { configured: [], connected: {} };
+async function acctCall(payload) {
+  payload.sid = getSid();
+  var r = await fetch(apiUrl('/api/oauth'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  var j = await r.json().catch(function() { return {}; });
+  if (!r.ok) throw new Error(j.error || 'Error');
+  return j;
+}
+function renderAccounts() {
+  var sec = document.getElementById('acct-section');
+  var list = document.getElementById('acct-list');
+  if (!sec || !list) return;
+  sec.style.display = accts.configured.length ? 'block' : 'none';
+  list.textContent = '';
+  accts.configured.forEach(function(p) {
+    var c = accts.connected[p.id];
+    var row = document.createElement('div'); row.className = 'acct-row';
+    var info = document.createElement('div'); info.className = 'acct-info';
+    var name = document.createElement('div'); name.className = 'acct-name'; name.textContent = p.icon + ' ' + p.label;
+    var sub = document.createElement('div'); sub.className = 'acct-sub';
+    sub.textContent = c ? ('Connected' + (c.label ? ': ' + c.label : '')) : p.what;
+    info.appendChild(name); info.appendChild(sub);
+    var btn = document.createElement('button'); btn.className = 'acct-btn' + (c ? ' on' : ''); btn.textContent = c ? 'Disconnect' : 'Connect';
+    btn.onclick = function() { if (c) disconnectAccount(p); else connectAccount(p); };
+    row.appendChild(info); row.appendChild(btn); list.appendChild(row);
+  });
+}
+async function loadAccounts() {
+  if (!storageOK) return;
+  try {
+    var s = await acctCall({ action: 'status' });
+    accts.configured = s.ready ? s.configured : [];
+    accts.connected = s.connected || {};
+  } catch (e) { accts.configured = []; }
+  setConnected(Object.keys(accts.connected).length > 0);
+  renderAccounts();
+}
+async function connectAccount(p) {
+  if (!confirm('Connect ' + p.label + '?\n\nImachui Gen AI will only READ your data (it never sends, edits, or deletes anything). When you ask about it, the related text is sent to the AI providers to write the answer. You can disconnect anytime.')) return;
+  var w = window.open('', 'imachui_oauth', 'width=520,height=720');
+  try {
+    var r = await acctCall({ action: 'start', provider: p.id });
+    if (w) w.location.href = r.url; else location.href = r.url;
+  } catch (e) { if (w) w.close(); alert('Could not start sign-in: ' + e.message); return; }
+  var tries = 0;
+  var timer = setInterval(async function() {
+    tries++;
+    try {
+      var s = await acctCall({ action: 'status' });
+      accts.connected = s.connected || {};
+      if (accts.connected[p.id]) { clearInterval(timer); setConnected(true); renderAccounts(); try { if (w) w.close(); } catch (e) {} }
+    } catch (e) {}
+    if (tries > 90) clearInterval(timer);
+  }, 2000);
+}
+async function disconnectAccount(p) {
+  if (!confirm('Disconnect ' + p.label + '? The AI will no longer be able to read it.')) return;
+  try { await acctCall({ action: 'disconnect', provider: p.id }); } catch (e) { alert('Could not disconnect: ' + e.message); return; }
+  delete accts.connected[p.id];
+  setConnected(Object.keys(accts.connected).length > 0);
+  renderAccounts();
+}
+window.addEventListener('load', loadAccounts);
 
 var memory = { enabled: true, facts: [] };
 
@@ -721,6 +828,16 @@ function escapeHtml(unsafe) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function usePlugin(starter) {
+  var box = document.getElementById('prompt');
+  if (!box) return;
+  box.value = starter;
+  try { box.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+  if (typeof closeSidebar === 'function') closeSidebar();
+  box.focus();
+  try { box.setSelectionRange(box.value.length, box.value.length); } catch (e) {}
 }
 
 function buildTable(block) {
@@ -1194,7 +1311,8 @@ async function sendMessage() {
         messages: outgoing,
         documents: isLong ? [{ name: 'Long message', text: fullText }] : [],
         promptMode: isLong,
-        memory: memory.enabled ? memory.facts : []
+        memory: memory.enabled ? memory.facts : [],
+        sid: hasConnected() ? getSid() : undefined
       })
     });
     if (!resp.ok) { var err = await resp.json().catch(function() { return {}; }); throw new Error(err.error || 'API error (' + resp.status + ')'); }
