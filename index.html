@@ -310,6 +310,15 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .text pre { background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; overflow-x: auto; font-family: "SF Mono", Consolas, monospace; font-size: 13px; margin: 10px 0; border: 1px solid var(--glass-border); white-space: pre; }
 .text pre code { background: transparent; padding: 0; }
 .plugin-note { font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.55); padding: 4px 6px 0; }
+#key-modal { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.65); align-items: center; justify-content: center; padding: 16px; }
+#key-modal.open { display: flex !important; }
+.key-card { width: 100%; max-width: 420px; background: #141b2e; border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; color: #e5e7eb; }
+.key-card h3 { margin: 0 0 8px; font-size: 18px; }
+.key-card input { width: 100%; box-sizing: border-box; margin: 6px 0; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; }
+.key-p { font-size: 12.5px; line-height: 1.55; color: rgba(255,255,255,0.65); margin: 6px 0; }
+.key-p a { color: #38bdf8; }
+.key-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
+.acct-btn:disabled { opacity: 0.45; cursor: default; }
 .acct-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(255,255,255,0.03); }
 .acct-info { min-width: 0; }
 .acct-name { font-size: 14px; font-weight: 700; }
@@ -414,6 +423,14 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <div class="side-label">Workspace</div>
   <button class="side-btn ask-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen AI</button>
 
+  <div class="side-label" style="margin-top: 15px;">🔐 Sign in &amp; Connect</div>
+  <div id="acct-list"></div>
+  <div class="plugin-note">Optional. Connect your own accounts so the AI can read your private files, calendar, email, and YouTube. Read-only: it can never send, edit, or delete anything. Disconnect anytime.</div>
+
+  <div class="side-label" style="margin-top: 15px;">🤖 AI Models</div>
+  <div id="key-list"></div>
+  <div class="plugin-note">Add your own AI key and the chat uses your account first, so you do not wait for the shared free limit. Free keys cost nothing. ChatGPT and Claude keys are paid and billed to you.</div>
+
   <div class="side-label" style="margin-top: 15px;">🔌 Plugins</div>
   <button class="side-btn" onclick="usePlugin('Summarize this web page: ')">🌐 Web Page Reader</button>
   <button class="side-btn" onclick="usePlugin('Summarize this YouTube video: ')">▶️ YouTube Summary</button>
@@ -428,11 +445,6 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <button class="side-btn" onclick="usePlugin('Summarize the latest posts of this public Telegram channel: ')">✈️ Telegram Channel</button>
   <div class="plugin-note">Tap a plugin, then paste a public link. Public links only. Facebook, Instagram, TikTok, X, and Canva block automatic reading: paste the text or attach a screenshot instead.</div>
 
-  <div id="acct-section" style="display:none">
-    <div class="side-label" style="margin-top: 15px;">🔐 Connected Accounts</div>
-    <div id="acct-list"></div>
-    <div class="plugin-note">Optional. Sign in so the AI can read your private files, calendar, and email. Read-only: it can never send, edit, or delete anything. You can disconnect anytime.</div>
-  </div>
 
   <div class="side-label" style="margin-top: 15px;">Explore</div>
   <a href="https://imachui.github.io/Imachui-global-ai/" target="_blank" class="side-btn" style="display:block; text-align:center; color:#38bdf8; border-color:#38bdf8; background:rgba(56,189,248,0.1); font-weight:bold;">🚀 AI Launcher</a>
@@ -606,7 +618,21 @@ function getSid() {
 function hasConnected() { try { return localStorage.getItem(CONN_KEY) === '1'; } catch (e) { return false; } }
 function setConnected(v) { try { if (v) localStorage.setItem(CONN_KEY, '1'); else localStorage.removeItem(CONN_KEY); } catch (e) {} }
 
-var accts = { configured: [], connected: {} };
+var accts = { configured: [], connected: {}, keyProviders: [], keys: {}, ready: false };
+
+var ACCOUNT_ROWS = [
+  { provider: 'google', service: 'gmail', icon: '📧', name: 'Gmail', desc: 'Read your emails' },
+  { provider: 'google', service: 'drive', icon: '📁', name: 'Google Drive', desc: 'Your Docs, Sheets, Slides, files' },
+  { provider: 'google', service: 'calendar', icon: '📅', name: 'Google Calendar', desc: 'Your schedule' },
+  { provider: 'google', service: 'youtube', icon: '▶️', name: 'YouTube account', desc: 'Subscriptions, playlists, likes' },
+  { provider: 'github', icon: '🐙', name: 'GitHub', desc: 'Your private repositories' },
+  { provider: 'notion', icon: '📓', name: 'Notion', desc: 'Pages you choose to share' },
+  { provider: 'microsoft', service: 'mail', icon: '📨', name: 'Outlook Mail', desc: 'Read your emails' },
+  { provider: 'microsoft', service: 'calendar', icon: '🗓️', name: 'Outlook Calendar', desc: 'Your schedule' },
+  { soon: true, icon: '🟩', name: 'Sign in with ChatGPT', desc: 'Use your ChatGPT plan: coming soon' },
+  { soon: true, icon: '📘', name: 'Facebook', desc: 'Coming soon' }
+];
+
 async function acctCall(payload) {
   payload.sid = getSid();
   var r = await fetch(apiUrl('/api/oauth'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -614,41 +640,72 @@ async function acctCall(payload) {
   if (!r.ok) throw new Error(j.error || 'Error');
   return j;
 }
-function renderAccounts() {
-  var sec = document.getElementById('acct-section');
-  var list = document.getElementById('acct-list');
-  if (!sec || !list) return;
-  sec.style.display = accts.configured.length ? 'block' : 'none';
-  list.textContent = '';
-  accts.configured.forEach(function(p) {
-    var c = accts.connected[p.id];
-    var row = document.createElement('div'); row.className = 'acct-row';
-    var info = document.createElement('div'); info.className = 'acct-info';
-    var name = document.createElement('div'); name.className = 'acct-name'; name.textContent = p.icon + ' ' + p.label;
-    var sub = document.createElement('div'); sub.className = 'acct-sub';
-    sub.textContent = c ? ('Connected' + (c.label ? ': ' + c.label : '')) : p.what;
-    info.appendChild(name); info.appendChild(sub);
-    var btn = document.createElement('button'); btn.className = 'acct-btn' + (c ? ' on' : ''); btn.textContent = c ? 'Disconnect' : 'Connect';
-    btn.onclick = function() { if (c) disconnectAccount(p); else connectAccount(p); };
-    row.appendChild(info); row.appendChild(btn); list.appendChild(row);
-  });
+
+function makeRow(icon, name, desc, btnText, btnOn, disabled, onclick) {
+  var row = document.createElement('div'); row.className = 'acct-row';
+  var info = document.createElement('div'); info.className = 'acct-info';
+  var n = document.createElement('div'); n.className = 'acct-name'; n.textContent = icon + ' ' + name;
+  var d = document.createElement('div'); d.className = 'acct-sub'; d.textContent = desc;
+  info.appendChild(n); info.appendChild(d);
+  var btn = document.createElement('button'); btn.className = 'acct-btn' + (btnOn ? ' on' : ''); btn.textContent = btnText;
+  btn.disabled = !!disabled;
+  if (!disabled) btn.onclick = onclick;
+  row.appendChild(info); row.appendChild(btn);
+  return row;
 }
+
+function isConfiguredProvider(id) { return accts.configured.some(function(p) { return p.id === id; }); }
+function isRowConnected(r) {
+  var c = accts.connected[r.provider];
+  return !!c && (!r.service || (c.services || []).indexOf(r.service) !== -1);
+}
+
+function renderAccounts() {
+  var list = document.getElementById('acct-list');
+  if (list) {
+    list.textContent = '';
+    ACCOUNT_ROWS.forEach(function(r) {
+      if (r.soon || !isConfiguredProvider(r.provider)) { list.appendChild(makeRow(r.icon, r.name, r.soon ? r.desc : 'Coming soon', 'Soon', true, true)); return; }
+      var on = isRowConnected(r);
+      var c = accts.connected[r.provider];
+      var desc = on ? ('Connected' + (c && c.label ? ': ' + c.label : '')) : r.desc;
+      list.appendChild(makeRow(r.icon, r.name, desc, on ? 'Disconnect' : '+ Connect', on, false, function() { if (on) disconnectAccount(r); else connectAccount(r); }));
+    });
+  }
+  var kl = document.getElementById('key-list');
+  if (kl) {
+    kl.textContent = '';
+    var kps = accts.keyProviders.slice().sort(function(a, b) { return (a.free === b.free) ? 0 : (a.free ? 1 : -1); });
+    kps.forEach(function(k) {
+      var has = accts.keys[k.id];
+      var desc = has ? ('Your key is active · ' + (has.model || '')) : (k.free ? 'Free key: use your own free quota' : 'Paid API key, billed to you');
+      kl.appendChild(makeRow(k.icon, k.label, desc, has ? 'Remove' : '+ Add key', !!has, false, function() { if (has) removeKey(k); else openKeyModal(k); }));
+    });
+    kl.appendChild(makeRow('🪟', 'Microsoft Copilot', 'Not available: Microsoft has no public API for Copilot', 'N/A', true, true));
+  }
+}
+
 async function loadAccounts() {
-  if (!storageOK) return;
+  if (!storageOK) { renderAccounts(); return; }
   try {
     var s = await acctCall({ action: 'status' });
+    accts.ready = !!s.ready;
     accts.configured = s.ready ? s.configured : [];
     accts.connected = s.connected || {};
-  } catch (e) { accts.configured = []; }
-  setConnected(Object.keys(accts.connected).length > 0);
+    accts.keyProviders = s.keyProviders || [];
+    accts.keys = s.keys || {};
+  } catch (e) { accts.configured = []; accts.keyProviders = []; }
+  setConnected(Object.keys(accts.connected).length > 0 || Object.keys(accts.keys).length > 0);
   renderAccounts();
 }
-async function connectAccount(p) {
-  if (!confirm('Connect ' + p.label + '?\n\nImachui Gen AI will only READ your data (it never sends, edits, or deletes anything). When you ask about it, the related text is sent to the AI providers to write the answer. You can disconnect anytime.')) return;
+
+async function connectAccount(r) {
+  var p = accts.configured.filter(function(x) { return x.id === r.provider; })[0] || { label: r.name };
+  if (!confirm('Connect ' + r.name + '?\n\nImachui Gen AI will only READ your data (it never sends, edits, or deletes anything). When you ask about it, the related text is sent to the AI providers to write the answer. You can disconnect anytime.')) return;
   var w = window.open('', 'imachui_oauth', 'width=520,height=720');
   try {
-    var r = await acctCall({ action: 'start', provider: p.id });
-    if (w) w.location.href = r.url; else location.href = r.url;
+    var res = await acctCall({ action: 'start', provider: r.provider, services: r.service ? [r.service] : [] });
+    if (w) w.location.href = res.url; else location.href = res.url;
   } catch (e) { if (w) w.close(); alert('Could not start sign-in: ' + e.message); return; }
   var tries = 0;
   var timer = setInterval(async function() {
@@ -656,19 +713,68 @@ async function connectAccount(p) {
     try {
       var s = await acctCall({ action: 'status' });
       accts.connected = s.connected || {};
-      if (accts.connected[p.id]) { clearInterval(timer); setConnected(true); renderAccounts(); try { if (w) w.close(); } catch (e) {} }
+      if (isRowConnected(r)) { clearInterval(timer); setConnected(true); renderAccounts(); try { if (w) w.close(); } catch (e) {} }
     } catch (e) {}
     if (tries > 90) clearInterval(timer);
   }, 2000);
 }
-async function disconnectAccount(p) {
-  if (!confirm('Disconnect ' + p.label + '? The AI will no longer be able to read it.')) return;
-  try { await acctCall({ action: 'disconnect', provider: p.id }); } catch (e) { alert('Could not disconnect: ' + e.message); return; }
-  delete accts.connected[p.id];
-  setConnected(Object.keys(accts.connected).length > 0);
+
+async function disconnectAccount(r) {
+  var label = r.provider === 'google' ? 'Google (Gmail, Drive, Calendar, YouTube)' : r.provider === 'microsoft' ? 'Microsoft (Outlook mail and calendar)' : r.name;
+  if (!confirm('Disconnect ' + label + '? The AI will no longer be able to read it.')) return;
+  try { await acctCall({ action: 'disconnect', provider: r.provider }); } catch (e) { alert('Could not disconnect: ' + e.message); return; }
+  delete accts.connected[r.provider];
+  setConnected(Object.keys(accts.connected).length > 0 || Object.keys(accts.keys).length > 0);
   renderAccounts();
 }
-window.addEventListener('load', loadAccounts);
+
+// ---------- Sariling AI key ----------
+var keyTarget = null;
+function openKeyModal(k) {
+  keyTarget = k;
+  document.getElementById('key-title').textContent = 'Add your ' + k.label + ' key';
+  var help = document.getElementById('key-help');
+  help.textContent = '';
+  help.appendChild(document.createTextNode((k.free ? 'This key is free. ' : 'This is a paid key: usage is billed to your account. ') + 'Get your key here: '));
+  var a = document.createElement('a'); a.href = k.help; a.target = '_blank'; a.rel = 'noopener'; a.textContent = k.help.replace('https://', '');
+  help.appendChild(a);
+  document.getElementById('key-input').value = '';
+  var m = document.getElementById('key-model');
+  m.value = k.needsModel ? '' : (k.model || '');
+  m.placeholder = k.needsModel ? 'Model name (required)' : 'Model name (optional)';
+  document.getElementById('key-msg').textContent = '';
+  document.getElementById('key-modal').classList.add('open');
+  document.getElementById('key-input').focus();
+}
+function closeKeyModal() { document.getElementById('key-modal').classList.remove('open'); document.getElementById('key-input').value = ''; keyTarget = null; }
+async function saveKey() {
+  if (!keyTarget) return;
+  var btn = document.getElementById('key-save');
+  var msg = document.getElementById('key-msg');
+  var key = document.getElementById('key-input').value.trim();
+  if (!key) { msg.textContent = 'Please paste your key.'; return; }
+  btn.disabled = true; msg.textContent = 'Checking your key...';
+  try {
+    await acctCall({ action: 'savekey', provider: keyTarget.id, key: key, model: document.getElementById('key-model').value.trim() });
+    closeKeyModal();
+    await loadAccounts();
+  } catch (e) { msg.textContent = e.message; }
+  btn.disabled = false;
+}
+async function removeKey(k) {
+  if (!confirm('Remove your ' + k.label + ' key? The chat will go back to the shared free AI.')) return;
+  try { await acctCall({ action: 'removekey', provider: k.id }); } catch (e) { alert('Could not remove the key: ' + e.message); return; }
+  delete accts.keys[k.id];
+  setConnected(Object.keys(accts.connected).length > 0 || Object.keys(accts.keys).length > 0);
+  renderAccounts();
+}
+window.addEventListener('load', function() {
+  document.getElementById('key-cancel').onclick = closeKeyModal;
+  document.getElementById('key-save').onclick = saveKey;
+  document.getElementById('key-modal').addEventListener('click', function(e) { if (e.target.id === 'key-modal') closeKeyModal(); });
+  renderAccounts();
+  loadAccounts();
+});
 
 var memory = { enabled: true, facts: [] };
 
@@ -1399,5 +1505,17 @@ if (chats.length > 0) {
 } else { newChat(); }
 autoGrow();
 </script>
+
+<div id="key-modal" style="display:none">
+  <div class="key-card">
+    <h3 id="key-title">Add key</h3>
+    <p id="key-help" class="key-p"></p>
+    <input id="key-input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your API key">
+    <input id="key-model" type="text" autocomplete="off" spellcheck="false" placeholder="Model name">
+    <div id="key-msg" class="key-p"></div>
+    <p class="key-p">Your key is encrypted on our server and used only for your own chats. You can remove it anytime.</p>
+    <div class="key-actions"><button id="key-cancel" class="acct-btn on">Cancel</button><button id="key-save" class="acct-btn">Save key</button></div>
+  </div>
+</div>
 </body>
 </html>
