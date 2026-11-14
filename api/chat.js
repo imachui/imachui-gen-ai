@@ -2,6 +2,7 @@
 import { readFileSync } from 'fs';
 import { createHash } from 'crypto';
 import { redis, storeConfigured } from '../lib/store.js';
+import { extractUrls, readLinks } from '../lib/links.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.js';
@@ -1643,7 +1644,8 @@ export default async function handler(req, res) {
   const intent = detectIntent(shortMsg);
 
   // Cache: parehong tanong ng maraming tao = isang tawag lang sa AI at search
-  const cacheable = CACHEABLE_INTENTS.has(intent) && messages.length <= 1 && storeConfigured();
+  const msgUrls = extractUrls(userMessage);
+  const cacheable = CACHEABLE_INTENTS.has(intent) && messages.length <= 1 && storeConfigured() && !msgUrls.length;
   const cacheKey = cacheable ? 'imachui:cache:' + createHash('sha1').update(`${intent}|${lang}|${norm(shortMsg)}`).digest('hex') : '';
   if (cacheable) {
     const hit = await redis(['GET', cacheKey]).catch(() => null);
@@ -1718,7 +1720,23 @@ export default async function handler(req, res) {
     sportsData = await espnScores(shortMsg).catch(() => '');
   }
 
-  const shouldSearch = !lookupName && process.env.SERPER_API_KEY && shortMsg.length > 3 &&
+  let linkBlock = '';
+  let linksRead = false;
+  if (msgUrls.length) {
+    try {
+      const lr = await readLinks(msgUrls, {
+        geminiKey: process.env.GEMINI_API_KEY || '',
+        geminiModel: GEMINI_MODEL,
+        githubToken: process.env.GITHUB_TOKEN || ''
+      });
+      linkBlock = lr.block;
+      linksRead = lr.anyOk;
+    } catch (e) {
+      console.error('Link reader failed:', e.message);
+    }
+  }
+
+  const shouldSearch = !lookupName && !linksRead && process.env.SERPER_API_KEY && shortMsg.length > 3 &&
     intent !== 'grammar' && intent !== 'math' &&
     (intent !== 'coding' || CODE_SEARCH_RX.test(shortMsg));
   if (shouldSearch) {
@@ -1756,6 +1774,7 @@ ANSWER RULES:
 9. FILES: Users CAN attach documents (PDF, Word, text, and similar) and images with the Attach button, and you can read them. Never say that you cannot read uploaded files. If the user asks about uploading a file but has not attached one yet, tell them to press Attach, choose the file, and write what they want done with it. If the user says a file is attached but you received no file content, say that the file did not arrive and ask them to attach it again.
 10. DEPED AND LESSON PLANS (Philippine DepEd): Follow the DepEd style (Layunin, Paksa, Pamamaraan, Pagtataya, Takdang-Aralin, or Content Standard, Performance Standard, Learning Competency). Make the activity minutes add up exactly to the class time. For a Daily Lesson Log, write every requested day (Monday to Friday). NEVER invent a learning competency code, DepEd Order number, or curriculum reference. If you are not sure of the exact code, write the competency in plain words and add: "Please verify the exact competency code in the official DepEd MATATAG curriculum guide." Use the attached curriculum file as the source whenever one is provided.
 11. FORMAT: Markdown tables are allowed (header row, separator row, one row per line). Never write HTML tags such as <br> in your answer. If a table cell needs several items, separate them with semicolons or use a numbered list instead of a table.
+12. LINKS: When the user pastes a link, the system reads public web pages, YouTube videos, GitHub repositories and files, and public Google Docs, Sheets, and Slides, and puts the text in a LINK CONTENT block. Use that block to answer. Never claim to have read a link that is not in the LINK CONTENT block or that is marked COULD NOT BE READ. Facebook, Instagram, TikTok, X, Canva, private files, and Google Drive file links cannot be read: say so briefly and suggest pasting the text or attaching a screenshot or file.
 ${intentGuide(intent, phTime)}
 `;
 
@@ -1781,6 +1800,7 @@ Your job: in at most 2 short sentences, add only facts from the WEB RESULTS that
     }
   }
 
+  if (linkBlock) systemContent += `\n${linkBlock}\n`;
   if (sportsData) systemContent += `\n=== OFFICIAL SCOREBOARD (ESPN; times are Philippine time) ===\n${sportsData}\n`;
   if (calcNote) systemContent += `\n=== CALCULATOR RESULT (exact; trust it) ===\n${calcNote}\n`;
 
