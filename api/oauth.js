@@ -7,7 +7,8 @@
 import { setCors, readBody } from '../lib/auth.js';
 import {
   SID_RX, PROVIDERS, isProvider, isConfigured, configuredProviders, oauthReady,
-  createState, consumeState, buildAuthUrl, completeSignIn, saveTokens, listConnected, disconnect, frontendUrl, baseUrl
+  createState, consumeState, buildAuthUrl, completeSignIn, saveTokens, listConnected, disconnect, frontendUrl, baseUrl,
+  cleanServices, servicesFromScope, KEY_PROVIDERS, isKeyProvider, cleanKey, cleanModel, saveUserKey, removeUserKey, listUserKeys, testUserKey
 } from '../lib/oauth.js';
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -45,7 +46,10 @@ export default async function handler(req, res) {
 
       try {
         const { tokens, label } = await completeSignIn(st.provider, String(q.code || ''));
-        await saveTokens(st.sid, st.provider, tokens, label);
+        const before = (await listConnected(st.sid)).find((c) => c.provider === st.provider);
+        const granted = servicesFromScope(st.provider, tokens.scope, st.services);
+        const services = [...new Set([...(before ? before.services : []), ...granted])];
+        await saveTokens(st.sid, st.provider, tokens, label, services);
         return page(res, 200, `${PROVIDERS[st.provider].label} connected`, 'You can close this window and go back to Imachui Gen AI.', true, st.provider);
       } catch (e) {
         console.error('OAuth callback failed:', st.provider, e.message);
@@ -61,23 +65,56 @@ export default async function handler(req, res) {
     const ready = oauthReady();
 
     if (action === 'status') {
-      if (!ready) return res.status(200).json({ ready: false, configured: [], connected: {} });
-      const configured = configuredProviders().map((id) => ({ id, label: PROVIDERS[id].label, icon: PROVIDERS[id].icon, what: PROVIDERS[id].what }));
+      if (!ready) return res.status(200).json({ ready: false, configured: [], connected: {}, keyProviders: [], keys: {} });
+      const configured = configuredProviders().map((id) => ({ id, label: PROVIDERS[id].label, icon: PROVIDERS[id].icon }));
+      const keyProviders = Object.entries(KEY_PROVIDERS).map(([id, k]) => ({ id, label: k.label, icon: k.icon, free: k.free, needsModel: k.needsModel, model: k.model, help: k.help }));
       const connected = {};
+      let keys = {};
       if (SID_RX.test(sid)) {
-        for (const c of await listConnected(sid)) if (isConfigured(c.provider)) connected[c.provider] = { label: c.label };
+        for (const c of await listConnected(sid)) if (isConfigured(c.provider)) connected[c.provider] = { label: c.label, services: c.services };
+        keys = await listUserKeys(sid);
       }
-      return res.status(200).json({ ready: true, configured, connected });
+      return res.status(200).json({ ready: true, configured, connected, keyProviders, keys });
     }
 
     if (!ready) return res.status(503).json({ error: 'Sign-in is not set up yet.' });
     if (!SID_RX.test(sid)) return res.status(400).json({ error: 'Invalid session.' });
     const provider = String(body.provider || '');
+
+    // ----- Sariling AI key ng user -----
+    if (action === 'savekey') {
+      if (!isKeyProvider(provider)) return res.status(400).json({ error: 'This AI is not available.' });
+      const key = cleanKey(body.key);
+      if (!key) return res.status(400).json({ error: 'That does not look like an API key. Paste it again without spaces.' });
+      const kp = KEY_PROVIDERS[provider];
+      const model = cleanModel(body.model) || kp.model;
+      if (!model) return res.status(400).json({ error: 'Please enter the model name you want to use.' });
+      const t = await testUserKey(provider, key, model);
+      if (!t.ok) {
+        const why = t.status === 401 || t.status === 403 ? `${kp.label} rejected this key. Check that you copied it correctly.`
+          : t.status === 404 ? 'The model name was not found. Check the model name.'
+          : t.status === 429 ? `The key is valid, but its quota is used up right now. Try again later.`
+          : t.status === 402 ? 'This account has no credit or balance.'
+          : `Could not verify the key with ${kp.label} right now. Try again.`;
+        return res.status(400).json({ error: why });
+      }
+      await saveUserKey(sid, provider, key, model);
+      return res.status(200).json({ ok: true });
+    }
+    if (action === 'removekey') {
+      if (!isKeyProvider(provider)) return res.status(400).json({ error: 'This AI is not available.' });
+      await removeUserKey(sid, provider);
+      return res.status(200).json({ ok: true });
+    }
+
+    // ----- Sign-in sa ibang platform -----
     if (!isProvider(provider) || !isConfigured(provider)) return res.status(400).json({ error: 'This platform is not available.' });
 
     if (action === 'start') {
-      const nonce = await createState(sid, provider);
-      return res.status(200).json({ url: buildAuthUrl(provider, nonce) });
+      const existing = (await listConnected(sid)).find((c) => c.provider === provider);
+      const services = [...new Set([...(existing ? existing.services : []), ...cleanServices(provider, body.services)])];
+      const nonce = await createState(sid, provider, services);
+      return res.status(200).json({ url: buildAuthUrl(provider, nonce, services) });
     }
     if (action === 'disconnect') {
       await disconnect(sid, provider);
