@@ -319,6 +319,55 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .key-p a { color: #38bdf8; }
 .key-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
 .acct-btn:disabled { opacity: 0.45; cursor: default; }
+#plugins-view { display: none; position: fixed; inset: 0; z-index: 9000; background: #05070f; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #e5e7eb; }
+#plugins-view.open { display: block; }
+.pv-wrap { max-width: 920px; margin: 0 auto; padding: 14px 16px 60px; }
+.pv-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.pv-back { background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); color: #e5e7eb; padding: 9px 14px; border-radius: 12px; font-size: 14px; cursor: pointer; }
+.pv-h1 { font-size: 26px; font-weight: 800; margin: 6px 0 4px; }
+.pv-sub { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 14px; }
+.pv-search { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; font-size: 15px; margin-bottom: 8px; }
+.pv-section { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin: 22px 0 10px; }
+.pv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.pv-card { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--glass-border); border-radius: 14px; background: rgba(255,255,255,0.03); cursor: pointer; text-align: left; color: inherit; font: inherit; }
+.pv-card:hover { background: rgba(255,255,255,0.07); }
+.pv-ico { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 24px; background: rgba(255,255,255,0.08); }
+.pv-ico.big { width: 64px; height: 64px; font-size: 34px; border-radius: 16px; }
+.pv-meta { min-width: 0; flex: 1; }
+.pv-name { font-weight: 700; font-size: 15px; }
+.pv-tag { font-size: 12.5px; color: rgba(255,255,255,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-chip { flex: 0 0 auto; font-size: 12px; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--glass-border); color: rgba(255,255,255,0.7); }
+.pv-chip.ok { color: #4ade80; border-color: rgba(74,222,128,0.5); }
+.pv-head { display: flex; align-items: center; gap: 14px; margin: 10px 0 18px; }
+.pv-head .pv-meta { flex: 1; }
+.pv-title { font-size: 24px; font-weight: 800; }
+.pv-by { font-size: 13px; color: rgba(255,255,255,0.6); }
+.pv-act { flex: 0 0 auto; padding: 10px 16px; border-radius: 999px; border: none; background: #fff; color: #0b1020; font-weight: 700; font-size: 14px; cursor: pointer; }
+.pv-act.on { background: transparent; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.3); }
+.pv-act:disabled { opacity: 0.45; cursor: default; }
+.pv-hero { border-radius: 18px; padding: 18px; background: linear-gradient(135deg, #1e3a8a, #312e81 55%, #1e1b4b); display: grid; gap: 10px; }
+.pv-prompt { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px; border-radius: 14px; background: rgba(5,7,15,0.75); border: 1px solid rgba(255,255,255,0.08); color: #fff; font: inherit; font-size: 14.5px; line-height: 1.5; text-align: left; cursor: pointer; }
+.pv-prompt b { color: #fb7185; }
+.pv-p { font-size: 14.5px; line-height: 1.65; margin: 16px 0; }
+.pv-h3 { font-size: 20px; font-weight: 800; margin: 26px 0 10px; }
+.pv-row { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,0.08); font-size: 14px; }
+.pv-row .k { flex: 0 0 120px; color: rgba(255,255,255,0.55); }
+.pv-small { font-size: 12.5px; line-height: 1.65; color: rgba(255,255,255,0.6); margin-top: 18px; }
+.pv-small a { color: #38bdf8; }
+.pv-gear { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: #e5e7eb; font-size: 18px; cursor: pointer; }
+.pv-danger { width: 100%; margin-top: 26px; padding: 13px; border-radius: 14px; border: 1px solid rgba(248,113,113,0.5); background: transparent; color: #f87171; font-weight: 700; font-size: 15px; cursor: pointer; }
+.pv-sheet-wrap { display: none; position: fixed; inset: 0; z-index: 9500; background: rgba(0,0,0,0.55); align-items: flex-end; justify-content: center; }
+.pv-sheet-wrap.open { display: flex; }
+.pv-sheet { width: 100%; max-width: 520px; box-sizing: border-box; background: #1a1d29; border-radius: 22px 22px 0 0; padding: 12px 22px max(22px, env(safe-area-inset-bottom)); text-align: center; color: #fff; }
+.pv-grab { width: 42px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.3); margin: 0 auto 18px; }
+.pv-sheet-icons { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 14px; font-size: 22px; }
+.pv-sheet-icons .pv-ico { width: 52px; height: 52px; font-size: 26px; background: #0b0d14; border: 1px solid rgba(255,255,255,0.12); }
+.pv-sheet-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+.pv-sheet-text { font-size: 15px; line-height: 1.55; color: rgba(255,255,255,0.7); margin-bottom: 18px; }
+.pv-sheet .pv-act { width: 100%; padding: 14px; font-size: 16px; }
+.pv-sheet .pv-act.danger { background: #dc2626; color: #fff; }
+.pv-sheet-sec { width: 100%; margin-top: 10px; padding: 13px; border: none; background: transparent; color: rgba(255,255,255,0.75); font-size: 15px; cursor: pointer; }
+#pv-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 9600; background: #16a34a; color: #fff; padding: 11px 18px; border-radius: 999px; font-size: 14px; font-weight: 700; display: none; max-width: 90vw; }
 .acct-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(255,255,255,0.03); }
 .acct-info { min-width: 0; }
 .acct-name { font-size: 14px; font-weight: 700; }
@@ -423,27 +472,10 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <div class="side-label">Workspace</div>
   <button class="side-btn ask-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen AI</button>
 
-  <div class="side-label" style="margin-top: 15px;">🔐 Sign in &amp; Connect</div>
-  <div id="acct-list"></div>
-  <div class="plugin-note">Optional. Connect your own accounts so the AI can read your private files, calendar, email, and YouTube. Read-only: it can never send, edit, or delete anything. Disconnect anytime.</div>
+  <div class="side-label" style="margin-top: 15px;">Plugins</div>
+  <button class="side-btn" onclick="openPlugins()">🔌 Plugins &amp; Connections</button>
+  <div class="plugin-note">Connect Gmail, Google Drive, Calendar, YouTube, GitHub, Notion, and more. Add your own AI key. Read public links.</div>
 
-  <div class="side-label" style="margin-top: 15px;">🤖 AI Models</div>
-  <div id="key-list"></div>
-  <div class="plugin-note">Add your own AI key and the chat uses your account first, so you do not wait for the shared free limit. Free keys cost nothing. ChatGPT and Claude keys are paid and billed to you.</div>
-
-  <div class="side-label" style="margin-top: 15px;">🔌 Plugins</div>
-  <button class="side-btn" onclick="usePlugin('Summarize this web page: ')">🌐 Web Page Reader</button>
-  <button class="side-btn" onclick="usePlugin('Summarize this YouTube video: ')">▶️ YouTube Summary</button>
-  <button class="side-btn" onclick="usePlugin('Explain what this GitHub repository does: ')">🐙 GitHub Reader</button>
-  <button class="side-btn" onclick="usePlugin('Summarize this Google Doc, Sheet, or Slides: ')">📄 Google Docs / Sheets / Slides</button>
-  <button class="side-btn" onclick="usePlugin('Explain this Wikipedia article: ')">📚 Wikipedia</button>
-  <button class="side-btn" onclick="usePlugin('Summarize this discussion (Reddit or Hacker News): ')">💬 Reddit / Hacker News</button>
-  <button class="side-btn" onclick="usePlugin('Explain the best answer to this question: ')">🧑‍💻 Stack Overflow</button>
-  <button class="side-btn" onclick="usePlugin('Explain this research paper in simple words: ')">🔬 arXiv Research Papers</button>
-  <button class="side-btn" onclick="usePlugin('What does this package do and how do I use it? ')">📦 npm / PyPI Packages</button>
-  <button class="side-btn" onclick="usePlugin('Summarize this article: ')">✍️ Dev.to Articles</button>
-  <button class="side-btn" onclick="usePlugin('Summarize the latest posts of this public Telegram channel: ')">✈️ Telegram Channel</button>
-  <div class="plugin-note">Tap a plugin, then paste a public link. Public links only. Facebook, Instagram, TikTok, X, and Canva block automatic reading: paste the text or attach a screenshot instead.</div>
 
 
   <div class="side-label" style="margin-top: 15px;">Explore</div>
@@ -620,18 +652,65 @@ function setConnected(v) { try { if (v) localStorage.setItem(CONN_KEY, '1'); els
 
 var accts = { configured: [], connected: {}, keyProviders: [], keys: {}, ready: false };
 
-var ACCOUNT_ROWS = [
-  { provider: 'google', service: 'gmail', icon: '📧', name: 'Gmail', desc: 'Read your emails' },
-  { provider: 'google', service: 'drive', icon: '📁', name: 'Google Drive', desc: 'Your Docs, Sheets, Slides, files' },
-  { provider: 'google', service: 'calendar', icon: '📅', name: 'Google Calendar', desc: 'Your schedule' },
-  { provider: 'google', service: 'youtube', icon: '▶️', name: 'YouTube account', desc: 'Subscriptions, playlists, likes' },
-  { provider: 'github', icon: '🐙', name: 'GitHub', desc: 'Your private repositories' },
-  { provider: 'notion', icon: '📓', name: 'Notion', desc: 'Pages you choose to share' },
-  { provider: 'microsoft', service: 'mail', icon: '📨', name: 'Outlook Mail', desc: 'Read your emails' },
-  { provider: 'microsoft', service: 'calendar', icon: '🗓️', name: 'Outlook Calendar', desc: 'Your schedule' },
-  { soon: true, icon: '🟩', name: 'Sign in with ChatGPT', desc: 'Use your ChatGPT plan: coming soon' },
-  { soon: true, icon: '📘', name: 'Facebook', desc: 'Coming soon' }
+var PLUGINS = [
+  { kind: 'account', id: 'gmail', provider: 'google', service: 'gmail', icon: '📧', name: 'Gmail', tagline: 'Read your Gmail', category: 'Communication',
+    prompts: ['What are my unread emails?', 'Summarize my latest emails', 'Which of my latest emails need a reply?'],
+    desc: 'Use Gmail so the AI can summarize your inbox and point out important messages. It reads only the sender, subject, date, and a short preview of your 10 newest emails.' },
+  { kind: 'account', id: 'drive', provider: 'google', service: 'drive', icon: '📁', name: 'Google Drive', tagline: 'Your Docs, Sheets, Slides, and files', category: 'Files',
+    prompts: ['Show my recent Drive files', 'Find my files about "budget"', 'Summarize this Google Doc: '],
+    desc: 'Paste the link of any of your private Google Docs, Sheets, or Slides and the AI reads it with your account. You can also ask it to list or search your files.' },
+  { kind: 'account', id: 'calendar', provider: 'google', service: 'calendar', icon: '📅', name: 'Google Calendar', tagline: 'Your schedule', category: 'Productivity',
+    prompts: ['What is on my calendar this week?', 'What meetings are on my schedule tomorrow?', 'Show my schedule for the next 7 days'],
+    desc: 'The AI reads your events for the next 7 days (in Philippine time) and answers questions about your schedule.' },
+  { kind: 'account', id: 'youtube', provider: 'google', service: 'youtube', icon: '▶️', name: 'YouTube account', tagline: 'Subscriptions, playlists, likes', category: 'Media',
+    prompts: ['What channels am I subscribed to on my YouTube?', 'Show my YouTube playlists', 'What are my recently liked YouTube videos?'],
+    desc: 'The AI reads your YouTube subscriptions, playlists, and recently liked videos. To summarize a video, just paste its link: no sign-in needed.' },
+  { kind: 'account', id: 'github', provider: 'github', icon: '🐙', name: 'GitHub', tagline: 'Your private repositories', category: 'Developer tools',
+    prompts: ['Explain what this private repo does: ', 'Review the code in this file from my repo: ', 'Summarize this issue: '],
+    desc: 'Paste a link to your private repository, file, or issue and the AI reads it with your account. GitHub gives this permission only as "repo" access; Imachui Gen AI uses it for reading only.' },
+  { kind: 'account', id: 'notion', provider: 'notion', icon: '📓', name: 'Notion', tagline: 'Pages you choose to share', category: 'Productivity',
+    prompts: ['Show my recently edited Notion pages', 'Search my Notion for "meeting notes"', 'Summarize this Notion page: '],
+    desc: 'You choose which Notion pages to share. The AI can search them and read a page when you paste its link.' },
+  { kind: 'account', id: 'outlook-mail', provider: 'microsoft', service: 'mail', icon: '📨', name: 'Outlook Mail', tagline: 'Read your Outlook email', category: 'Communication',
+    prompts: ['What are my unread Outlook emails?', 'Summarize my latest emails in Outlook', 'Check my Outlook inbox'],
+    desc: 'The AI reads the sender, subject, date, and a short preview of your 10 newest Outlook emails.' },
+  { kind: 'account', id: 'outlook-cal', provider: 'microsoft', service: 'calendar', icon: '🗓️', name: 'Outlook Calendar', tagline: 'Your Outlook schedule', category: 'Productivity',
+    prompts: ['Show my Outlook calendar for the next 7 days', 'What meetings are on my schedule tomorrow?', 'What is on my calendar this week?'],
+    desc: 'The AI reads your Outlook events for the next 7 days (in Philippine time).' },
+  { kind: 'account', id: 'chatgpt-signin', soon: true, icon: '🟩', name: 'Sign in with ChatGPT', tagline: 'Use your ChatGPT plan: coming soon', category: 'AI sign-in',
+    desc: 'OpenAI lets selected apps use a subscriber\'s ChatGPT plan. Websites need OpenAI\'s approval first, so this is coming soon.' },
+  { kind: 'account', id: 'facebook', soon: true, icon: '📘', name: 'Facebook', tagline: 'Coming soon', category: 'Social',
+    desc: 'Facebook only lets approved apps read a person\'s posts. This is coming soon.' },
+
+  { kind: 'reader', id: 'r-web', icon: '🌐', name: 'Web Page Reader', tagline: 'Read any public web page', category: 'Reader', prompts: ['Summarize this web page: ', 'List the key facts from this page: ', 'Explain this page in simple Filipino: '], desc: 'Paste a link and the AI reads the page text. No sign-in needed.' },
+  { kind: 'reader', id: 'r-yt', icon: '▶️', name: 'YouTube Summary', tagline: 'Summarize any public YouTube video', category: 'Reader', prompts: ['Summarize this YouTube video: ', 'What are the main points of this video? ', 'List the steps explained in this video: '], desc: 'Paste a YouTube link. The AI watches the video and gives a summary with timestamps. No sign-in needed.' },
+  { kind: 'reader', id: 'r-gh', icon: '🐙', name: 'GitHub Reader', tagline: 'Public repos, files, issues, gists', category: 'Reader', prompts: ['Explain what this GitHub repository does: ', 'Review the code in this file: ', 'Summarize this issue: '], desc: 'Paste a public GitHub link. No sign-in needed.' },
+  { kind: 'reader', id: 'r-gdocs', icon: '📄', name: 'Google Docs, Sheets, Slides', tagline: 'Files shared as "Anyone with the link"', category: 'Reader', prompts: ['Summarize this Google Doc: ', 'Explain the data in this Google Sheet: ', 'Make study notes from these Google Slides: '], desc: 'Works for files shared with "Anyone with the link". For private files, install Google Drive.' },
+  { kind: 'reader', id: 'r-wiki', icon: '📚', name: 'Wikipedia', tagline: 'Read a full Wikipedia article', category: 'Reader', prompts: ['Explain this Wikipedia article simply: ', 'Give me 5 key facts from this article: '], desc: 'Paste a Wikipedia link in any language.' },
+  { kind: 'reader', id: 'r-forum', icon: '💬', name: 'Reddit & Hacker News', tagline: 'Posts and top comments', category: 'Reader', prompts: ['Summarize this discussion: ', 'What do the top comments agree on? '], desc: 'Paste a post link. Reddit sometimes blocks servers; if so, paste the text instead.' },
+  { kind: 'reader', id: 'r-so', icon: '🧑‍💻', name: 'Stack Overflow', tagline: 'Questions and best answers', category: 'Reader', prompts: ['Explain the best answer to this question: ', 'Give me the fixed code from this question: '], desc: 'Paste a Stack Overflow or Stack Exchange question link.' },
+  { kind: 'reader', id: 'r-arxiv', icon: '🔬', name: 'arXiv Papers', tagline: 'Research paper abstracts', category: 'Reader', prompts: ['Explain this research paper in simple words: ', 'What are the limitations of this paper? '], desc: 'Paste an arXiv link. The AI reads the title, authors, and abstract.' },
+  { kind: 'reader', id: 'r-pkg', icon: '📦', name: 'npm & PyPI Packages', tagline: 'Package information', category: 'Reader', prompts: ['What does this package do and how do I use it? ', 'Is this package a good choice? '], desc: 'Paste an npm or PyPI package link.' },
+  { kind: 'reader', id: 'r-dev', icon: '✍️', name: 'Dev.to Articles', tagline: 'Read Dev.to articles', category: 'Reader', prompts: ['Summarize this article: '], desc: 'Paste a Dev.to article link.' },
+  { kind: 'reader', id: 'r-tg', icon: '✈️', name: 'Telegram Channels', tagline: 'Latest posts of public channels', category: 'Reader', prompts: ['Summarize the latest posts of this public Telegram channel: '], desc: 'Paste a public Telegram channel link.' }
 ];
+
+var AI_STUBS = [['openai', '🟩', 'ChatGPT (OpenAI)'], ['anthropic', '🟧', 'Claude (Anthropic)'], ['gemini', '🔷', 'Google Gemini'], ['groq', '⚡', 'Groq'], ['mistral', '🌬️', 'Mistral'], ['openrouter', '🧭', 'OpenRouter']];
+
+function aiPlugins() {
+  var out = [];
+  if (accts.keyProviders.length) {
+    accts.keyProviders.slice().sort(function(a, b) { return (a.free === b.free) ? 0 : (a.free ? 1 : -1); }).forEach(function(k) {
+      out.push({ kind: 'ai', id: 'ai-' + k.id, keyId: k.id, k: k, icon: k.icon, name: k.label, category: 'AI model',
+        tagline: k.free ? 'Use your own free key' : 'Use your own paid API key',
+        desc: (k.free ? 'Add your own free key and the chat uses your account first, so you do not wait for the shared free limit.' : 'Add your own paid API key. Your chats use it first and usage is billed to your account.') + ' If your key runs out, the chat falls back to the shared free AI.' });
+    });
+  } else {
+    AI_STUBS.forEach(function(a) { out.push({ kind: 'ai', id: 'ai-' + a[0], soon: true, icon: a[1], name: a[2], tagline: 'Coming soon', category: 'AI model', desc: 'Coming soon.' }); });
+  }
+  out.push({ kind: 'ai', id: 'ai-copilot', na: true, icon: '🪟', name: 'Microsoft Copilot', tagline: 'Not available', category: 'AI model', desc: 'Microsoft offers no public API to connect Copilot to other apps, so it cannot be added.' });
+  return out;
+}
 
 async function acctCall(payload) {
   payload.sid = getSid();
@@ -641,49 +720,177 @@ async function acctCall(payload) {
   return j;
 }
 
-function makeRow(icon, name, desc, btnText, btnOn, disabled, onclick) {
-  var row = document.createElement('div'); row.className = 'acct-row';
-  var info = document.createElement('div'); info.className = 'acct-info';
-  var n = document.createElement('div'); n.className = 'acct-name'; n.textContent = icon + ' ' + name;
-  var d = document.createElement('div'); d.className = 'acct-sub'; d.textContent = desc;
-  info.appendChild(n); info.appendChild(d);
-  var btn = document.createElement('button'); btn.className = 'acct-btn' + (btnOn ? ' on' : ''); btn.textContent = btnText;
-  btn.disabled = !!disabled;
-  if (!disabled) btn.onclick = onclick;
-  row.appendChild(info); row.appendChild(btn);
-  return row;
-}
-
 function isConfiguredProvider(id) { return accts.configured.some(function(p) { return p.id === id; }); }
 function isRowConnected(r) {
   var c = accts.connected[r.provider];
   return !!c && (!r.service || (c.services || []).indexOf(r.service) !== -1);
 }
 
-function renderAccounts() {
-  var list = document.getElementById('acct-list');
-  if (list) {
-    list.textContent = '';
-    ACCOUNT_ROWS.forEach(function(r) {
-      if (r.soon || !isConfiguredProvider(r.provider)) { list.appendChild(makeRow(r.icon, r.name, r.soon ? r.desc : 'Coming soon', 'Soon', true, true)); return; }
-      var on = isRowConnected(r);
-      var c = accts.connected[r.provider];
-      var desc = on ? ('Connected' + (c && c.label ? ': ' + c.label : '')) : r.desc;
-      list.appendChild(makeRow(r.icon, r.name, desc, on ? 'Disconnect' : '+ Connect', on, false, function() { if (on) disconnectAccount(r); else connectAccount(r); }));
-    });
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+var pv = { open: false, id: '', q: '' };
+
+function pvAction(p) {
+  if (p.kind === 'reader') return null;
+  if (p.kind === 'account') {
+    if (p.soon || !isConfiguredProvider(p.provider)) return { text: 'Soon', on: true, disabled: true };
+    if (isRowConnected(p)) return { text: 'Uninstall', on: true, click: function() { disconnectAccount(p); } };
+    return { text: '+ Install plugin', click: function() { connectAccount(p); } };
   }
-  var kl = document.getElementById('key-list');
-  if (kl) {
-    kl.textContent = '';
-    var kps = accts.keyProviders.slice().sort(function(a, b) { return (a.free === b.free) ? 0 : (a.free ? 1 : -1); });
-    kps.forEach(function(k) {
-      var has = accts.keys[k.id];
-      var desc = has ? ('Your key is active · ' + (has.model || '')) : (k.free ? 'Free key: use your own free quota' : 'Paid API key, billed to you');
-      kl.appendChild(makeRow(k.icon, k.label, desc, has ? 'Remove' : '+ Add key', !!has, false, function() { if (has) removeKey(k); else openKeyModal(k); }));
+  if (p.na || p.soon) return { text: p.na ? 'N/A' : 'Soon', on: true, disabled: true };
+  if (accts.keys[p.keyId]) return { text: 'Remove key', on: true, click: function() { removeKey(p.k); } };
+  return { text: '+ Add key', click: function() { openKeyModal(p.k); } };
+}
+
+function pvChip(p) {
+  if (p.kind === 'reader') return { text: 'Use', ok: false };
+  if (p.kind === 'account') {
+    if (p.soon || !isConfiguredProvider(p.provider)) return { text: 'Soon', ok: false };
+    return isRowConnected(p) ? { text: 'Installed', ok: true } : { text: '+', ok: false };
+  }
+  if (p.na) return { text: 'N/A', ok: false };
+  if (p.soon) return { text: 'Soon', ok: false };
+  return accts.keys[p.keyId] ? { text: 'Active', ok: true } : { text: '+', ok: false };
+}
+
+function allPlugins() { return PLUGINS.concat(aiPlugins()); }
+
+function pvCard(p) {
+  var c = el('button', 'pv-card');
+  c.appendChild(el('div', 'pv-ico', p.icon));
+  var m = el('div', 'pv-meta');
+  m.appendChild(el('div', 'pv-name', p.name));
+  m.appendChild(el('div', 'pv-tag', p.tagline));
+  c.appendChild(m);
+  var chip = pvChip(p);
+  c.appendChild(el('div', 'pv-chip' + (chip.ok ? ' ok' : ''), chip.text));
+  c.onclick = function() { pv.id = p.id; renderPlugins(); var v = document.getElementById('plugins-view'); if (v) v.scrollTop = 0; };
+  return c;
+}
+
+function pvList(body) {
+  body.appendChild(el('div', 'pv-h1', 'Plugins'));
+  body.appendChild(el('div', 'pv-sub', 'Connect your accounts, add your own AI key, or read public links. Everything is read-only.'));
+  var search = el('input', 'pv-search');
+  search.type = 'search'; search.placeholder = 'Search plugins'; search.value = pv.q;
+  search.oninput = function() { pv.q = search.value; var pos = search.selectionStart; renderPlugins(); var n = document.querySelector('.pv-search'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } };
+  body.appendChild(search);
+  var q = pv.q.trim().toLowerCase();
+  var groups = [['Sign in & connect', 'account'], ['AI models (use your own key)', 'ai'], ['Readers (no sign-in)', 'reader']];
+  var list = allPlugins().filter(function(p) { return !q || (p.name + ' ' + p.tagline).toLowerCase().indexOf(q) !== -1; });
+  groups.forEach(function(g) {
+    var items = list.filter(function(p) { return p.kind === g[1]; });
+    if (!items.length) return;
+    body.appendChild(el('div', 'pv-section', g[0]));
+    var grid = el('div', 'pv-grid');
+    items.forEach(function(p) { grid.appendChild(pvCard(p)); });
+    body.appendChild(grid);
+  });
+}
+
+function pvDetail(body, p) {
+  var head = el('div', 'pv-head');
+  head.appendChild(el('div', 'pv-ico big', p.icon));
+  var m = el('div', 'pv-meta');
+  m.appendChild(el('div', 'pv-title', p.name));
+  m.appendChild(el('div', 'pv-by', 'By Imachui Gen AI • ' + p.tagline));
+  head.appendChild(m);
+  var installed = p.kind === 'account' && !p.soon && isConfiguredProvider(p.provider) && isRowConnected(p);
+  var act = installed ? null : pvAction(p);
+  if (installed) {
+    var gear = el('button', 'pv-gear', '⚙️');
+    gear.title = 'Manage'; gear.onclick = function() { confirmUninstall(p); };
+    head.appendChild(gear);
+  }
+  if (act) {
+    var b = el('button', 'pv-act' + (act.on ? ' on' : ''), act.text);
+    b.disabled = !!act.disabled;
+    if (act.click) b.onclick = act.click;
+    head.appendChild(b);
+  }
+  body.appendChild(head);
+
+  if (p.prompts && p.prompts.length) {
+    var hero = el('div', 'pv-hero');
+    p.prompts.forEach(function(t) {
+      var btn = el('button', 'pv-prompt');
+      var span = el('span');
+      span.appendChild(el('b', null, p.name + ' '));
+      span.appendChild(document.createTextNode(t));
+      btn.appendChild(span);
+      btn.appendChild(el('span', null, '→'));
+      btn.onclick = function() { closePlugins(); usePlugin(t); };
+      hero.appendChild(btn);
     });
-    kl.appendChild(makeRow('🪟', 'Microsoft Copilot', 'Not available: Microsoft has no public API for Copilot', 'N/A', true, true));
+    body.appendChild(hero);
+  }
+
+  var d = el('div', 'pv-p', p.desc);
+  if (p.kind === 'ai' && p.k && p.k.help) {
+    d.appendChild(document.createTextNode(' Get your key: '));
+    var a = el('a', null, p.k.help.replace('https://', '')); a.href = p.k.help; a.target = '_blank'; a.rel = 'noopener'; a.style.color = '#38bdf8';
+    d.appendChild(a);
+  }
+  body.appendChild(d);
+
+  body.appendChild(el('div', 'pv-h3', p.kind === 'account' ? 'Apps' : 'About'));
+  var item = el('div', 'pv-row');
+  item.appendChild(el('div', 'pv-ico', p.icon));
+  var im = el('div', 'pv-meta');
+  im.appendChild(el('div', 'pv-name', p.name));
+  var accLabel = installed && accts.connected[p.provider] && accts.connected[p.provider].label;
+  im.appendChild(el('div', 'pv-tag', accLabel || (installed ? 'Installed' : p.tagline)));
+  item.appendChild(im);
+  body.appendChild(item);
+
+  body.appendChild(el('div', 'pv-h3', 'Information'));
+  var access = p.na ? 'Not available' : p.kind === 'account' ? 'Read-only' : p.kind === 'reader' ? 'Reads public links' : 'Your own API key';
+  [['Capabilities', access], ['Developer', 'Imachui Gen AI'], ['Category', p.category], ['Version', '1.0']].forEach(function(r) {
+    var row = el('div', 'pv-row');
+    row.appendChild(el('div', 'k', r[0]));
+    row.appendChild(el('div', null, r[1]));
+    body.appendChild(row);
+  });
+
+  var note = p.kind === 'account'
+    ? 'When connected to ' + p.name + ', Imachui Gen AI reads only the data needed to answer your request and may send that text to the AI providers that write the reply. It never sends, edits, or deletes anything. You can uninstall anytime from this page.'
+    : p.kind === 'reader'
+      ? 'Public pages are fetched by our server, and the text is sent to the AI providers that write the reply.'
+      : p.na ? 'Microsoft has not released a public API for Copilot, so it cannot be connected to Imachui Gen AI.'
+      : 'Your key is encrypted on our server and used only for your own chats. You can remove it anytime.';
+  body.appendChild(el('div', 'pv-small', note));
+  if (installed) {
+    var un = el('button', 'pv-danger', 'Uninstall plugin');
+    un.onclick = function() { confirmUninstall(p); };
+    body.appendChild(un);
   }
 }
+
+function renderPlugins() {
+  var body = document.getElementById('pv-body');
+  var label = document.getElementById('pv-back-label');
+  if (!body) return;
+  body.textContent = '';
+  var cur = pv.id ? allPlugins().filter(function(p) { return p.id === pv.id; })[0] : null;
+  if (cur) { if (label) label.textContent = 'Plugins'; pvDetail(body, cur); }
+  else { pv.id = ''; if (label) label.textContent = 'Back to Chat'; pvList(body); }
+}
+
+function renderAccounts() { if (pv.open) renderPlugins(); }
+function openPlugins(id) {
+  if (typeof closeSidebar === 'function') closeSidebar();
+  pv.open = true; pv.id = id || ''; pv.q = '';
+  document.getElementById('plugins-view').classList.add('open');
+  renderPlugins();
+  loadAccounts();
+}
+function closePlugins() { pv.open = false; document.getElementById('plugins-view').classList.remove('open'); }
+function pvBack() { if (pv.id) { pv.id = ''; renderPlugins(); } else closePlugins(); }
 
 async function loadAccounts() {
   if (!storageOK) { renderAccounts(); return; }
@@ -699,33 +906,78 @@ async function loadAccounts() {
   renderAccounts();
 }
 
+// ---------- Bottom sheet (parang ChatGPT) ----------
+function hideSheet() { document.getElementById('pv-sheet').classList.remove('open'); }
+function showSheet(o) {
+  var icons = document.getElementById('pv-sheet-icons');
+  icons.textContent = '';
+  (o.icons || []).forEach(function(i) { icons.appendChild(i === '•••' ? el('span', null, '•••') : el('div', 'pv-ico', i)); });
+  document.getElementById('pv-sheet-title').textContent = o.title || '';
+  document.getElementById('pv-sheet-text').textContent = o.text || '';
+  var pr = document.getElementById('pv-sheet-primary');
+  pr.textContent = o.primary.text;
+  pr.className = 'pv-act' + (o.primary.danger ? ' danger' : '');
+  pr.disabled = false;
+  pr.onclick = function() { hideSheet(); if (o.primary.click) o.primary.click(); };
+  var sc = document.getElementById('pv-sheet-secondary');
+  sc.style.display = o.secondary ? 'block' : 'none';
+  if (o.secondary) { sc.textContent = o.secondary; sc.onclick = hideSheet; }
+  document.getElementById('pv-sheet').classList.add('open');
+}
+function pvToast(msg) {
+  var t = document.getElementById('pv-toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(function() { t.style.display = 'none'; }, 3500);
+}
+
+// ---------- Install: diretso sa Google/GitHub/Notion/Microsoft, tapos babalik dito ----------
 async function connectAccount(r) {
-  var p = accts.configured.filter(function(x) { return x.id === r.provider; })[0] || { label: r.name };
-  if (!confirm('Connect ' + r.name + '?\n\nImachui Gen AI will only READ your data (it never sends, edits, or deletes anything). When you ask about it, the related text is sent to the AI providers to write the answer. You can disconnect anytime.')) return;
-  var w = window.open('', 'imachui_oauth', 'width=520,height=720');
+  var btn = document.querySelector('.pv-act');
+  if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
   try {
-    var res = await acctCall({ action: 'start', provider: r.provider, services: r.service ? [r.service] : [] });
-    if (w) w.location.href = res.url; else location.href = res.url;
-  } catch (e) { if (w) w.close(); alert('Could not start sign-in: ' + e.message); return; }
-  var tries = 0;
-  var timer = setInterval(async function() {
-    tries++;
-    try {
-      var s = await acctCall({ action: 'status' });
-      accts.connected = s.connected || {};
-      if (isRowConnected(r)) { clearInterval(timer); setConnected(true); renderAccounts(); try { if (w) w.close(); } catch (e) {} }
-    } catch (e) {}
-    if (tries > 90) clearInterval(timer);
-  }, 2000);
+    var res = await acctCall({ action: 'start', provider: r.provider, services: r.service ? [r.service] : [], ret: r.id });
+    location.href = res.url;
+  } catch (e) {
+    renderPlugins();
+    showSheet({ icons: ['✦', '•••', r.icon], title: 'Could not start sign-in', text: e.message, primary: { text: 'OK' } });
+  }
+}
+
+function confirmUninstall(r) {
+  var c = accts.connected[r.provider];
+  showSheet({ icons: ['✦', '•••', r.icon], title: 'Uninstall ' + r.name + '?',
+    text: 'Imachui Gen AI will no longer be able to read ' + r.name + (c && c.label ? ' (' + c.label + ')' : '') + '. You can install it again anytime.',
+    primary: { text: 'Uninstall', danger: true, click: function() { disconnectAccount(r); } }, secondary: 'Cancel' });
 }
 
 async function disconnectAccount(r) {
-  var label = r.provider === 'google' ? 'Google (Gmail, Drive, Calendar, YouTube)' : r.provider === 'microsoft' ? 'Microsoft (Outlook mail and calendar)' : r.name;
-  if (!confirm('Disconnect ' + label + '? The AI will no longer be able to read it.')) return;
-  try { await acctCall({ action: 'disconnect', provider: r.provider }); } catch (e) { alert('Could not disconnect: ' + e.message); return; }
-  delete accts.connected[r.provider];
+  try { await acctCall({ action: 'disconnect', provider: r.provider, service: r.service || '' }); }
+  catch (e) { showSheet({ icons: ['✦', '•••', r.icon], title: 'Could not uninstall', text: e.message, primary: { text: 'OK' } }); return; }
+  var c = accts.connected[r.provider];
+  if (c && r.service) {
+    c.services = (c.services || []).filter(function(x) { return x !== r.service; });
+    if (!c.services.length) delete accts.connected[r.provider];
+  } else { delete accts.connected[r.provider]; }
   setConnected(Object.keys(accts.connected).length > 0 || Object.keys(accts.keys).length > 0);
-  renderAccounts();
+  renderPlugins();
+  pvToast(r.name + ' uninstalled');
+}
+
+// Pagbalik mula sa Google/GitHub/Notion/Microsoft
+function handleOAuthReturn(status, pluginId) {
+  var p = PLUGINS.filter(function(x) { return x.id === pluginId; })[0];
+  openPlugins(p ? p.id : '');
+  var icons = p ? ['✦', '•••', p.icon] : ['✦'];
+  if (status === 'ok') { pvToast((p ? p.name : 'Plugin') + ' installed'); return; }
+  if (status === 'partial' && p) {
+    showSheet({ icons: icons, title: 'All permissions are required', text: 'Please reconnect ' + p.name + ' and select all requested permissions to continue.', primary: { text: 'Reconnect', click: function() { connectAccount(p); } } });
+    return;
+  }
+  if (status === 'denied') {
+    showSheet({ icons: icons, title: 'Sign-in cancelled', text: 'No account was connected.', primary: p ? { text: 'Try again', click: function() { connectAccount(p); } } : { text: 'OK' }, secondary: p ? 'Close' : null });
+    return;
+  }
+  showSheet({ icons: icons, title: 'Could not connect', text: status === 'notready' ? 'Sign-in is not set up on the server yet.' : 'Something went wrong. Please try again.', primary: p && status !== 'notready' ? { text: 'Try again', click: function() { connectAccount(p); } } : { text: 'OK' }, secondary: p && status !== 'notready' ? 'Close' : null });
 }
 
 // ---------- Sariling AI key ----------
@@ -773,7 +1025,14 @@ window.addEventListener('load', function() {
   document.getElementById('key-save').onclick = saveKey;
   document.getElementById('key-modal').addEventListener('click', function(e) { if (e.target.id === 'key-modal') closeKeyModal(); });
   renderAccounts();
-  loadAccounts();
+  var qs = new URLSearchParams(location.search);
+  var st = qs.get('oauth');
+  if (st) {
+    var pid = qs.get('plugin') || '';
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+    loadAccounts().then(function() { handleOAuthReturn(st, pid); });
+  } else { loadAccounts(); }
+  document.getElementById('pv-sheet').addEventListener('click', function(e) { if (e.target.id === 'pv-sheet') hideSheet(); });
 });
 
 var memory = { enabled: true, facts: [] };
@@ -1505,6 +1764,26 @@ if (chats.length > 0) {
 } else { newChat(); }
 autoGrow();
 </script>
+
+<div id="plugins-view">
+  <div class="pv-wrap">
+    <div class="pv-top">
+      <button class="pv-back" onclick="pvBack()">← <span id="pv-back-label">Back to Chat</span></button>
+    </div>
+    <div id="pv-body"></div>
+  </div>
+  <div id="pv-sheet" class="pv-sheet-wrap">
+    <div class="pv-sheet">
+      <div class="pv-grab"></div>
+      <div class="pv-sheet-icons" id="pv-sheet-icons"></div>
+      <div class="pv-sheet-title" id="pv-sheet-title"></div>
+      <div class="pv-sheet-text" id="pv-sheet-text"></div>
+      <button id="pv-sheet-primary" class="pv-act"></button>
+      <button id="pv-sheet-secondary" class="pv-sheet-sec"></button>
+    </div>
+  </div>
+  <div id="pv-toast"></div>
+</div>
 
 <div id="key-modal" style="display:none">
   <div class="key-card">
