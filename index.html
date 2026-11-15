@@ -471,6 +471,9 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .mem-item span { flex: 1; overflow-wrap: anywhere; }
 .mem-item button { border: 0; background: transparent; color: #ff8d9a; font-size: 16px; line-height: 1; padding: 0 2px; cursor: pointer; }
 .mem-empty { font-size: 11px; color: var(--muted); font-style: italic; }
+.legal-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 10px 0 2px; font-size: 11.5px; }
+.legal-links a { color: rgba(255,255,255,0.55); text-decoration: none; }
+.legal-links a:hover { color: #fff; text-decoration: underline; }
 .mem-clear { border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; border-radius: 8px; padding: 8px; font-size: 12px; cursor: pointer; }
 .fb-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .fb-btn { border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; border-radius: 10px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
@@ -556,6 +559,8 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
     <div class="mem-list" id="memList"></div>
     <button class="mem-clear" type="button" onclick="clearMemory()">🗑️ Clear memory</button>
   </div>
+
+  <div class="legal-links"><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a><span>·</span><a href="terms.html" target="_blank" rel="noopener">Terms</a></div>
 
   <div class="status" id="status">Loading...</div>
 
