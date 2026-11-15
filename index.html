@@ -319,55 +319,114 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
 .key-p a { color: #38bdf8; }
 .key-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
 .acct-btn:disabled { opacity: 0.45; cursor: default; }
-#plugins-view { display: none; position: fixed; inset: 0; z-index: 9000; background: #05070f; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #e5e7eb; }
-#plugins-view.open { display: block; }
-.pv-wrap { max-width: 920px; margin: 0 auto; padding: 14px 16px 60px; }
-.pv-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.pv-back { background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); color: #e5e7eb; padding: 9px 14px; border-radius: 12px; font-size: 14px; cursor: pointer; }
-.pv-h1 { font-size: 26px; font-weight: 800; margin: 6px 0 4px; }
-.pv-sub { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 14px; }
-.pv-search { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: #fff; font-size: 15px; margin-bottom: 8px; }
-.pv-section { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin: 22px 0 10px; }
-.pv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-.pv-card { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--glass-border); border-radius: 14px; background: rgba(255,255,255,0.03); cursor: pointer; text-align: left; color: inherit; font: inherit; }
-.pv-card:hover { background: rgba(255,255,255,0.07); }
-.pv-ico { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 24px; background: rgba(255,255,255,0.08); }
-.pv-ico.big { width: 64px; height: 64px; font-size: 34px; border-radius: 16px; }
+#plugins-view { display: none; position: fixed; inset: 0; z-index: 9000; background: #000; color: #f2f2f7; flex-direction: column; }
+#plugins-view.open { display: flex; }
+.pv-top { flex: none; display: flex; align-items: center; gap: 10px; width: 100%; max-width: 760px; margin: 0 auto; box-sizing: border-box; padding: max(12px, env(safe-area-inset-top)) 16px 6px; }
+.pv-back, .pv-refresh { background: #1c1c1e; border: 0; color: #f2f2f7; height: 38px; min-width: 38px; padding: 0 14px; border-radius: 999px; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .15s; }
+.pv-back:hover, .pv-refresh:hover { background: #2c2c2e; }
+.pv-refresh { justify-content: center; padding: 0; margin-left: auto; }
+.pv-h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.pv-tabs { flex: none; display: flex; gap: 8px; width: 100%; max-width: 760px; margin: 0 auto; box-sizing: border-box; padding: 6px 16px 10px; overflow-x: auto; scrollbar-width: none; }
+.pv-tab, .pv-cat { flex: none; padding: 8px 15px; border-radius: 999px; background: #1c1c1e; color: #c7c7cc; border: 0; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s, color .2s; }
+.pv-tab.on, .pv-cat.on { background: #fff; color: #000; }
+#pv-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.pv-wrap { max-width: 760px; margin: 0 auto; padding: 4px 16px 36px; }
+.pv-section { display: flex; align-items: baseline; justify-content: space-between; margin: 24px 2px 10px; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+.pv-section small { font-size: 13px; font-weight: 500; color: #8e8e93; }
+.pv-cats { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 4px 0 2px; padding-bottom: 4px; }
+.pv-list { background: #1c1c1e; border-radius: 18px; overflow: hidden; }
+.pv-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; border-bottom: 1px solid #2c2c2e; transition: background .15s; text-align: left; width: 100%; box-sizing: border-box; background: none; border-left: 0; border-right: 0; border-top: 0; color: inherit; font: inherit; }
+.pv-item:last-child { border-bottom: 0; }
+.pv-item:hover { background: #242426; }
+.pv-ico { flex: none; width: 46px; height: 46px; border-radius: 12px; background: #2c2c2e; display: grid; place-items: center; font-size: 24px; }
+.pv-ico.big { width: 72px; height: 72px; border-radius: 18px; font-size: 38px; }
 .pv-meta { min-width: 0; flex: 1; }
-.pv-name { font-weight: 700; font-size: 15px; }
-.pv-tag { font-size: 12.5px; color: rgba(255,255,255,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pv-chip { flex: 0 0 auto; font-size: 12px; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--glass-border); color: rgba(255,255,255,0.7); }
-.pv-chip.ok { color: #4ade80; border-color: rgba(74,222,128,0.5); }
-.pv-head { display: flex; align-items: center; gap: 14px; margin: 10px 0 18px; }
-.pv-head .pv-meta { flex: 1; }
-.pv-title { font-size: 24px; font-weight: 800; }
-.pv-by { font-size: 13px; color: rgba(255,255,255,0.6); }
-.pv-act { flex: 0 0 auto; padding: 10px 16px; border-radius: 999px; border: none; background: #fff; color: #0b1020; font-weight: 700; font-size: 14px; cursor: pointer; }
-.pv-act.on { background: transparent; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.3); }
-.pv-act:disabled { opacity: 0.45; cursor: default; }
-.pv-hero { border-radius: 18px; padding: 18px; background: linear-gradient(135deg, #1e3a8a, #312e81 55%, #1e1b4b); display: grid; gap: 10px; }
-.pv-prompt { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px; border-radius: 14px; background: rgba(5,7,15,0.75); border: 1px solid rgba(255,255,255,0.08); color: #fff; font: inherit; font-size: 14.5px; line-height: 1.5; text-align: left; cursor: pointer; }
-.pv-prompt b { color: #fb7185; }
-.pv-p { font-size: 14.5px; line-height: 1.65; margin: 16px 0; }
-.pv-h3 { font-size: 20px; font-weight: 800; margin: 26px 0 10px; }
-.pv-row { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,0.08); font-size: 14px; }
-.pv-row .k { flex: 0 0 120px; color: rgba(255,255,255,0.55); }
-.pv-small { font-size: 12.5px; line-height: 1.65; color: rgba(255,255,255,0.6); margin-top: 18px; }
-.pv-small a { color: #38bdf8; }
-.pv-gear { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: #e5e7eb; font-size: 18px; cursor: pointer; }
-.pv-danger { width: 100%; margin-top: 26px; padding: 13px; border-radius: 14px; border: 1px solid rgba(248,113,113,0.5); background: transparent; color: #f87171; font-weight: 700; font-size: 15px; cursor: pointer; }
-.pv-sheet-wrap { display: none; position: fixed; inset: 0; z-index: 9500; background: rgba(0,0,0,0.55); align-items: flex-end; justify-content: center; }
-.pv-sheet-wrap.open { display: flex; }
-.pv-sheet { width: 100%; max-width: 520px; box-sizing: border-box; background: #1a1d29; border-radius: 22px 22px 0 0; padding: 12px 22px max(22px, env(safe-area-inset-bottom)); text-align: center; color: #fff; }
-.pv-grab { width: 42px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.3); margin: 0 auto 18px; }
+.pv-name { font-weight: 700; font-size: 15.5px; }
+.pv-tag { font-size: 13px; color: #8e8e93; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-add { flex: none; width: 34px; height: 34px; border-radius: 50%; background: #2c2c2e; color: #fff; border: 0; font-size: 21px; line-height: 1; cursor: pointer; transition: transform .15s, background .15s; }
+.pv-add:hover { background: #3a3a3c; }
+.pv-add:active { transform: scale(.88); }
+.pv-chip { flex: none; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #2c2c2e; color: #aeaeb2; }
+.pv-chip.ok { background: rgba(48,209,88,.16); color: #30d158; }
+.pv-chip.warn { background: rgba(255,159,10,.16); color: #ff9f0a; }
+.pv-hs { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; scrollbar-width: none; }
+.pv-pop { flex: 0 0 156px; scroll-snap-align: start; background: #1c1c1e; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; border: 0; color: inherit; font: inherit; text-align: left; transition: background .15s, transform .15s; }
+.pv-pop:hover { background: #242426; }
+.pv-pop:active { transform: scale(.98); }
+.pv-pop .pv-tag { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 34px; }
+.pv-pop-foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
+.pv-sw { flex: none; width: 46px; height: 28px; border-radius: 999px; background: #39393d; border: 0; position: relative; cursor: pointer; transition: background .2s; }
+.pv-sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.pv-sw.on { background: #30d158; }
+.pv-sw.on::after { transform: translateX(18px); }
+.pv-sw:disabled { opacity: .5; cursor: default; }
+.pv-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+.pv-stat { background: #1c1c1e; border-radius: 14px; padding: 12px 6px; text-align: center; }
+.pv-stat b { display: block; font-size: 24px; font-weight: 800; }
+.pv-stat span { font-size: 11.5px; color: #8e8e93; }
+.pv-manage { padding: 12px 14px; border-bottom: 1px solid #2c2c2e; }
+.pv-manage:last-child { border-bottom: 0; }
+.pv-manage-top { display: flex; align-items: center; gap: 12px; }
+.pv-manage-btns { display: flex; gap: 8px; margin: 10px 0 0 58px; }
+.pv-btn { padding: 12px 18px; border-radius: 999px; border: 0; background: #fff; color: #000; font-weight: 700; font-size: 15px; cursor: pointer; transition: opacity .15s, transform .1s; font-family: inherit; }
+.pv-btn:active { transform: scale(.97); }
+.pv-btn.sec { background: #2c2c2e; color: #fff; }
+.pv-btn.danger { background: rgba(255,69,58,.16); color: #ff6961; }
+.pv-btn.sm { padding: 7px 14px; font-size: 13px; }
+.pv-btn.full { width: 100%; }
+.pv-btn:disabled { opacity: .45; cursor: default; }
+.pv-dhead { display: flex; align-items: center; gap: 16px; margin: 8px 0 18px; }
+.pv-title { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.pv-by { font-size: 13px; color: #8e8e93; margin-top: 2px; }
+.pv-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.pv-actions .pv-btn { flex: 1; min-width: 140px; }
+.pv-state { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #1c1c1e; border-radius: 14px; padding: 12px 14px; font-weight: 700; flex: 1 1 100%; }
+.pv-hero { border-radius: 18px; padding: 12px; background: #1c1c1e; display: grid; gap: 8px; margin: 14px 0; }
+.pv-prompt { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px; border-radius: 12px; background: #2c2c2e; border: 0; color: #fff; font: inherit; font-size: 14.5px; line-height: 1.45; text-align: left; cursor: pointer; transition: background .15s; }
+.pv-prompt:hover { background: #3a3a3c; }
+.pv-p { font-size: 15px; line-height: 1.65; margin: 14px 2px; color: #e5e5ea; }
+.pv-h3 { font-size: 19px; font-weight: 800; margin: 24px 2px 10px; }
+.pv-perm { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #2c2c2e; }
+.pv-perm:last-child { border-bottom: 0; }
+.pv-perm b { display: block; font-size: 14.5px; }
+.pv-perm span.d { display: block; font-size: 12.5px; color: #8e8e93; line-height: 1.5; margin-top: 2px; }
+.pv-perm input[type=checkbox] { width: 20px; height: 20px; accent-color: #0a84ff; flex: none; }
+.pv-info { display: flex; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #2c2c2e; font-size: 14px; }
+.pv-info:last-child { border-bottom: 0; }
+.pv-info .k { flex: 0 0 110px; color: #8e8e93; }
+.pv-info .v { min-width: 0; overflow-wrap: anywhere; }
+.pv-small { font-size: 12.5px; line-height: 1.65; color: #8e8e93; margin: 16px 2px 0; }
+.pv-small a { color: #0a84ff; }
+.pv-empty { text-align: center; padding: 48px 20px; color: #8e8e93; }
+.pv-empty .big { font-size: 42px; margin-bottom: 10px; }
+.pv-empty .pv-btn { margin-top: 16px; }
+.pv-banner { background: rgba(255,159,10,.14); color: #ffb340; border-radius: 14px; padding: 12px 14px; font-size: 13.5px; line-height: 1.55; margin: 10px 0; }
+.pv-bar { flex: none; padding: 8px 16px max(12px, env(safe-area-inset-bottom)); background: linear-gradient(rgba(0,0,0,0), #000 30%); }
+.pv-bar-in { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 8px; background: #1c1c1e; border-radius: 999px; padding: 0 8px 0 16px; height: 48px; }
+.pv-bar-in input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: #fff; font-size: 16px; font-family: inherit; }
+.pv-bar-in button { background: #2c2c2e; border: 0; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: none; }
+.pv-sheet-wrap { position: fixed; inset: 0; z-index: 9500; background: rgba(0,0,0,0); pointer-events: none; display: flex; align-items: flex-end; justify-content: center; transition: background .25s; }
+.pv-sheet-wrap.open { background: rgba(0,0,0,.62); pointer-events: auto; }
+.pv-sheet { width: 100%; max-width: 520px; box-sizing: border-box; max-height: 92vh; overflow-y: auto; background: #1c1c1e; border-radius: 24px 24px 0 0; padding: 12px 22px max(22px, env(safe-area-inset-bottom)); color: #fff; transform: translateY(105%); transition: transform .32s cubic-bezier(.2,.8,.2,1); }
+.pv-sheet-wrap.open .pv-sheet { transform: none; }
+.pv-grab { width: 42px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.3); margin: 0 auto 16px; }
 .pv-sheet-icons { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 14px; font-size: 22px; }
-.pv-sheet-icons .pv-ico { width: 52px; height: 52px; font-size: 26px; background: #0b0d14; border: 1px solid rgba(255,255,255,0.12); }
-.pv-sheet-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
-.pv-sheet-text { font-size: 15px; line-height: 1.55; color: rgba(255,255,255,0.7); margin-bottom: 18px; }
-.pv-sheet .pv-act { width: 100%; padding: 14px; font-size: 16px; }
-.pv-sheet .pv-act.danger { background: #dc2626; color: #fff; }
-.pv-sheet-sec { width: 100%; margin-top: 10px; padding: 13px; border: none; background: transparent; color: rgba(255,255,255,0.75); font-size: 15px; cursor: pointer; }
-#pv-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 9600; background: #16a34a; color: #fff; padding: 11px 18px; border-radius: 999px; font-size: 14px; font-weight: 700; display: none; max-width: 90vw; }
+.pv-sheet-icons .pv-ico { width: 52px; height: 52px; font-size: 26px; background: #000; }
+.pv-sheet-title { font-size: 21px; font-weight: 800; text-align: center; margin-bottom: 8px; }
+.pv-sheet-text { font-size: 14.5px; line-height: 1.55; color: #aeaeb2; text-align: center; margin-bottom: 16px; }
+.pv-sheet .pv-list { background: #2c2c2e; margin-bottom: 16px; text-align: left; }
+.pv-sheet .pv-perm { border-color: #3a3a3c; }
+.pv-sheet .pv-btn { margin-top: 8px; }
+.pv-prog { height: 6px; background: #3a3a3c; border-radius: 3px; overflow: hidden; margin: 8px 0 14px; }
+.pv-prog i { display: block; height: 100%; width: 0; background: #0a84ff; border-radius: 3px; transition: width .45s ease; }
+.pv-step { text-align: center; font-size: 14px; color: #aeaeb2; margin-bottom: 12px; }
+#pv-toast { position: fixed; left: 50%; bottom: 96px; transform: translate(-50%, 16px); opacity: 0; pointer-events: none; z-index: 9600; background: #30d158; color: #000; padding: 11px 18px; border-radius: 999px; font-size: 14px; font-weight: 700; max-width: 90vw; text-align: center; transition: opacity .25s, transform .25s; }
+#pv-toast.show { opacity: 1; transform: translate(-50%, 0); }
+#pv-toast.err { background: #ff453a; color: #fff; }
+.pv-anim { animation: pvIn .28s ease both; }
+@keyframes pvIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .pv-anim { animation: none; } .pv-sheet, .pv-sw, .pv-sw::after, #pv-toast { transition: none; } }
+@media (max-width: 420px) { .pv-stats { grid-template-columns: repeat(2, 1fr); } .pv-manage-btns { margin-left: 0; } }
 .acct-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(255,255,255,0.03); }
 .acct-info { min-width: 0; }
 .acct-name { font-size: 14px; font-weight: 700; }
@@ -473,8 +532,8 @@ button { font: inherit; cursor: pointer; border: none; outline: none; -webkit-ap
   <button class="side-btn ask-btn" onclick="document.getElementById('prompt').focus();closeSidebar()">✦ Ask Imachui Gen AI</button>
 
   <div class="side-label" style="margin-top: 15px;">Plugins</div>
-  <button class="side-btn" onclick="openPlugins()">🔌 Plugins &amp; Connections</button>
-  <div class="plugin-note">Connect Gmail, Google Drive, Calendar, YouTube, GitHub, Notion, and more. Add your own AI key. Read public links.</div>
+  <button class="side-btn" onclick="openPlugins()">🔌 Plugins</button>
+  <div class="plugin-note">Browse plugins, connect Gmail, Google Drive, Calendar, GitHub, Notion, and more, or add your own AI key.</div>
 
 
 
@@ -650,68 +709,34 @@ function getSid() {
 function hasConnected() { try { return localStorage.getItem(CONN_KEY) === '1'; } catch (e) { return false; } }
 function setConnected(v) { try { if (v) localStorage.setItem(CONN_KEY, '1'); else localStorage.removeItem(CONN_KEY); } catch (e) {} }
 
-var accts = { configured: [], connected: {}, keyProviders: [], keys: {}, ready: false };
+// ======================================================
+// PLUGIN MARKETPLACE (Popular, New & Noteworthy, Installed, Dashboard)
+// Lahat ng install, uninstall, on/off, at permissions ay dumadaan sa /api/plugins at naka-save sa server.
+// ======================================================
+var PV = { open: false, loaded: false, loading: false, error: '', ready: true, signIn: false, list: [], tab: 'explore', cat: 'All', q: '', id: '' };
+var CAT_ORDER = ['Productivity', 'Communication', 'Files', 'Media', 'Developer', 'Readers', 'AI models', 'Tools', 'Social'];
+var PROVIDER_NAME = { google: 'Google', github: 'GitHub', notion: 'Notion', microsoft: 'Microsoft' };
+var PROVIDER_OF = { gmail: 'google', drive: 'google', calendar: 'google', youtube: 'google', github: 'github', notion: 'notion', 'outlook-mail': 'microsoft', 'outlook-cal': 'microsoft' };
 
-var PLUGINS = [
-  { kind: 'account', id: 'gmail', provider: 'google', service: 'gmail', icon: '📧', name: 'Gmail', tagline: 'Read your Gmail', category: 'Communication',
-    prompts: ['What are my unread emails?', 'Summarize my latest emails', 'Which of my latest emails need a reply?'],
-    desc: 'Use Gmail so the AI can summarize your inbox and point out important messages. It reads only the sender, subject, date, and a short preview of your 10 newest emails.' },
-  { kind: 'account', id: 'drive', provider: 'google', service: 'drive', icon: '📁', name: 'Google Drive', tagline: 'Your Docs, Sheets, Slides, and files', category: 'Files',
-    prompts: ['Show my recent Drive files', 'Find my files about "budget"', 'Summarize this Google Doc: '],
-    desc: 'Paste the link of any of your private Google Docs, Sheets, or Slides and the AI reads it with your account. You can also ask it to list or search your files.' },
-  { kind: 'account', id: 'calendar', provider: 'google', service: 'calendar', icon: '📅', name: 'Google Calendar', tagline: 'Your schedule', category: 'Productivity',
-    prompts: ['What is on my calendar this week?', 'What meetings are on my schedule tomorrow?', 'Show my schedule for the next 7 days'],
-    desc: 'The AI reads your events for the next 7 days (in Philippine time) and answers questions about your schedule.' },
-  { kind: 'account', id: 'youtube', provider: 'google', service: 'youtube', icon: '▶️', name: 'YouTube account', tagline: 'Subscriptions, playlists, likes', category: 'Media',
-    prompts: ['What channels am I subscribed to on my YouTube?', 'Show my YouTube playlists', 'What are my recently liked YouTube videos?'],
-    desc: 'The AI reads your YouTube subscriptions, playlists, and recently liked videos. To summarize a video, just paste its link: no sign-in needed.' },
-  { kind: 'account', id: 'github', provider: 'github', icon: '🐙', name: 'GitHub', tagline: 'Your private repositories', category: 'Developer tools',
-    prompts: ['Explain what this private repo does: ', 'Review the code in this file from my repo: ', 'Summarize this issue: '],
-    desc: 'Paste a link to your private repository, file, or issue and the AI reads it with your account. GitHub gives this permission only as "repo" access; Imachui Gen AI uses it for reading only.' },
-  { kind: 'account', id: 'notion', provider: 'notion', icon: '📓', name: 'Notion', tagline: 'Pages you choose to share', category: 'Productivity',
-    prompts: ['Show my recently edited Notion pages', 'Search my Notion for "meeting notes"', 'Summarize this Notion page: '],
-    desc: 'You choose which Notion pages to share. The AI can search them and read a page when you paste its link.' },
-  { kind: 'account', id: 'outlook-mail', provider: 'microsoft', service: 'mail', icon: '📨', name: 'Outlook Mail', tagline: 'Read your Outlook email', category: 'Communication',
-    prompts: ['What are my unread Outlook emails?', 'Summarize my latest emails in Outlook', 'Check my Outlook inbox'],
-    desc: 'The AI reads the sender, subject, date, and a short preview of your 10 newest Outlook emails.' },
-  { kind: 'account', id: 'outlook-cal', provider: 'microsoft', service: 'calendar', icon: '🗓️', name: 'Outlook Calendar', tagline: 'Your Outlook schedule', category: 'Productivity',
-    prompts: ['Show my Outlook calendar for the next 7 days', 'What meetings are on my schedule tomorrow?', 'What is on my calendar this week?'],
-    desc: 'The AI reads your Outlook events for the next 7 days (in Philippine time).' },
-  { kind: 'account', id: 'chatgpt-signin', soon: true, icon: '🟩', name: 'Sign in with ChatGPT', tagline: 'Use your ChatGPT plan: coming soon', category: 'AI sign-in',
-    desc: 'OpenAI lets selected apps use a subscriber\'s ChatGPT plan. Websites need OpenAI\'s approval first, so this is coming soon.' },
-  { kind: 'account', id: 'facebook', soon: true, icon: '📘', name: 'Facebook', tagline: 'Coming soon', category: 'Social',
-    desc: 'Facebook only lets approved apps read a person\'s posts. This is coming soon.' },
-
-  { kind: 'reader', id: 'r-web', icon: '🌐', name: 'Web Page Reader', tagline: 'Read any public web page', category: 'Reader', prompts: ['Summarize this web page: ', 'List the key facts from this page: ', 'Explain this page in simple Filipino: '], desc: 'Paste a link and the AI reads the page text. No sign-in needed.' },
-  { kind: 'reader', id: 'r-yt', icon: '▶️', name: 'YouTube Summary', tagline: 'Summarize any public YouTube video', category: 'Reader', prompts: ['Summarize this YouTube video: ', 'What are the main points of this video? ', 'List the steps explained in this video: '], desc: 'Paste a YouTube link. The AI watches the video and gives a summary with timestamps. No sign-in needed.' },
-  { kind: 'reader', id: 'r-gh', icon: '🐙', name: 'GitHub Reader', tagline: 'Public repos, files, issues, gists', category: 'Reader', prompts: ['Explain what this GitHub repository does: ', 'Review the code in this file: ', 'Summarize this issue: '], desc: 'Paste a public GitHub link. No sign-in needed.' },
-  { kind: 'reader', id: 'r-gdocs', icon: '📄', name: 'Google Docs, Sheets, Slides', tagline: 'Files shared as "Anyone with the link"', category: 'Reader', prompts: ['Summarize this Google Doc: ', 'Explain the data in this Google Sheet: ', 'Make study notes from these Google Slides: '], desc: 'Works for files shared with "Anyone with the link". For private files, install Google Drive.' },
-  { kind: 'reader', id: 'r-wiki', icon: '📚', name: 'Wikipedia', tagline: 'Read a full Wikipedia article', category: 'Reader', prompts: ['Explain this Wikipedia article simply: ', 'Give me 5 key facts from this article: '], desc: 'Paste a Wikipedia link in any language.' },
-  { kind: 'reader', id: 'r-forum', icon: '💬', name: 'Reddit & Hacker News', tagline: 'Posts and top comments', category: 'Reader', prompts: ['Summarize this discussion: ', 'What do the top comments agree on? '], desc: 'Paste a post link. Reddit sometimes blocks servers; if so, paste the text instead.' },
-  { kind: 'reader', id: 'r-so', icon: '🧑‍💻', name: 'Stack Overflow', tagline: 'Questions and best answers', category: 'Reader', prompts: ['Explain the best answer to this question: ', 'Give me the fixed code from this question: '], desc: 'Paste a Stack Overflow or Stack Exchange question link.' },
-  { kind: 'reader', id: 'r-arxiv', icon: '🔬', name: 'arXiv Papers', tagline: 'Research paper abstracts', category: 'Reader', prompts: ['Explain this research paper in simple words: ', 'What are the limitations of this paper? '], desc: 'Paste an arXiv link. The AI reads the title, authors, and abstract.' },
-  { kind: 'reader', id: 'r-pkg', icon: '📦', name: 'npm & PyPI Packages', tagline: 'Package information', category: 'Reader', prompts: ['What does this package do and how do I use it? ', 'Is this package a good choice? '], desc: 'Paste an npm or PyPI package link.' },
-  { kind: 'reader', id: 'r-dev', icon: '✍️', name: 'Dev.to Articles', tagline: 'Read Dev.to articles', category: 'Reader', prompts: ['Summarize this article: '], desc: 'Paste a Dev.to article link.' },
-  { kind: 'reader', id: 'r-tg', icon: '✈️', name: 'Telegram Channels', tagline: 'Latest posts of public channels', category: 'Reader', prompts: ['Summarize the latest posts of this public Telegram channel: '], desc: 'Paste a public Telegram channel link.' }
-];
-
-var AI_STUBS = [['openai', '🟩', 'ChatGPT (OpenAI)'], ['anthropic', '🟧', 'Claude (Anthropic)'], ['gemini', '🔷', 'Google Gemini'], ['groq', '⚡', 'Groq'], ['mistral', '🌬️', 'Mistral'], ['openrouter', '🧭', 'OpenRouter']];
-
-function aiPlugins() {
-  var out = [];
-  if (accts.keyProviders.length) {
-    accts.keyProviders.slice().sort(function(a, b) { return (a.free === b.free) ? 0 : (a.free ? 1 : -1); }).forEach(function(k) {
-      out.push({ kind: 'ai', id: 'ai-' + k.id, keyId: k.id, k: k, icon: k.icon, name: k.label, category: 'AI model',
-        tagline: k.free ? 'Use your own free key' : 'Use your own paid API key',
-        desc: (k.free ? 'Add your own free key and the chat uses your account first, so you do not wait for the shared free limit.' : 'Add your own paid API key. Your chats use it first and usage is billed to your account.') + ' If your key runs out, the chat falls back to the shared free AI.' });
-    });
-  } else {
-    AI_STUBS.forEach(function(a) { out.push({ kind: 'ai', id: 'ai-' + a[0], soon: true, icon: a[1], name: a[2], tagline: 'Coming soon', category: 'AI model', desc: 'Coming soon.' }); });
-  }
-  out.push({ kind: 'ai', id: 'ai-copilot', na: true, icon: '🪟', name: 'Microsoft Copilot', tagline: 'Not available', category: 'AI model', desc: 'Microsoft offers no public API to connect Copilot to other apps, so it cannot be added.' });
-  return out;
+function pvg(id) { return document.getElementById(id); }
+function pvWait(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
 }
+function pvById(id) { return PV.list.filter(function(p) { return p.id === id; })[0] || null; }
+function pvTypeLabel(p) { return { account: 'Account sign-in (read-only)', reader: 'Link reader', demo: 'Prompt plugin', ai: 'Your own API key' }[p.kind] || p.kind; }
+function pvAvailable(p) { return p.status === 'available'; }
 
+async function pvCall(payload) {
+  payload.sid = getSid();
+  var r = await fetch(apiUrl('/api/plugins'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  var j = await r.json().catch(function() { return {}; });
+  if (!r.ok) throw new Error(j.error || 'Something went wrong. Please try again.');
+  return j;
+}
 async function acctCall(payload) {
   payload.sid = getSid();
   var r = await fetch(apiUrl('/api/oauth'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -720,110 +745,266 @@ async function acctCall(payload) {
   return j;
 }
 
-function isConfiguredProvider(id) { return accts.configured.some(function(p) { return p.id === id; }); }
-function isRowConnected(r) {
-  var c = accts.connected[r.provider];
-  return !!c && (!r.service || (c.services || []).indexOf(r.service) !== -1);
+async function loadPlugins(quiet) {
+  if (!storageOK) { PV.loaded = true; PV.error = 'Plugins need browser storage, which is blocked in this browser (private mode?).'; renderPlugins(); return; }
+  if (!quiet && !PV.loaded) { PV.loading = true; renderPlugins(); }
+  try {
+    var r = await pvCall({ action: 'catalog' });
+    PV.list = r.plugins || []; PV.ready = !!r.ready; PV.signIn = !!r.signIn; PV.error = '';
+    setConnected(!!r.customized);
+  } catch (e) { if (!PV.loaded || !quiet) PV.error = e.message; }
+  PV.loading = false; PV.loaded = true;
+  renderPlugins();
 }
 
-function el(tag, cls, text) {
-  var e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text != null) e.textContent = text;
-  return e;
+// ---------- Toast at sheet ----------
+var toastTimer = null;
+function pvToast(msg, kind) {
+  var t = pvg('pv-toast');
+  t.textContent = msg; t.className = 'show' + (kind === 'err' ? ' err' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { t.className = kind === 'err' ? 'err' : ''; }, 3200);
+}
+function hideSheet() { pvg('pv-sheet').classList.remove('open'); }
+function sheetOpen(build) {
+  var b = pvg('pv-sheet-body'); b.textContent = '';
+  build(b);
+  pvg('pv-sheet').classList.add('open');
+}
+function sheetHead(b, icons, title, text) {
+  var ic = el('div', 'pv-sheet-icons');
+  icons.forEach(function(i) { ic.appendChild(i === '•••' || i === '✦' ? el('span', null, i) : el('div', 'pv-ico', i)); });
+  b.appendChild(ic);
+  b.appendChild(el('div', 'pv-sheet-title', title));
+  if (text) b.appendChild(el('div', 'pv-sheet-text', text));
+}
+function sheetCancel(b, label) {
+  var c = el('button', 'pv-btn sec full', label || 'Cancel');
+  c.onclick = hideSheet; b.appendChild(c);
 }
 
-var pv = { open: false, id: '', q: '' };
+// ---------- Mga bahagi ng listahan ----------
+function pvStatusChip(p) {
+  if (p.status === 'soon') return { t: 'Soon', c: '' };
+  if (p.status === 'unavailable') return { t: 'N/A', c: '' };
+  if (p.status === 'setup') return { t: 'Not set up', c: 'warn' };
+  if (p.installed) return p.active ? { t: 'Active', c: 'ok' } : { t: 'Inactive', c: '' };
+  return null;
+}
 
 function pvAction(p) {
-  if (p.kind === 'reader') return null;
-  if (p.kind === 'account') {
-    if (p.soon || !isConfiguredProvider(p.provider)) return { text: 'Soon', on: true, disabled: true };
-    if (isRowConnected(p)) return { text: 'Uninstall', on: true, click: function() { disconnectAccount(p); } };
-    return { text: '+ Install plugin', click: function() { connectAccount(p); } };
-  }
-  if (p.na || p.soon) return { text: p.na ? 'N/A' : 'Soon', on: true, disabled: true };
-  if (accts.keys[p.keyId]) return { text: 'Remove key', on: true, click: function() { removeKey(p.k); } };
-  return { text: '+ Add key', click: function() { openKeyModal(p.k); } };
+  var chip = pvStatusChip(p);
+  if (chip) return el('div', 'pv-chip ' + chip.c, chip.t);
+  var b = el('button', 'pv-add', '+');
+  b.title = 'Install ' + p.name; b.setAttribute('aria-label', 'Install ' + p.name);
+  b.onclick = function(ev) { ev.stopPropagation(); startInstall(p); };
+  return b;
 }
 
-function pvChip(p) {
-  if (p.kind === 'reader') return { text: 'Use', ok: false };
-  if (p.kind === 'account') {
-    if (p.soon || !isConfiguredProvider(p.provider)) return { text: 'Soon', ok: false };
-    return isRowConnected(p) ? { text: 'Installed', ok: true } : { text: '+', ok: false };
-  }
-  if (p.na) return { text: 'N/A', ok: false };
-  if (p.soon) return { text: 'Soon', ok: false };
-  return accts.keys[p.keyId] ? { text: 'Active', ok: true } : { text: '+', ok: false };
-}
+function pvOpen(id) { PV.id = id; renderPlugins(false); }
 
-function allPlugins() { return PLUGINS.concat(aiPlugins()); }
-
-function pvCard(p) {
-  var c = el('button', 'pv-card');
-  c.appendChild(el('div', 'pv-ico', p.icon));
+function pvRow(p) {
+  var r = el('button', 'pv-item pv-anim');
+  r.appendChild(el('div', 'pv-ico', p.icon));
   var m = el('div', 'pv-meta');
   m.appendChild(el('div', 'pv-name', p.name));
   m.appendChild(el('div', 'pv-tag', p.tagline));
-  c.appendChild(m);
-  var chip = pvChip(p);
-  c.appendChild(el('div', 'pv-chip' + (chip.ok ? ' ok' : ''), chip.text));
-  c.onclick = function() { pv.id = p.id; renderPlugins(); var v = document.getElementById('plugins-view'); if (v) v.scrollTop = 0; };
-  return c;
+  r.appendChild(m);
+  r.appendChild(pvAction(p));
+  r.onclick = function() { pvOpen(p.id); };
+  return r;
+}
+function pvListOf(items) {
+  var l = el('div', 'pv-list');
+  items.forEach(function(p) { l.appendChild(pvRow(p)); });
+  return l;
+}
+function pvSection(body, title, note) {
+  var s = el('div', 'pv-section', title);
+  if (note) s.appendChild(el('small', null, note));
+  body.appendChild(s);
+}
+function pvSwitch(on, label, onchange, disabled) {
+  var s = el('button', 'pv-sw' + (on ? ' on' : ''));
+  s.setAttribute('role', 'switch'); s.setAttribute('aria-checked', on ? 'true' : 'false'); s.setAttribute('aria-label', label);
+  s.disabled = !!disabled;
+  s.onclick = function(ev) { ev.stopPropagation(); onchange(!on); };
+  return s;
+}
+function pvEmpty(body, icon, text, btn) {
+  var e = el('div', 'pv-empty');
+  e.appendChild(el('div', 'big', icon));
+  e.appendChild(el('div', null, text));
+  if (btn) { var b = el('button', 'pv-btn', btn.text); b.onclick = btn.click; e.appendChild(b); }
+  body.appendChild(e);
 }
 
-function pvList(body) {
-  body.appendChild(el('div', 'pv-h1', 'Plugins'));
-  body.appendChild(el('div', 'pv-sub', 'Connect your accounts, add your own AI key, or read public links. Everything is read-only.'));
-  var search = el('input', 'pv-search');
-  search.type = 'search'; search.placeholder = 'Search plugins'; search.value = pv.q;
-  search.oninput = function() { pv.q = search.value; var pos = search.selectionStart; renderPlugins(); var n = document.querySelector('.pv-search'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } };
-  body.appendChild(search);
-  var q = pv.q.trim().toLowerCase();
-  var groups = [['Sign in & connect', 'account'], ['AI models (use your own key)', 'ai'], ['Readers (no sign-in)', 'reader']];
-  var list = allPlugins().filter(function(p) { return !q || (p.name + ' ' + p.tagline).toLowerCase().indexOf(q) !== -1; });
-  groups.forEach(function(g) {
-    var items = list.filter(function(p) { return p.kind === g[1]; });
-    if (!items.length) return;
-    body.appendChild(el('div', 'pv-section', g[0]));
-    var grid = el('div', 'pv-grid');
-    items.forEach(function(p) { grid.appendChild(pvCard(p)); });
-    body.appendChild(grid);
+// ---------- Explore: Popular, New & Noteworthy, Categories ----------
+function pvIsNew(p) {
+  if (p.featured) return true;
+  var t = Date.parse(p.added || '');
+  return !isNaN(t) && (Date.now() - t) < 60 * 86400000;
+}
+
+function pvExplore(body) {
+  var shown = PV.list.filter(function(p) { return pvAvailable(p) || p.status === 'setup'; });
+  var present = CAT_ORDER.filter(function(c) { return shown.some(function(p) { return p.category === c; }); });
+
+  var cats = el('div', 'pv-cats');
+  ['All'].concat(present).forEach(function(c) {
+    var b = el('button', 'pv-cat' + (PV.cat === c ? ' on' : ''), c);
+    b.onclick = function() { PV.cat = c; renderPlugins(false); };
+    cats.appendChild(b);
   });
+  body.appendChild(cats);
+
+  if (PV.cat !== 'All') {
+    pvSection(body, PV.cat, shown.filter(function(p) { return p.category === PV.cat; }).length + ' plugins');
+    body.appendChild(pvListOf(shown.filter(function(p) { return p.category === PV.cat; }).sort(function(a, b) { return b.pop - a.pop; })));
+    return;
+  }
+
+  var popular = shown.slice().sort(function(a, b) { return b.pop - a.pop; }).slice(0, 8);
+  pvSection(body, 'Popular');
+  var hs = el('div', 'pv-hs');
+  popular.forEach(function(p) {
+    var c = el('button', 'pv-pop pv-anim');
+    c.appendChild(el('div', 'pv-ico', p.icon));
+    c.appendChild(el('div', 'pv-name', p.name));
+    c.appendChild(el('div', 'pv-tag', p.tagline));
+    var foot = el('div', 'pv-pop-foot');
+    foot.appendChild(el('span', 'pv-tag', p.category));
+    foot.appendChild(pvAction(p));
+    c.appendChild(foot);
+    c.onclick = function() { pvOpen(p.id); };
+    hs.appendChild(c);
+  });
+  body.appendChild(hs);
+
+  var fresh = shown.filter(pvIsNew).sort(function(a, b) { return String(b.added).localeCompare(String(a.added)) || b.pop - a.pop; }).slice(0, 5);
+  if (fresh.length) { pvSection(body, 'New & Noteworthy'); body.appendChild(pvListOf(fresh)); }
+
+  present.forEach(function(c) {
+    var items = shown.filter(function(p) { return p.category === c; }).sort(function(a, b) { return b.pop - a.pop; });
+    pvSection(body, c, items.length + (items.length === 1 ? ' plugin' : ' plugins'));
+    body.appendChild(pvListOf(items));
+  });
+
+  var soon = PV.list.filter(function(p) { return p.status === 'soon' || p.status === 'unavailable'; });
+  if (soon.length) { pvSection(body, 'Coming soon'); body.appendChild(pvListOf(soon)); }
 }
 
+// ---------- Search ----------
+function pvSearch(body) {
+  var q = PV.q.trim().toLowerCase();
+  var hits = PV.list.filter(function(p) { return (p.name + ' ' + p.tagline + ' ' + p.category + ' ' + p.desc).toLowerCase().indexOf(q) !== -1; });
+  pvSection(body, 'Results', hits.length + ' found');
+  if (!hits.length) { pvEmpty(body, '🔎', 'No plugins match "' + PV.q.trim() + '".'); return; }
+  body.appendChild(pvListOf(hits));
+}
+
+// ---------- Installed ----------
+function pvInstalledRow(p) {
+  var r = el('div', 'pv-item pv-anim');
+  r.setAttribute('role', 'button'); r.tabIndex = 0;
+  r.appendChild(el('div', 'pv-ico', p.icon));
+  var m = el('div', 'pv-meta');
+  m.appendChild(el('div', 'pv-name', p.name));
+  m.appendChild(el('div', 'pv-tag', (p.active ? 'Active' : 'Inactive') + (p.label ? ' • ' + p.label : '')));
+  r.appendChild(m);
+  r.appendChild(pvSwitch(p.active, (p.active ? 'Turn off ' : 'Turn on ') + p.name, function(on) { setPluginOn(p, on); }));
+  r.onclick = function() { pvOpen(p.id); };
+  r.onkeydown = function(e) { if (e.key === 'Enter') pvOpen(p.id); };
+  return r;
+}
+function pvInstalled(body) {
+  var items = PV.list.filter(function(p) { return p.installed; });
+  pvSection(body, 'Installed', items.length + (items.length === 1 ? ' plugin' : ' plugins'));
+  if (!items.length) { pvEmpty(body, '🧩', 'You have not installed any plugin yet.', { text: 'Browse plugins', click: function() { PV.tab = 'explore'; renderPlugins(false); } }); return; }
+  var l = el('div', 'pv-list');
+  items.forEach(function(p) { l.appendChild(pvInstalledRow(p)); });
+  body.appendChild(l);
+}
+
+// ---------- Dashboard ----------
+function pvDashboard(body) {
+  var inst = PV.list.filter(function(p) { return p.installed; });
+  var act = inst.filter(function(p) { return p.active; }).length;
+  var avail = PV.list.filter(function(p) { return !p.installed && pvAvailable(p); });
+  var st = el('div', 'pv-stats');
+  [['Installed', inst.length], ['Active', act], ['Inactive', inst.length - act], ['Available', avail.length]].forEach(function(s) {
+    var c = el('div', 'pv-stat pv-anim'); c.appendChild(el('b', null, String(s[1]))); c.appendChild(el('span', null, s[0])); st.appendChild(c);
+  });
+  body.appendChild(st);
+  if (!PV.signIn) body.appendChild(el('div', 'pv-banner', 'Sign-in plugins (Google, Microsoft, GitHub, Notion) are not enabled on the server yet. The site owner needs to set OAUTH_SECRET and the platform client IDs.'));
+
+  pvSection(body, 'Installed plugins');
+  if (!inst.length) pvEmpty(body, '🧩', 'Nothing installed yet.');
+  else {
+    var l = el('div', 'pv-list');
+    inst.forEach(function(p) {
+      var m = el('div', 'pv-manage pv-anim');
+      var top = el('div', 'pv-manage-top');
+      top.appendChild(el('div', 'pv-ico', p.icon));
+      var meta = el('div', 'pv-meta');
+      meta.appendChild(el('div', 'pv-name', p.name));
+      meta.appendChild(el('div', 'pv-tag', (p.active ? 'Active' : 'Inactive') + ' • ' + pvTypeLabel(p)));
+      top.appendChild(meta);
+      top.appendChild(pvSwitch(p.active, (p.active ? 'Turn off ' : 'Turn on ') + p.name, function(on) { setPluginOn(p, on); }));
+      m.appendChild(top);
+      var btns = el('div', 'pv-manage-btns');
+      var s = el('button', 'pv-btn sec sm', 'Settings'); s.onclick = function() { pvOpen(p.id); };
+      var u = el('button', 'pv-btn danger sm', p.kind === 'account' ? 'Disconnect' : p.kind === 'ai' ? 'Remove key' : 'Uninstall'); u.onclick = function() { confirmUninstall(p); };
+      btns.appendChild(s); btns.appendChild(u);
+      m.appendChild(btns);
+      l.appendChild(m);
+    });
+    body.appendChild(l);
+  }
+
+  pvSection(body, 'Available plugins', avail.length + ' not installed');
+  if (!avail.length) pvEmpty(body, '✅', 'Everything available is installed.');
+  else body.appendChild(pvListOf(avail));
+}
+
+// ---------- Detail ----------
 function pvDetail(body, p) {
-  var head = el('div', 'pv-head');
+  var head = el('div', 'pv-dhead pv-anim');
   head.appendChild(el('div', 'pv-ico big', p.icon));
   var m = el('div', 'pv-meta');
   m.appendChild(el('div', 'pv-title', p.name));
-  m.appendChild(el('div', 'pv-by', 'By Imachui Gen AI • ' + p.tagline));
+  m.appendChild(el('div', 'pv-by', 'By ' + p.developer + ' • v' + p.version));
+  var chip = pvStatusChip(p);
+  if (chip) { var c = el('div', 'pv-chip ' + chip.c, chip.t); c.style.display = 'inline-block'; c.style.marginTop = '8px'; m.appendChild(c); }
   head.appendChild(m);
-  var installed = p.kind === 'account' && !p.soon && isConfiguredProvider(p.provider) && isRowConnected(p);
-  var act = installed ? null : pvAction(p);
-  if (installed) {
-    var gear = el('button', 'pv-gear', '⚙️');
-    gear.title = 'Manage'; gear.onclick = function() { confirmUninstall(p); };
-    head.appendChild(gear);
-  }
-  if (act) {
-    var b = el('button', 'pv-act' + (act.on ? ' on' : ''), act.text);
-    b.disabled = !!act.disabled;
-    if (act.click) b.onclick = act.click;
-    head.appendChild(b);
-  }
   body.appendChild(head);
 
-  if (p.prompts && p.prompts.length) {
+  var acts = el('div', 'pv-actions');
+  if (p.installed) {
+    var state = el('div', 'pv-state');
+    state.appendChild(el('span', null, p.active ? 'Active in your chats' : 'Inactive (turned off)'));
+    state.appendChild(pvSwitch(p.active, 'Active', function(on) { setPluginOn(p, on); }));
+    acts.appendChild(state);
+    var un = el('button', 'pv-btn danger', p.kind === 'account' ? 'Disconnect' : p.kind === 'ai' ? 'Remove key' : 'Uninstall');
+    un.onclick = function() { confirmUninstall(p); };
+    acts.appendChild(un);
+  } else {
+    var ins = el('button', 'pv-btn', p.kind === 'account' ? 'Connect' : p.kind === 'ai' ? 'Add key' : 'Install');
+    if (p.status === 'soon') { ins.textContent = 'Coming soon'; ins.disabled = true; }
+    else if (p.status === 'unavailable') { ins.textContent = 'Not available'; ins.disabled = true; }
+    else if (p.status === 'setup') { ins.textContent = 'Not set up yet'; ins.disabled = true; }
+    else ins.onclick = function() { startInstall(p); };
+    acts.appendChild(ins);
+  }
+  body.appendChild(acts);
+  if (p.status === 'setup') body.appendChild(el('div', 'pv-small', 'The site owner has not added the ' + (PROVIDER_NAME[p.id && PROVIDER_OF[p.id]] || 'platform') + ' sign-in keys on the server, so this plugin cannot be connected yet.'));
+
+  if (p.installed && p.active && p.prompts && p.prompts.length) {
     var hero = el('div', 'pv-hero');
     p.prompts.forEach(function(t) {
       var btn = el('button', 'pv-prompt');
-      var span = el('span');
-      span.appendChild(el('b', null, p.name + ' '));
-      span.appendChild(document.createTextNode(t));
-      btn.appendChild(span);
-      btn.appendChild(el('span', null, '→'));
+      var sp = el('span'); sp.appendChild(el('b', null, p.name + ' ')); sp.appendChild(document.createTextNode(t));
+      btn.appendChild(sp); btn.appendChild(el('span', null, '→'));
       btn.onclick = function() { closePlugins(); usePlugin(t); };
       hero.appendChild(btn);
     });
@@ -831,208 +1012,253 @@ function pvDetail(body, p) {
   }
 
   var d = el('div', 'pv-p', p.desc);
-  if (p.kind === 'ai' && p.k && p.k.help) {
+  if (p.kind === 'ai' && p.key && p.key.help) {
     d.appendChild(document.createTextNode(' Get your key: '));
-    var a = el('a', null, p.k.help.replace('https://', '')); a.href = p.k.help; a.target = '_blank'; a.rel = 'noopener'; a.style.color = '#38bdf8';
+    var a = el('a', null, p.key.help.replace('https://', '')); a.href = p.key.help; a.target = '_blank'; a.rel = 'noopener'; a.style.color = '#0a84ff';
     d.appendChild(a);
   }
   body.appendChild(d);
 
-  body.appendChild(el('div', 'pv-h3', p.kind === 'account' ? 'Apps' : 'About'));
-  var item = el('div', 'pv-row');
-  item.appendChild(el('div', 'pv-ico', p.icon));
-  var im = el('div', 'pv-meta');
-  im.appendChild(el('div', 'pv-name', p.name));
-  var accLabel = installed && accts.connected[p.provider] && accts.connected[p.provider].label;
-  im.appendChild(el('div', 'pv-tag', accLabel || (installed ? 'Installed' : p.tagline)));
-  item.appendChild(im);
-  body.appendChild(item);
+  if (p.permissions && p.permissions.length) {
+    body.appendChild(el('div', 'pv-h3', p.installed ? 'Permissions' : 'Permissions required'));
+    var pl = el('div', 'pv-list');
+    p.permissions.forEach(function(x) {
+      var row = el('div', 'pv-perm');
+      var tx = el('div', 'pv-meta');
+      tx.appendChild(el('b', null, x.label)); tx.appendChild(el('span', 'd', x.desc));
+      row.appendChild(tx);
+      if (!x.required && p.installed) {
+        var on = p.granted.indexOf(x.id) !== -1;
+        row.appendChild(pvSwitch(on, x.label, function(v) { setPerm(p, x.id, v); }));
+      } else row.appendChild(el('div', 'pv-chip' + (x.required ? ' ok' : ''), x.required ? 'Required' : 'Optional'));
+      pl.appendChild(row);
+    });
+    body.appendChild(pl);
+  }
 
   body.appendChild(el('div', 'pv-h3', 'Information'));
-  var access = p.na ? 'Not available' : p.kind === 'account' ? 'Read-only' : p.kind === 'reader' ? 'Reads public links' : 'Your own API key';
-  [['Capabilities', access], ['Developer', 'Imachui Gen AI'], ['Category', p.category], ['Version', '1.0']].forEach(function(r) {
-    var row = el('div', 'pv-row');
-    row.appendChild(el('div', 'k', r[0]));
-    row.appendChild(el('div', null, r[1]));
-    body.appendChild(row);
+  var info = el('div', 'pv-list');
+  var rows = [['Status', chip ? chip.t : 'Not installed']];
+  if (p.label) rows.push([p.kind === 'ai' ? 'Model' : 'Connected as', p.label]);
+  rows.push(['Type', pvTypeLabel(p)], ['Developer', p.developer], ['Category', p.category], ['Version', p.version]);
+  if (p.installs > 0) rows.push(['Installs', String(p.installs)]);
+  rows.forEach(function(r) {
+    var row = el('div', 'pv-info'); row.appendChild(el('div', 'k', r[0])); row.appendChild(el('div', 'v', r[1])); info.appendChild(row);
   });
+  body.appendChild(info);
 
-  var note = p.kind === 'account'
-    ? 'When connected to ' + p.name + ', Imachui Gen AI reads only the data needed to answer your request and may send that text to the AI providers that write the reply. It never sends, edits, or deletes anything. You can uninstall anytime from this page.'
-    : p.kind === 'reader'
-      ? 'Public pages are fetched by our server, and the text is sent to the AI providers that write the reply.'
-      : p.na ? 'Microsoft has not released a public API for Copilot, so it cannot be connected to Imachui Gen AI.'
-      : 'Your key is encrypted on our server and used only for your own chats. You can remove it anytime.';
+  var note = p.kind === 'account' ? 'When connected, Imachui Gen AI reads only the data needed to answer your request and may send that text to the AI providers that write the reply. It never sends, edits, or deletes anything. You can disconnect anytime.'
+    : p.kind === 'reader' ? 'Public pages are fetched by our server, and the text is sent to the AI providers that write the reply. When this plugin is off or uninstalled, links of this type are not opened.'
+    : p.kind === 'ai' ? 'Your key is encrypted on our server and used only for your own chats. If it fails, the chat falls back to the shared free AI.'
+    : 'This plugin only adds instructions to your chats while it is on. It does not connect to any outside service.';
   body.appendChild(el('div', 'pv-small', note));
-  if (installed) {
-    var un = el('button', 'pv-danger', 'Uninstall plugin');
-    un.onclick = function() { confirmUninstall(p); };
-    body.appendChild(un);
-  }
 }
 
-function renderPlugins() {
-  var body = document.getElementById('pv-body');
-  var label = document.getElementById('pv-back-label');
-  if (!body) return;
+// ---------- Pangunahing render ----------
+function renderPlugins(keepScroll) {
+  var body = pvg('pv-body'); if (!body) return;
+  var sc = pvg('pv-scroll'); var top = sc.scrollTop;
   body.textContent = '';
-  var cur = pv.id ? allPlugins().filter(function(p) { return p.id === pv.id; })[0] : null;
-  if (cur) { if (label) label.textContent = 'Plugins'; pvDetail(body, cur); }
-  else { pv.id = ''; if (label) label.textContent = 'Back to Chat'; pvList(body); }
-}
+  var cur = PV.id ? pvById(PV.id) : null;
+  if (PV.id && !cur && PV.loaded && !PV.loading) PV.id = '';
+  var detail = !!cur;
+  pvg('pv-tabs').style.display = detail ? 'none' : 'flex';
+  pvg('pv-bar').style.display = detail ? 'none' : 'block';
+  pvg('pv-title').textContent = detail ? '' : 'Plugins';
+  pvg('pv-back-label').textContent = detail ? 'Plugins' : 'Chat';
+  Array.prototype.forEach.call(document.querySelectorAll('.pv-tab'), function(t) { t.classList.toggle('on', t.getAttribute('data-tab') === PV.tab && !PV.q.trim()); });
 
-function renderAccounts() { if (pv.open) renderPlugins(); }
-function openPlugins(id) {
-  if (typeof closeSidebar === 'function') closeSidebar();
-  pv.open = true; pv.id = id || ''; pv.q = '';
-  document.getElementById('plugins-view').classList.add('open');
-  renderPlugins();
-  loadAccounts();
-}
-function closePlugins() { pv.open = false; document.getElementById('plugins-view').classList.remove('open'); }
-function pvBack() { if (pv.id) { pv.id = ''; renderPlugins(); } else closePlugins(); }
-
-async function loadAccounts() {
-  if (!storageOK) { renderAccounts(); return; }
-  try {
-    var s = await acctCall({ action: 'status' });
-    accts.ready = !!s.ready;
-    accts.configured = s.ready ? s.configured : [];
-    accts.connected = s.connected || {};
-    accts.keyProviders = s.keyProviders || [];
-    accts.keys = s.keys || {};
-  } catch (e) { accts.configured = []; accts.keyProviders = []; }
-  setConnected(Object.keys(accts.connected).length > 0 || Object.keys(accts.keys).length > 0);
-  renderAccounts();
-}
-
-// ---------- Bottom sheet (parang ChatGPT) ----------
-function hideSheet() { document.getElementById('pv-sheet').classList.remove('open'); }
-function showSheet(o) {
-  var icons = document.getElementById('pv-sheet-icons');
-  icons.textContent = '';
-  (o.icons || []).forEach(function(i) { icons.appendChild(i === '•••' ? el('span', null, '•••') : el('div', 'pv-ico', i)); });
-  document.getElementById('pv-sheet-title').textContent = o.title || '';
-  document.getElementById('pv-sheet-text').textContent = o.text || '';
-  var pr = document.getElementById('pv-sheet-primary');
-  pr.textContent = o.primary.text;
-  pr.className = 'pv-act' + (o.primary.danger ? ' danger' : '');
-  pr.disabled = false;
-  pr.onclick = function() { hideSheet(); if (o.primary.click) o.primary.click(); };
-  var sc = document.getElementById('pv-sheet-secondary');
-  sc.style.display = o.secondary ? 'block' : 'none';
-  if (o.secondary) { sc.textContent = o.secondary; sc.onclick = hideSheet; }
-  document.getElementById('pv-sheet').classList.add('open');
-}
-function pvToast(msg) {
-  var t = document.getElementById('pv-toast');
-  t.textContent = msg; t.style.display = 'block';
-  setTimeout(function() { t.style.display = 'none'; }, 3500);
-}
-
-// ---------- Install: diretso sa Google/GitHub/Notion/Microsoft, tapos babalik dito ----------
-async function connectAccount(r) {
-  var btn = document.querySelector('.pv-act');
-  if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
-  try {
-    var res = await acctCall({ action: 'start', provider: r.provider, services: r.service ? [r.service] : [], ret: r.id });
-    location.href = res.url;
-  } catch (e) {
-    renderPlugins();
-    showSheet({ icons: ['✦', '•••', r.icon], title: 'Could not start sign-in', text: e.message, primary: { text: 'OK' } });
+  if (PV.loading) pvEmpty(body, '⏳', 'Loading plugins...');
+  else if (PV.error && !PV.list.length) pvEmpty(body, '⚠️', PV.error, { text: 'Try again', click: function() { PV.loaded = false; loadPlugins(); } });
+  else {
+    if (!PV.ready && !detail) body.appendChild(el('div', 'pv-banner', 'Plugin storage is not set up on the server, so installing is turned off for now.'));
+    if (cur) pvDetail(body, cur);
+    else if (PV.q.trim()) pvSearch(body);
+    else if (PV.tab === 'installed') pvInstalled(body);
+    else if (PV.tab === 'dashboard') pvDashboard(body);
+    else pvExplore(body);
   }
+  sc.scrollTop = keepScroll === false ? 0 : top;
 }
 
-function confirmUninstall(r) {
-  var c = accts.connected[r.provider];
-  showSheet({ icons: ['✦', '•••', r.icon], title: 'Uninstall ' + r.name + '?',
-    text: 'Imachui Gen AI will no longer be able to read ' + r.name + (c && c.label ? ' (' + c.label + ')' : '') + '. You can install it again anytime.',
-    primary: { text: 'Uninstall', danger: true, click: function() { disconnectAccount(r); } }, secondary: 'Cancel' });
+function openPlugins(id, skipLoad) {
+  if (typeof closeSidebar === 'function') closeSidebar();
+  PV.open = true; PV.id = id || ''; PV.q = ''; PV.cat = 'All';
+  pvg('pv-search').value = ''; pvg('pv-clear').style.display = 'none';
+  pvg('plugins-view').classList.add('open');
+  renderPlugins(false);
+  if (!skipLoad) loadPlugins(PV.loaded);
+}
+function closePlugins() { PV.open = false; hideSheet(); pvg('plugins-view').classList.remove('open'); }
+function pvBack() { if (PV.id) { PV.id = ''; renderPlugins(false); } else closePlugins(); }
+
+// ---------- Install ----------
+function startInstall(p) {
+  if (!pvAvailable(p)) return;
+  if (!PV.ready) { pvToast('Plugin storage is not set up on the server yet.', 'err'); return; }
+  if (p.kind === 'ai') { openKeyModal(p); return; }
+  var prov = PROVIDER_NAME[PROVIDER_OF[p.id]] || '';
+  var picks = {};
+  p.permissions.forEach(function(x) { picks[x.id] = true; });
+  sheetOpen(function(b) {
+    sheetHead(b, ['✦', '•••', p.icon], 'Install ' + p.name + '?',
+      p.kind === 'account' ? 'You will go to ' + prov + ' to approve read-only access, then come back here.' : 'Review what this plugin can do. You can change optional permissions later.');
+    var l = el('div', 'pv-list');
+    p.permissions.forEach(function(x) {
+      var row = el('label', 'pv-perm');
+      var cb = el('input'); cb.type = 'checkbox'; cb.checked = true; cb.disabled = !!x.required;
+      cb.onchange = function() { picks[x.id] = cb.checked; };
+      row.appendChild(cb);
+      var tx = el('div', 'pv-meta'); tx.appendChild(el('b', null, x.label + (x.required ? '' : ' (optional)'))); tx.appendChild(el('span', 'd', x.desc));
+      row.appendChild(tx);
+      l.appendChild(row);
+    });
+    b.appendChild(l);
+    var go = el('button', 'pv-btn full', p.kind === 'account' ? 'Continue to ' + prov : 'Install');
+    go.onclick = function() { runInstall(p, Object.keys(picks).filter(function(k) { return picks[k]; })); };
+    b.appendChild(go);
+    sheetCancel(b);
+  });
 }
 
-async function disconnectAccount(r) {
-  try { await acctCall({ action: 'disconnect', provider: r.provider, service: r.service || '' }); }
-  catch (e) { showSheet({ icons: ['✦', '•••', r.icon], title: 'Could not uninstall', text: e.message, primary: { text: 'OK' } }); return; }
-  var c = accts.connected[r.provider];
-  if (c && r.service) {
-    c.services = (c.services || []).filter(function(x) { return x !== r.service; });
-    if (!c.services.length) delete accts.connected[r.provider];
-  } else { delete accts.connected[r.provider]; }
-  setConnected(Object.keys(accts.connected).length > 0 || Object.keys(accts.keys).length > 0);
+async function runInstall(p, perms) {
+  var bar, step;
+  sheetOpen(function(b) {
+    sheetHead(b, ['✦', '•••', p.icon], (p.kind === 'account' ? 'Connecting ' : 'Installing ') + p.name, '');
+    var pr = el('div', 'pv-prog'); bar = el('i'); pr.appendChild(bar); b.appendChild(pr);
+    step = el('div', 'pv-step', 'Checking permissions...'); b.appendChild(step);
+  });
+  setTimeout(function() { bar.style.width = '35%'; }, 40);
+  try {
+    var r = await pvCall({ action: 'install', id: p.id, perms: perms });
+    if (r.url) { step.textContent = 'Opening ' + (PROVIDER_NAME[PROVIDER_OF[p.id]] || 'sign-in') + '...'; bar.style.width = '100%'; location.href = r.url; return; }
+    step.textContent = 'Installing...'; bar.style.width = '80%';
+    await pvWait(300);
+    step.textContent = 'Done'; bar.style.width = '100%';
+    await pvWait(350);
+    p.installed = true; p.active = true; p.installs = (p.installs || 0) + 1;
+    p.granted = p.permissions.filter(function(x) { return x.required || perms.indexOf(x.id) !== -1; }).map(function(x) { return x.id; });
+    hideSheet(); renderPlugins(); pvToast(p.name + ' installed');
+    loadPlugins(true);
+  } catch (e) { hideSheet(); pvToast(e.message, 'err'); }
+}
+
+// ---------- Uninstall ----------
+function confirmUninstall(p) {
+  var text = p.kind === 'account' ? 'Imachui Gen AI will no longer be able to read ' + p.name + (p.label ? ' (' + p.label + ')' : '') + '. Your permission is deleted from our server.'
+    : p.kind === 'ai' ? 'Your API key is deleted from our server and the chat goes back to the shared free AI.'
+    : p.kind === 'reader' ? 'Links of this type will no longer be opened in your chats. You can install it again anytime.'
+    : 'It stops working in your chats. You can install it again anytime.';
+  sheetOpen(function(b) {
+    sheetHead(b, ['✦', '•••', p.icon], (p.kind === 'account' ? 'Disconnect ' : 'Uninstall ') + p.name + '?', text);
+    var go = el('button', 'pv-btn danger full', p.kind === 'account' ? 'Disconnect' : p.kind === 'ai' ? 'Remove key' : 'Uninstall');
+    go.onclick = function() { doUninstall(p, go); };
+    b.appendChild(go);
+    sheetCancel(b);
+  });
+}
+async function doUninstall(p, btn) {
+  btn.disabled = true; btn.textContent = 'Removing...';
+  try { await pvCall({ action: 'uninstall', id: p.id }); }
+  catch (e) { hideSheet(); pvToast(e.message, 'err'); return; }
+  p.installed = false; p.active = false; p.granted = []; p.label = '';
+  p.installs = Math.max(0, (p.installs || 1) - 1);
+  hideSheet(); renderPlugins(); pvToast(p.name + ' ' + (p.kind === 'account' ? 'disconnected' : 'uninstalled'));
+  loadPlugins(true);
+}
+
+// ---------- Active / inactive at permissions ----------
+async function setPluginOn(p, on) {
+  var prev = p.active; p.active = on; renderPlugins();
+  try { await pvCall({ action: 'toggle', id: p.id, on: on }); pvToast(p.name + (on ? ' turned on' : ' turned off')); }
+  catch (e) { p.active = prev; renderPlugins(); pvToast(e.message, 'err'); }
+}
+async function setPerm(p, permId, on) {
+  var prev = p.granted;
+  p.granted = on ? prev.concat([permId]) : prev.filter(function(x) { return x !== permId; });
   renderPlugins();
-  pvToast(r.name + ' uninstalled');
+  try { await pvCall({ action: 'permissions', id: p.id, perms: p.granted }); }
+  catch (e) { p.granted = prev; renderPlugins(); pvToast(e.message, 'err'); }
 }
 
-// Pagbalik mula sa Google/GitHub/Notion/Microsoft
+// ---------- Pagbalik mula sa Google/GitHub/Notion/Microsoft ----------
 function handleOAuthReturn(status, pluginId) {
-  var p = PLUGINS.filter(function(x) { return x.id === pluginId; })[0];
-  openPlugins(p ? p.id : '');
+  var p = pluginId ? pvById(pluginId) : null;
+  openPlugins(p ? p.id : '', true);
   var icons = p ? ['✦', '•••', p.icon] : ['✦'];
   if (status === 'ok') { pvToast((p ? p.name : 'Plugin') + ' installed'); return; }
+  var retry = p && status !== 'notready' ? { text: 'Try again', click: function() { startInstall(p); } } : { text: 'OK' };
   if (status === 'partial' && p) {
-    showSheet({ icons: icons, title: 'All permissions are required', text: 'Please reconnect ' + p.name + ' and select all requested permissions to continue.', primary: { text: 'Reconnect', click: function() { connectAccount(p); } } });
+    sheetOpen(function(b) { sheetHead(b, icons, 'All permissions are required', 'Please reconnect ' + p.name + ' and allow every requested permission.'); var g = el('button', 'pv-btn full', 'Reconnect'); g.onclick = function() { hideSheet(); startInstall(p); }; b.appendChild(g); sheetCancel(b, 'Close'); });
     return;
   }
-  if (status === 'denied') {
-    showSheet({ icons: icons, title: 'Sign-in cancelled', text: 'No account was connected.', primary: p ? { text: 'Try again', click: function() { connectAccount(p); } } : { text: 'OK' }, secondary: p ? 'Close' : null });
-    return;
-  }
-  showSheet({ icons: icons, title: 'Could not connect', text: status === 'notready' ? 'Sign-in is not set up on the server yet.' : 'Something went wrong. Please try again.', primary: p && status !== 'notready' ? { text: 'Try again', click: function() { connectAccount(p); } } : { text: 'OK' }, secondary: p && status !== 'notready' ? 'Close' : null });
+  var title = status === 'denied' ? 'Sign-in cancelled' : 'Could not connect';
+  var text = status === 'denied' ? 'No account was connected.' : status === 'notready' ? 'Sign-in is not set up on the server yet.' : status === 'expired' ? 'The sign-in link expired. Please try again.' : 'Something went wrong. Please try again.';
+  sheetOpen(function(b) {
+    sheetHead(b, icons, title, text);
+    var g = el('button', 'pv-btn full', retry.text); g.onclick = function() { hideSheet(); if (retry.click) retry.click(); }; b.appendChild(g);
+    if (retry.click) sheetCancel(b, 'Close');
+  });
 }
 
 // ---------- Sariling AI key ----------
 var keyTarget = null;
-function openKeyModal(k) {
-  keyTarget = k;
-  document.getElementById('key-title').textContent = 'Add your ' + k.label + ' key';
-  var help = document.getElementById('key-help');
-  help.textContent = '';
+function openKeyModal(p) {
+  keyTarget = p;
+  var k = p.key || {};
+  pvg('key-title').textContent = 'Add your ' + p.name + ' key';
+  var help = pvg('key-help'); help.textContent = '';
   help.appendChild(document.createTextNode((k.free ? 'This key is free. ' : 'This is a paid key: usage is billed to your account. ') + 'Get your key here: '));
-  var a = document.createElement('a'); a.href = k.help; a.target = '_blank'; a.rel = 'noopener'; a.textContent = k.help.replace('https://', '');
-  help.appendChild(a);
-  document.getElementById('key-input').value = '';
-  var m = document.getElementById('key-model');
+  if (k.help) { var a = document.createElement('a'); a.href = k.help; a.target = '_blank'; a.rel = 'noopener'; a.textContent = k.help.replace('https://', ''); help.appendChild(a); }
+  pvg('key-input').value = '';
+  var m = pvg('key-model');
   m.value = k.needsModel ? '' : (k.model || '');
   m.placeholder = k.needsModel ? 'Model name (required)' : 'Model name (optional)';
-  document.getElementById('key-msg').textContent = '';
-  document.getElementById('key-modal').classList.add('open');
-  document.getElementById('key-input').focus();
+  pvg('key-msg').textContent = '';
+  pvg('key-modal').classList.add('open');
+  pvg('key-input').focus();
 }
-function closeKeyModal() { document.getElementById('key-modal').classList.remove('open'); document.getElementById('key-input').value = ''; keyTarget = null; }
+function closeKeyModal() { pvg('key-modal').classList.remove('open'); pvg('key-input').value = ''; keyTarget = null; }
 async function saveKey() {
   if (!keyTarget) return;
-  var btn = document.getElementById('key-save');
-  var msg = document.getElementById('key-msg');
-  var key = document.getElementById('key-input').value.trim();
+  var p = keyTarget;
+  var btn = pvg('key-save'); var msg = pvg('key-msg');
+  var key = pvg('key-input').value.trim();
   if (!key) { msg.textContent = 'Please paste your key.'; return; }
   btn.disabled = true; msg.textContent = 'Checking your key...';
   try {
-    await acctCall({ action: 'savekey', provider: keyTarget.id, key: key, model: document.getElementById('key-model').value.trim() });
+    await acctCall({ action: 'savekey', provider: p.keyId, key: key, model: pvg('key-model').value.trim() });
     closeKeyModal();
-    await loadAccounts();
+    await loadPlugins(true);
+    pvToast(p.name + ' installed');
   } catch (e) { msg.textContent = e.message; }
   btn.disabled = false;
 }
-async function removeKey(k) {
-  if (!confirm('Remove your ' + k.label + ' key? The chat will go back to the shared free AI.')) return;
-  try { await acctCall({ action: 'removekey', provider: k.id }); } catch (e) { alert('Could not remove the key: ' + e.message); return; }
-  delete accts.keys[k.id];
-  setConnected(Object.keys(accts.connected).length > 0 || Object.keys(accts.keys).length > 0);
-  renderAccounts();
-}
+
 window.addEventListener('load', function() {
-  document.getElementById('key-cancel').onclick = closeKeyModal;
-  document.getElementById('key-save').onclick = saveKey;
-  document.getElementById('key-modal').addEventListener('click', function(e) { if (e.target.id === 'key-modal') closeKeyModal(); });
-  renderAccounts();
+  pvg('key-cancel').onclick = closeKeyModal;
+  pvg('key-save').onclick = saveKey;
+  pvg('key-modal').addEventListener('click', function(e) { if (e.target.id === 'key-modal') closeKeyModal(); });
+  pvg('pv-sheet').addEventListener('click', function(e) { if (e.target.id === 'pv-sheet') hideSheet(); });
+  Array.prototype.forEach.call(document.querySelectorAll('.pv-tab'), function(t) {
+    t.onclick = function() { PV.tab = t.getAttribute('data-tab'); PV.q = ''; pvg('pv-search').value = ''; pvg('pv-clear').style.display = 'none'; renderPlugins(false); };
+  });
+  var s = pvg('pv-search');
+  s.oninput = function() { PV.q = s.value; pvg('pv-clear').style.display = s.value ? 'block' : 'none'; renderPlugins(false); };
+  pvg('pv-clear').onclick = function() { s.value = ''; PV.q = ''; pvg('pv-clear').style.display = 'none'; renderPlugins(false); s.focus(); };
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    if (pvg('key-modal').classList.contains('open')) closeKeyModal();
+    else if (pvg('pv-sheet').classList.contains('open')) hideSheet();
+    else if (PV.open) pvBack();
+  });
   var qs = new URLSearchParams(location.search);
   var st = qs.get('oauth');
   if (st) {
     var pid = qs.get('plugin') || '';
     try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
-    loadAccounts().then(function() { handleOAuthReturn(st, pid); });
-  } else { loadAccounts(); }
-  document.getElementById('pv-sheet').addEventListener('click', function(e) { if (e.target.id === 'pv-sheet') hideSheet(); });
+    loadPlugins(true).then(function() { handleOAuthReturn(st, pid); });
+  } else { loadPlugins(true); }
 });
 
 var memory = { enabled: true, facts: [] };
@@ -1765,24 +1991,29 @@ if (chats.length > 0) {
 autoGrow();
 </script>
 
-<div id="plugins-view">
-  <div class="pv-wrap">
-    <div class="pv-top">
-      <button class="pv-back" onclick="pvBack()">← <span id="pv-back-label">Back to Chat</span></button>
+<div id="plugins-view" role="dialog" aria-label="Plugins">
+  <div class="pv-top">
+    <button class="pv-back" onclick="pvBack()" aria-label="Back">← <span id="pv-back-label">Chat</span></button>
+    <div class="pv-h1" id="pv-title">Plugins</div>
+    <button class="pv-refresh" onclick="PV.loaded=false;loadPlugins()" aria-label="Refresh plugins" title="Refresh">↻</button>
+  </div>
+  <div class="pv-tabs" id="pv-tabs">
+    <button class="pv-tab on" data-tab="explore">Explore</button>
+    <button class="pv-tab" data-tab="installed">Installed</button>
+    <button class="pv-tab" data-tab="dashboard">Dashboard</button>
+  </div>
+  <div id="pv-scroll"><div class="pv-wrap" id="pv-body"></div></div>
+  <div class="pv-bar" id="pv-bar">
+    <div class="pv-bar-in">
+      <span aria-hidden="true">🔍</span>
+      <input id="pv-search" type="search" placeholder="Search plugins" autocomplete="off" aria-label="Search plugins">
+      <button id="pv-clear" type="button" aria-label="Clear search">✕</button>
     </div>
-    <div id="pv-body"></div>
   </div>
   <div id="pv-sheet" class="pv-sheet-wrap">
-    <div class="pv-sheet">
-      <div class="pv-grab"></div>
-      <div class="pv-sheet-icons" id="pv-sheet-icons"></div>
-      <div class="pv-sheet-title" id="pv-sheet-title"></div>
-      <div class="pv-sheet-text" id="pv-sheet-text"></div>
-      <button id="pv-sheet-primary" class="pv-act"></button>
-      <button id="pv-sheet-secondary" class="pv-sheet-sec"></button>
-    </div>
+    <div class="pv-sheet"><div class="pv-grab"></div><div id="pv-sheet-body"></div></div>
   </div>
-  <div id="pv-toast"></div>
+  <div id="pv-toast" role="status"></div>
 </div>
 
 <div id="key-modal" style="display:none">
