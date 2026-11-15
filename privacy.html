@@ -5,49 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy – Imachui Gen AI</title>
 <style>
-  :root { color-scheme: light dark; --bg:#fff; --fg:#1a1a1a; --mut:#555; --link:#0b57d0; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0e0f12; --fg:#ececec; --mut:#a0a0a8; --link:#8ab4f8; } }
+  :root { color-scheme: light dark; --bg:#fff; --fg:#1a1a1a; --mut:#555; --link:#0b57d0; --line:#e3e3e3; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0e0f12; --fg:#ececec; --mut:#a0a0a8; --link:#8ab4f8; --line:#26282e; } }
   body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.7 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width:720px; margin:0 auto; padding:32px 20px 64px; }
+  main { max-width:720px; margin:0 auto; padding:28px 20px 64px; }
+  .top { font-size:14px; margin-bottom:18px; }
   h1 { font-size:28px; margin:0 0 4px; } h2 { font-size:19px; margin:28px 0 6px; }
-  p, li { color:var(--fg); } .mut { color:var(--mut); font-size:14px; } a { color:var(--link); }
+  p, li { color:var(--fg); } li { margin:4px 0; } .mut { color:var(--mut); font-size:14px; } a { color:var(--link); }
+  .foot { margin-top:40px; padding-top:16px; border-top:1px solid var(--line); font-size:14px; }
 </style>
 </head>
 <body>
 <main>
+  <div class="top"><a href="./">← Back to Imachui Gen AI</a></div>
   <h1>Privacy Policy</h1>
   <p class="mut">Imachui Gen AI · Last updated: November 15, 2026</p>
 
-  <p>Imachui Gen AI ("the app") is an AI chat assistant. This page explains what information the app uses and how it is handled.</p>
+  <p>Imachui Gen AI is a powerful AI chat assistant that values your privacy, security, and control. This page explains what information the app uses and how it is handled with care.</p>
 
-  <h2>What we collect</h2>
+  <h2>What We Collect</h2>
   <ul>
-    <li><b>Your chat messages</b>, which are sent to AI providers to write replies.</li>
-    <li><b>Memory</b> (facts you ask the app to remember). It is stored on your own device and sent with your chats. It is not saved on our server.</li>
-    <li><b>An anonymous session ID</b> stored in your browser, used to remember which plugins you installed.</li>
-    <li><b>Plugin settings</b> (which plugins are installed, on or off, and permissions you chose), stored on our server under that session ID.</li>
-    <li><b>Feedback</b> you send with the thumbs up or down buttons.</li>
+    <li><b>Your chat messages:</b> sent to AI providers to generate intelligent and helpful answers.</li>
+    <li><b>Memory:</b> facts you ask the app to remember. It is stored on your own device and sent with your chats; it is not saved on our server.</li>
+    <li><b>An anonymous session ID:</b> stored in your browser to remember which plugins you installed.</li>
+    <li><b>Plugin settings:</b> which plugins are installed, on or off, and the permissions you chose; stored on our server under that session ID.</li>
+    <li><b>Feedback:</b> from the thumbs up or down buttons, to help us continuously improve the app.</li>
   </ul>
 
-  <h2>Google and other account connections</h2>
-  <p>If you choose to connect Gmail, Google Drive, Google Calendar, YouTube, GitHub, Notion, or Microsoft, the app asks for <b>read-only</b> access. It never sends email, edits, or deletes anything in your accounts.</p>
-  <ul>
-    <li>Access tokens are stored encrypted on our server, only so the app can read your data when you ask.</li>
-    <li>When you ask a question that needs your data (for example "what are my unread emails?"), the app reads only what is needed (such as sender, subject, date, and a short preview) and sends that text to an AI provider to write the answer.</li>
-    <li>We do not sell your data, use it for advertising, or train AI models with it.</li>
-    <li>You can disconnect any plugin at any time in <b>Plugins</b>. This deletes the stored token from our server. You can also remove access in your Google account settings.</li>
-  </ul>
-  <p>The app's use of information received from Google APIs follows the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+  <h2>Google and Other Account Connections</h2>
+  <p>If you choose to connect Gmail, Google Drive, Google Calendar, YouTube, GitHub, Notion, or Microsoft, the app requests <b>read-only</b> access. It never sends email, edits, or deletes anything in your accounts.</p>
+  <p>Access tokens are stored encrypted on our server solely so the app can read your data when you ask. When you ask a question that needs your data (for example, “What are my unread emails?”), the app reads only what is needed (such as sender, subject, date, and a short preview) and sends that text to an AI provider to write the answer.</p>
+  <p>We do not sell your data, use it for advertising, or train AI models with it.</p>
+  <p>You can disconnect any plugin at any time in <b>Plugins</b>. This deletes the stored token from our server. You can also remove access in your Google account settings.</p>
+  <p>The app’s use of information received from Google APIs follows the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
 
-  <h2>Third-party AI providers</h2>
-  <p>Your messages, and any text the app reads from your connected accounts or pasted links to answer you, are sent to AI and search providers (such as Groq, Mistral, Google Gemini, OpenRouter, Cloudflare, and Serper). Their own policies apply to how they handle that data. If you add your own API key, your chats go to that provider and the key is stored encrypted on our server.</p>
+  <h2>Powerful AI and Search Providers</h2>
+  <p>Your messages, and any text the app reads from your connected accounts or pasted links to answer you, are sent to AI and search providers, including but not limited to OpenAI, Anthropic, Meta Llama, DeepSeek, xAI, Groq, Mistral, Google Gemini, OpenRouter, Cloudflare, and Serper. This broad multi-model integration enables access to a wide range of leading AI models, subject to configuration and availability. Each provider’s own policies apply to how they handle that data. If you add your own API key, your chats go to that provider, and the key is stored encrypted on our server.</p>
 
-  <h2>Retention and deletion</h2>
-  <p>Plugin settings and tokens stay until you disconnect or uninstall the plugin. To remove your data, disconnect or uninstall each plugin in <b>Plugins</b>, which deletes its stored token, key, and settings from our server. Clearing your browser data also removes your session ID and memory from your device.</p>
+  <h2>Retention and Deletion</h2>
+  <p>Plugin settings and tokens remain until you disconnect or uninstall the plugin. To remove your data, disconnect or uninstall each plugin in <b>Plugins</b>; this deletes its stored token, key, and settings from our server. Clearing your browser data also removes your session ID and memory from your device.</p>
 
   <h2>Children</h2>
-  <p>The app is not intended for children under 13.</p>
+  <p>Imachui Gen AI is designed for users aged 13 and older.</p>
 
+  <div class="foot"><a href="terms.html">Read the Terms of Service →</a></div>
 </main>
 </body>
 </html>
