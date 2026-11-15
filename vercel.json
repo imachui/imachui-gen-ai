@@ -19,6 +19,9 @@
     "api/oauth.js": {
       "maxDuration": 20
     },
+    "api/plugins.js": {
+      "maxDuration": 20
+    },
     "api/admin.js": {
       "maxDuration": 15,
       "includeFiles": "*-data.json"
