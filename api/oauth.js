@@ -5,6 +5,7 @@
 //   GET  ?code=...&state=...               -> callback ng provider (ito ang Redirect URI)
 // Ang "sid" ay nasa body lang (hindi sa URL).
 import { setCors, readBody } from '../lib/auth.js';
+import { bumpStat } from '../lib/plugins.js';
 import {
   SID_RX, PROVIDERS, isProvider, isConfigured, configuredProviders, oauthReady,
   createState, consumeState, buildAuthUrl, completeSignIn, saveTokens, listConnected, disconnect, removeService, frontendUrl,
@@ -44,6 +45,7 @@ export default async function handler(req, res) {
         const granted = servicesFromScope(st.provider, tokens.scope, st.want.length ? st.want : st.services);
         const services = [...new Set([...(before ? before.services : []), ...granted])];
         await saveTokens(st.sid, st.provider, tokens, label, services);
+        if (!before || st.want.some((x) => !before.services.includes(x))) await bumpStat(st.ret, 1);
         // Kung may hiniling na service pero hindi pinayagan ng user: "All permissions are required"
         const missing = st.want.filter((x) => !services.includes(x));
         return backToApp(res, missing.length ? 'partial' : 'ok', st.ret);
@@ -94,7 +96,9 @@ export default async function handler(req, res) {
           : `Could not verify the key with ${kp.label} right now. Try again.`;
         return res.status(400).json({ error: why });
       }
+      const hadKey = Boolean((await listUserKeys(sid))[provider]);
       await saveUserKey(sid, provider, key, model);
+      if (!hadKey) await bumpStat('ai-' + provider, 1);
       return res.status(200).json({ ok: true });
     }
     if (action === 'removekey') {
