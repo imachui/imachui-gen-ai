@@ -61,6 +61,7 @@
       <button type="button" id="tabDb" class="active">Database</button>
       <button type="button" id="tabFb">Feedback</button>
       <button type="button" id="tabHealth">Health</button>
+      <button type="button" id="tabPlug">Plugins</button>
       <button type="button" id="logoutBtn" style="margin-left:auto">Log out</button>
     </div>
 
@@ -124,6 +125,39 @@
     </div>
 
     <!-- HEALTH TAB -->
+    <div id="panePlug" class="hidden">
+      <div class="card">
+        <div class="row tight" style="justify-content:space-between">
+          <strong id="plugCount">Plugins</strong>
+          <button id="reloadPlug" type="button">Reload</button>
+        </div>
+        <div class="meta" style="margin-top:6px">Installs are counted when users install or connect a plugin (approximate). <b>Hide</b> removes a plugin from the marketplace for everyone. <b>Feature</b> moves it up in Popular and New &amp; Noteworthy. Sign-in plugins show "not set up" until their client ID and secret are added in Vercel.</div>
+        <div id="plugList" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <strong id="plugFormTitle">Add a prompt plugin</strong>
+        <div class="meta">A prompt plugin adds your instructions to the chats of users who install it. It does not connect to any outside service.</div>
+        <div class="row">
+          <div><label for="pId">ID (letters, numbers, dashes)</label><input id="pId" maxlength="24" placeholder="my-plugin"></div>
+          <div><label for="pName">Name</label><input id="pName" maxlength="60" placeholder="My Plugin"></div>
+          <div><label for="pIcon">Icon (emoji)</label><input id="pIcon" maxlength="8" placeholder="🧩"></div>
+        </div>
+        <div class="row">
+          <div><label for="pCat">Category</label>
+            <select id="pCat"><option>Tools</option><option>Productivity</option><option>Communication</option><option>Files</option><option>Media</option><option>Developer</option><option>Social</option></select></div>
+          <div><label for="pTag">Short tagline</label><input id="pTag" maxlength="80" placeholder="One short line"></div>
+        </div>
+        <label for="pDesc">Description</label>
+        <textarea id="pDesc" maxlength="600" placeholder="What does this plugin do?"></textarea>
+        <label for="pInstr">Instructions for the AI (max 1200 characters)</label>
+        <textarea id="pInstr" maxlength="1200" placeholder="Example: Always answer in Bisaya and keep it under 5 sentences."></textarea>
+        <div class="row tight" style="margin-top:12px">
+          <button class="primary" id="plugSave" type="button">Save plugin</button>
+          <button id="plugCancel" type="button" class="hidden">Cancel edit</button>
+        </div>
+      </div>
+    </div>
+
     <div id="paneHealth" class="hidden">
       <div class="card">
         <div class="row tight">
@@ -205,10 +239,14 @@
     $('tabHealth').classList.toggle('active', name === 'health');
     if (name === 'fb') loadFeedback();
     if (name === 'health') loadHealth();
+    $('panePlug').classList.toggle('hidden', name !== 'plug');
+    $('tabPlug').classList.toggle('active', name === 'plug');
+    if (name === 'plug') loadPlug();
   }
   $('tabDb').onclick = function () { setTab('db'); };
   $('tabFb').onclick = function () { setTab('fb'); };
   $('tabHealth').onclick = function () { setTab('health'); };
+  $('tabPlug').onclick = function () { setTab('plug'); };
 
   // ---------- DATABASE ----------
   function syncFormType() {
@@ -389,6 +427,82 @@
     btn.disabled = false; btn.textContent = 'Check now';
   }
   $('healthBtn').onclick = function () { loadHealth(); };
+
+  // ---------- PLUGINS ----------
+  var plugins = [];
+  var plugEditing = false;
+
+  async function loadPlug() {
+    try {
+      var data = await api('/api/plugins');
+      plugins = data.plugins || [];
+      renderPlug();
+      if (!data.configured) show('Storage is not connected, so hide, feature, and custom plugins cannot be saved.', 'warn');
+    } catch (e) { show(e.message, 'err'); }
+  }
+  function badge(text) { var b = document.createElement('span'); b.className = 'badge'; b.textContent = text; return b; }
+  async function plugPost(body, okText) {
+    try { await api('/api/plugins', { method: 'POST', body: JSON.stringify(body) }); show(okText, 'ok'); await loadPlug(); }
+    catch (e) { show(e.message, 'err'); }
+  }
+  function renderPlug() {
+    var list = $('plugList');
+    list.innerHTML = '';
+    $('plugCount').textContent = 'Plugins (' + plugins.length + ')';
+    plugins.forEach(function (p) {
+      var item = document.createElement('div'); item.className = 'item';
+      var h = document.createElement('h3');
+      h.textContent = p.icon + ' ' + p.name;
+      h.appendChild(badge(p.kind));
+      h.appendChild(badge(p.category));
+      if (p.custom) h.appendChild(badge('custom'));
+      if (p.hidden) h.appendChild(badge('hidden'));
+      if (p.featured) h.appendChild(badge('featured'));
+      if (p.status !== 'available') h.appendChild(badge(p.status));
+      if (p.kind === 'account' && p.status === 'available' && !p.configured) h.appendChild(badge('not set up'));
+      item.appendChild(h);
+      var m = document.createElement('div'); m.className = 'meta'; m.textContent = p.tagline + ' · installs: ' + p.installs; item.appendChild(m);
+      var row = document.createElement('div'); row.className = 'row tight'; row.style.marginTop = '6px';
+      var hide = document.createElement('button'); hide.type = 'button'; hide.textContent = p.hidden ? 'Show' : 'Hide';
+      hide.onclick = function () { plugPost({ action: 'admin_flag', id: p.id, hidden: !p.hidden }, p.hidden ? 'Plugin is visible again.' : 'Plugin hidden.'); };
+      var feat = document.createElement('button'); feat.type = 'button'; feat.textContent = p.featured ? 'Unfeature' : 'Feature';
+      feat.onclick = function () { plugPost({ action: 'admin_flag', id: p.id, featured: !p.featured }, p.featured ? 'Removed from featured.' : 'Plugin featured.'); };
+      row.appendChild(hide); row.appendChild(feat);
+      if (p.custom) {
+        var edit = document.createElement('button'); edit.type = 'button'; edit.textContent = 'Edit';
+        edit.onclick = function () {
+          plugEditing = true;
+          $('pId').value = p.id; $('pId').disabled = true; $('pName').value = p.name; $('pIcon').value = p.icon;
+          $('pCat').value = p.category; $('pTag').value = p.tagline; $('pDesc').value = p.desc; $('pInstr').value = p.instructions;
+          $('plugFormTitle').textContent = 'Edit plugin'; $('plugCancel').classList.remove('hidden');
+          window.scrollTo(0, document.body.scrollHeight);
+        };
+        var del = document.createElement('button'); del.type = 'button'; del.className = 'danger'; del.textContent = 'Delete';
+        del.onclick = function () { if (confirm('Delete "' + p.name + '"? Users who installed it will lose it.')) plugPost({ action: 'admin_delete', id: p.id }, 'Deleted.'); };
+        row.appendChild(edit); row.appendChild(del);
+      }
+      item.appendChild(row);
+      list.appendChild(item);
+    });
+  }
+  function resetPlugForm() {
+    plugEditing = false;
+    ['pId', 'pName', 'pIcon', 'pTag', 'pDesc', 'pInstr'].forEach(function (id) { $(id).value = ''; });
+    $('pId').disabled = false; $('pCat').value = 'Tools';
+    $('plugFormTitle').textContent = 'Add a prompt plugin'; $('plugCancel').classList.add('hidden');
+  }
+  $('plugCancel').onclick = resetPlugForm;
+  $('reloadPlug').onclick = loadPlug;
+  $('plugSave').onclick = async function () {
+    var plugin = { id: $('pId').value, name: $('pName').value, icon: $('pIcon').value, category: $('pCat').value, tagline: $('pTag').value, desc: $('pDesc').value, instructions: $('pInstr').value };
+    var old = plugins.filter(function (p) { return p.id === plugin.id.trim().toLowerCase(); })[0];
+    if (old) { plugin.featured = old.featured; plugin.hidden = old.hidden; }
+    try {
+      await api('/api/plugins', { method: 'POST', body: JSON.stringify({ action: 'admin_save', plugin: plugin }) });
+      show('Plugin saved. It appears in the marketplace within a minute.', 'ok');
+      resetPlugForm(); await loadPlug();
+    } catch (e) { show(e.message, 'err'); }
+  };
 
   // ---------- START ----------
   syncFormType();
