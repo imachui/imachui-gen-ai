@@ -5,6 +5,7 @@ import { redis, storeConfigured } from '../lib/store.js';
 import { extractUrls, readLinks } from '../lib/links.js';
 import { fetchAccountContext, makeTokenGetter } from '../lib/connectors.js';
 import { configuredProviders, oauthReady, SID_RX, getUserProviders } from '../lib/oauth.js';
+import { getActive, gateUrls, allowAccount, pluginPrompt, blockedNote, disabledAi } from '../lib/plugins.js';
 import { AsyncLocalStorage } from 'async_hooks';
 
 // Dito nakalagay ang sariling AI keys ng user para sa kasalukuyang request lang
@@ -1653,8 +1654,19 @@ async function handlerImpl(req, res) {
   const intent = detectIntent(shortMsg);
 
   // Cache: parehong tanong ng maraming tao = isang tawag lang sa AI at search
-  const msgUrls = extractUrls(userMessage);
+  let msgUrls = extractUrls(userMessage);
   const sid = oauthReady() && SID_RX.test(String(body && body.sid || '')) ? String(body.sid) : '';
+  // Plugins: alin ang naka-on para sa user na ito (ang uninstalled o naka-off ay hindi gagamitin)
+  let act = null;
+  let pluginNote = '';
+  if (sid) {
+    try {
+      act = await getActive(sid);
+      const g = gateUrls(msgUrls, act);
+      msgUrls = g.allowed;
+      pluginNote = blockedNote(g.blocked);
+    } catch (e) { console.error('Plugin state failed:', e.message); }
+  }
   const cacheable = CACHEABLE_INTENTS.has(intent) && messages.length <= 1 && storeConfigured() && !msgUrls.length && !sid;
   const cacheKey = cacheable ? 'imachui:cache:' + createHash('sha1').update(`${intent}|${lang}|${norm(shortMsg)}`).digest('hex') : '';
   if (cacheable) {
@@ -1738,7 +1750,7 @@ async function handlerImpl(req, res) {
         geminiKey: process.env.GEMINI_API_KEY || '',
         geminiModel: GEMINI_MODEL,
         githubToken: process.env.GITHUB_TOKEN || '',
-        getToken: sid ? makeTokenGetter(sid) : null,
+        getToken: sid ? makeTokenGetter(sid, act ? allowAccount(act) : null) : null,
         canConnect: oauthReady() ? configuredProviders() : []
       });
       linkBlock = lr.block;
@@ -1750,7 +1762,7 @@ async function handlerImpl(req, res) {
 
   let acctBlock = '';
   if (sid) {
-    try { acctBlock = await fetchAccountContext(userMessage, sid); } catch (e) { console.error('Account context failed:', e.message); }
+    try { acctBlock = await fetchAccountContext(userMessage, sid, act ? allowAccount(act) : null); } catch (e) { console.error('Account context failed:', e.message); }
   }
 
   const shouldSearch = !lookupName && !linksRead && !acctBlock && process.env.SERPER_API_KEY && shortMsg.length > 3 &&
@@ -1818,6 +1830,8 @@ Your job: in at most 2 short sentences, add only facts from the WEB RESULTS that
     }
   }
 
+  if (act) { const pp = pluginPrompt(act); if (pp) systemContent += pp; }
+  if (pluginNote) systemContent += pluginNote;
   if (linkBlock) systemContent += `\n${linkBlock}\n`;
   if (acctBlock) systemContent += `\n${acctBlock}\n`;
   if (sportsData) systemContent += `\n=== OFFICIAL SCOREBOARD (ESPN; times are Philippine time) ===\n${sportsData}\n`;
@@ -1963,7 +1977,11 @@ export default async function handler(req, res) {
     let b = req.body;
     if (typeof b === 'string') b = JSON.parse(b);
     const sid = String((b && b.sid) || '');
-    if (oauthReady() && SID_RX.test(sid)) userProviders = await getUserProviders(sid);
+    if (oauthReady() && SID_RX.test(sid)) {
+      userProviders = await getUserProviders(sid);
+      const off = await disabledAi(sid);
+      if (off.size) userProviders = userProviders.filter((p) => !off.has(p.base));
+    }
   } catch (e) { /* walang sariling key */ }
   return ownKeys.run({ userProviders }, () => handlerImpl(req, res));
 }
