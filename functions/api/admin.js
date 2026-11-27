@@ -1,45 +1,92 @@
-// api/admin.js — pamamahala ng dagdag na database (mga tao at impormasyon)
-// Lahat ay nangangailangan ng:  Authorization: Bearer <ADMIN_KEY>
-import { checkAdmin, setCors, readBody } from '../lib/auth.js';
-import { redis, storeConfigured, DB_KEY } from '../lib/store.js';
-import { getExtraEntries, sanitizeEntry, clearExtraCache } from '../lib/knowledge.js';
+import { checkAdmin, readBody } from '../../lib/auth.js';
+import { redis, storeConfigured, DB_KEY } from '../../lib/store.js';
+import { getExtraEntries, sanitizeEntry, clearExtraCache } from '../../lib/knowledge.js';
 
-export default async function handler(req, res) {
-  setCors(res);
-  if (req.method === 'OPTIONS') return res.status(200).end();
+export async function onRequest(context) {
+  const { request, env } = context;
+  const url = new URL(request.url);
 
-  const auth = checkAdmin(req);
-  if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  const auth = checkAdmin(request, env);
+  if (!auth.ok) {
+    return new Response(JSON.stringify({ error: auth.error }), {
+      status: auth.status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
-    if (req.method === 'GET') {
+    if (request.method === 'GET') {
       const entries = await getExtraEntries({ force: true });
-      return res.status(200).json({ configured: storeConfigured(), entries });
+      return new Response(JSON.stringify({ configured: storeConfigured(), entries }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    if (req.method === 'POST') {
+    if (request.method === 'POST') {
       if (!storeConfigured()) {
-        return res.status(503).json({ error: 'Storage is not configured. Add the Upstash Redis variables in Vercel first.' });
+        return new Response(JSON.stringify({ error: 'Storage is not configured. Add the Upstash Redis variables.' }), {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
-      const entry = sanitizeEntry(readBody(req));
-      if (!entry) return res.status(400).json({ error: 'Invalid entry. A name is required (and a description for info entries).' });
+      const body = await request.json().catch(() => ({}));
+      const entry = sanitizeEntry(body);
+      if (!entry) {
+        return new Response(JSON.stringify({ error: 'Invalid entry. A name is required (and a description for info entries).' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       await redis(['HSET', DB_KEY, entry.id, JSON.stringify(entry)]);
       clearExtraCache();
-      return res.status(200).json({ ok: true, entry });
+      return new Response(JSON.stringify({ ok: true, entry }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    if (req.method === 'DELETE') {
-      if (!storeConfigured()) return res.status(503).json({ error: 'Storage is not configured.' });
-      const id = String((req.query && req.query.id) || readBody(req).id || '').trim();
-      if (!id) return res.status(400).json({ error: 'Missing id.' });
+    if (request.method === 'DELETE') {
+      if (!storeConfigured()) {
+        return new Response(JSON.stringify({ error: 'Storage is not configured.' }), {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const id = String(url.searchParams.get('id') || '').trim();
+      if (!id) {
+        return new Response(JSON.stringify({ error: 'Missing id.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       await redis(['HDEL', DB_KEY, id]);
       clearExtraCache();
-      return res.status(200).json({ ok: true });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (e) {
     console.error('Admin error:', e.message);
-    return res.status(500).json({ error: 'Something went wrong.' });
+    return new Response(JSON.stringify({ error: 'Something went wrong.' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 }
