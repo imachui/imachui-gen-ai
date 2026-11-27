@@ -1,69 +1,62 @@
-// api/feedback.js — thumbs up / thumbs down
-//   POST   (public) : mag-save ng feedback
-//   GET    (admin)  : basahin ang feedback   (Authorization: Bearer ADMIN_KEY)
-//   DELETE (admin)  : burahin lahat
-// Kapag walang Redis, nakikita pa rin ang feedback sa Vercel Logs (hanapin ang "FEEDBACK").
-import { checkAdmin, setCors, readBody } from '../lib/auth.js';
-import { redis, storeConfigured, FEEDBACK_KEY } from '../lib/store.js';
+import { checkAdmin, readBody } from '../../lib/auth.js';
+import { redis, storeConfigured, FEEDBACK_KEY } from '../../lib/store.js';
 
-const clean = (v, max) => String(v == null ? '' : v).replace(/\u0000/g, '').trim().slice(0, max);
+export async function onRequest(context) {
+  const { request, env } = context;
+  const url = new URL(request.url);
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
 
-export default async function handler(req, res) {
-  setCors(res);
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
 
   try {
-    if (req.method === 'POST') {
-      const body = readBody(req);
-      const vote = body.vote === 'up' ? 'up' : body.vote === 'down' ? 'down' : '';
-      if (!vote) return res.status(400).json({ error: 'Invalid vote.' });
-
-      const record = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        t: new Date().toISOString(),
-        vote,
-        question: clean(body.question, 600),
-        answer: clean(body.answer, 1500),
-        comment: clean(body.comment, 500),
-        uid: clean(body.uid, 40)
-      };
-
-      console.log('FEEDBACK', JSON.stringify(record));
-
-      let stored = false;
-      if (storeConfigured()) {
-        try {
-          await redis(['LPUSH', FEEDBACK_KEY, JSON.stringify(record)]);
-          await redis(['LTRIM', FEEDBACK_KEY, 0, 999]);
-          stored = true;
-        } catch (e) {
-          console.error('Feedback store failed:', e.message);
-        }
+    if (request.method === 'GET' || request.method === 'DELETE') {
+      const auth = checkAdmin(request, env);
+      if (!auth.ok) {
+        return new Response(JSON.stringify({ error: auth.error }), { status: auth.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      return res.status(200).json({ ok: true, stored });
+      if (!storeConfigured()) {
+        return new Response(JSON.stringify({ configured: false, items: [] }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (request.method === 'GET') {
+        const flat = await redis(['LRANGE', FEEDBACK_KEY, 0, 199]);
+        const items = [];
+        if (Array.isArray(flat)) {
+          for (const str of flat) { try { items.push(JSON.parse(str)); } catch (e) {} }
+        }
+        return new Response(JSON.stringify({ configured: true, items }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (request.method === 'DELETE') {
+        await redis(['DEL', FEEDBACK_KEY]);
+        return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
     }
 
-    const auth = checkAdmin(req);
-    if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
-
-    if (req.method === 'GET') {
-      if (!storeConfigured()) return res.status(200).json({ configured: false, items: [] });
-      const rows = await redis(['LRANGE', FEEDBACK_KEY, 0, 299]);
-      const items = (Array.isArray(rows) ? rows : [])
-        .map((r) => { try { return JSON.parse(r); } catch (e) { return null; } })
-        .filter(Boolean);
-      return res.status(200).json({ configured: true, items });
+    if (request.method === 'POST') {
+      if (!storeConfigured()) return new Response(JSON.stringify({ ok: true, note: 'Not saved (no storage)' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      
+      const body = await request.json().catch(() => ({}));
+      const vote = body.vote === 'down' ? 'down' : 'up';
+      const item = {
+        vote,
+        question: String(body.question || '').slice(0, 500),
+        answer: String(body.answer || '').slice(0, 1500),
+        comment: String(body.comment || '').slice(0, 500),
+        t: Date.now()
+      };
+      
+      await redis(['LPUSH', FEEDBACK_KEY, JSON.stringify(item)]);
+      await redis(['LTRIM', FEEDBACK_KEY, 0, 1999]);
+      
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    if (req.method === 'DELETE') {
-      if (!storeConfigured()) return res.status(503).json({ error: 'Storage is not configured.' });
-      await redis(['DEL', FEEDBACK_KEY]);
-      return res.status(200).json({ ok: true });
-    }
-
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e) {
     console.error('Feedback error:', e.message);
-    return res.status(500).json({ error: 'Something went wrong.' });
+    return new Response(JSON.stringify({ error: 'Something went wrong.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 }
