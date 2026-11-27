@@ -1,51 +1,36 @@
-// api/chat.js  —  IMACHUI GEN AI
-import { readFileSync } from 'fs';
-import { createHash } from 'crypto';
-import { redis, storeConfigured } from '../lib/store.js';
-import { extractUrls, readLinks } from '../lib/links.js';
-import { fetchAccountContext, makeTokenGetter } from '../lib/connectors.js';
-import { configuredProviders, oauthReady, SID_RX, getUserProviders } from '../lib/oauth.js';
-import { getActive, gateUrls, allowAccount, pluginPrompt, blockedNote, disabledAi } from '../lib/plugins.js';
-import { AsyncLocalStorage } from 'async_hooks';
+// functions/api/chat.js  —  IMACHUI GEN AI (Cloudflare Version)
+import { createHash } from 'node:crypto';
+import { redis, storeConfigured } from '../../lib/store.js';
+import { extractUrls, readLinks } from '../../lib/links.js';
+import { fetchAccountContext, makeTokenGetter } from '../../lib/connectors.js';
+import { configuredProviders, oauthReady, SID_RX, getUserProviders } from '../../lib/oauth.js';
+import { getActive, gateUrls, allowAccount, pluginPrompt, blockedNote, disabledAi } from '../../lib/plugins.js';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../../lib/database.js';
 
-// Dito nakalagay ang sariling AI keys ng user para sa kasalukuyang request lang
+// DIRekTANG IMPORT PARA GUMANA SA CLOUDFLARE (Walang fs)
+import RPR_DATA_RAW from '../../rpr-data.json';
+import STAFF_ALL_RAW from '../../staff-data.json';
+
 const ownKeys = new AsyncLocalStorage();
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { REAPER_DESCRIPTION, REAPER_MEMBERS, STAFF_DATA } from '../lib/database.js';
-// Ang dagdag na database ay opsyonal: kapag may problema sa lib/knowledge.js, gagana pa rin ang chat.
+
 let getExtraEntries = async () => [];
 try {
-  const knowledge = await import('../lib/knowledge.js');
+  const knowledge = await import('../../lib/knowledge.js');
   if (typeof knowledge.getExtraEntries === 'function') getExtraEntries = knowledge.getExtraEntries;
 } catch (e) {
   console.error('lib/knowledge.js was not loaded:', e.message);
 }
 
-// ==========================================
-// DATABASE LOADING (rpr-data.json + staff-data.json)
-// Kung hindi ma-load ang JSON, gagamitin ang lib/database.js
-// ==========================================
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-function loadJson(file) {
-  const candidates = [path.join(process.cwd(), file), path.join(__dirname, '..', file)];
-  for (const p of candidates) {
-    try { return JSON.parse(readFileSync(p, 'utf8')); } catch (e) {}
-  }
-  return null;
-}
-
-// Mga pangalan na HINDI dapat lumabas bilang RPR member (kahit nasa rpr-data.json).
-// Dagdagan lang ang listahang ito kung may gusto pang alisin. (lowercase, walang accent)
 const RPR_EXCLUDE = ['eunice templado'];
 
-const RPR_DATA = (loadJson('rpr-data.json') || []).filter((m) => {
+const RPR_DATA = (RPR_DATA_RAW || []).filter((m) => {
   const key = String(`${m.nickname || ''} ${m.real_name || ''}`)
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ');
   return !RPR_EXCLUDE.some((x) => key.includes(x));
 });
-const STAFF_ALL = loadJson('staff-data.json') || STAFF_DATA;
+
+const STAFF_ALL = STAFF_ALL_RAW || STAFF_DATA;
 
 // ==========================================
 // TEXT HELPERS
@@ -62,7 +47,6 @@ const norm = (s) =>
 const titleCase = (s) =>
   String(s || '').toLowerCase().replace(/\b([a-z\u00c0-\u024f])/g, (c) => c.toUpperCase());
 
-// "ESTACION, LILAND ZOILA B." -> "Liland Zoila B. Estacion"
 function prettyStaffName(name) {
   const parts = String(name || '').split(',').map((x) => x.trim()).filter(Boolean);
   if (parts.length < 2) return titleCase(name);
@@ -106,7 +90,6 @@ const CEB_WORDS = new Set([
 
 const NON_LATIN_RX = /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|\p{Script=Cyrillic}|\p{Script=Arabic}|\p{Script=Devanagari}|\p{Script=Thai}|\p{Script=Greek}|\p{Script=Hebrew}/u;
 
-// returns: 'en' | 'tl' | 'ceb' | 'other'
 function detectLang(text) {
   const t = String(text || '');
   if (NON_LATIN_RX.test(t)) return 'other';
@@ -120,7 +103,7 @@ function detectLang(text) {
   if (ceb >= 2 && ceb >= tl) return 'ceb';
   if (tl > en && tl >= 1) return 'tl';
   if (en >= 1) return 'en';
-  if (toks.length >= 4) return 'other'; // hal. Spanish, French, atbp.
+  if (toks.length >= 4) return 'other';
   return 'en';
 }
 
@@ -131,7 +114,6 @@ const LANG_LABEL = {
   other: 'the same language as the user (not English)'
 };
 
-// static text helper: English default, Filipino para sa tl/ceb
 const T = (lang, en, tl) => (lang === 'tl' || lang === 'ceb' ? tl : en);
 
 // ==========================================
@@ -153,7 +135,6 @@ const STAFF_INDEX = STAFF_ALL.map((s) => ({
   tokens: norm(s.name).split(' ').filter(Boolean)
 }));
 
-// Dagdag na mga tao (mula sa knowledge-data.json at admin page)
 function findExtra(tokens, extras) {
   if (!tokens.length || !extras || !extras.length) return [];
   return extras
@@ -176,7 +157,6 @@ function findLocal(tokens, extras = []) {
 
 const hasLocalMatch = (l) => l.rpr.length + l.members.length + l.staff.length + (l.extra || []).length > 0;
 
-// Mga "info" entries na may kinalaman sa tanong (FAQ / kaalaman mula sa may-ari)
 const INFO_STOP = new Set([...EN_WORDS, ...TL_WORDS]);
 function relevantInfo(message, extras) {
   const msgNorm = norm(message);
@@ -190,7 +170,6 @@ function relevantInfo(message, extras) {
       const nameTokens = new Set(phrases.join(' ').split(' '));
       const descTokens = new Set(norm(e.description).split(' '));
       let score = 0;
-      // Buong pangalan o keyword na nabanggit sa tanong = malakas na tugma
       if (phrases.some((ph) => padded.includes(` ${ph} `))) score += 6;
       for (const t of qTokens) {
         if (nameTokens.has(t)) score += 3;
@@ -216,7 +195,6 @@ function formatExtraEntry(e) {
   return `• **${e.name}**${e.role ? ` — ${e.role}` : ''}${e.description ? `\n  ${e.description}` : ''}`;
 }
 
-// Database card (exact, galing mismo sa database — hindi hinuhulaan ng AI)
 function buildDbCard(l, lang) {
   const extra = l.extra || [];
   const rprLines = [
@@ -331,14 +309,10 @@ function extractNameWith(rx, msg) {
   return name;
 }
 
-// Malinaw na tanong tungkol sa tao: "who is ...", "sino si ..."
 const extractPersonName = (msg) => extractNameWith(PERSON_PREFIX_RX, msg);
-
-// Hindi gaanong malinaw ("tell me about ...", "find ..."): kailangan munang pumasa sa name check
 const LOOSE_PREFIX_RX = /^(?:please\s+|pls\s+|paki\s+)?(?:tell\s+me\s+(?:something\s+)?about|what\s+do\s+you\s+know\s+about|do\s+you\s+know|know\s+about|info(?:rmation)?\s+(?:about|on)|search\s+(?:for\s+)?|find\s+|look\s*up\s+|ano\s+(?:ang\s+)?alam\s+mo\s+(?:kay|tungkol\s+kay|sa)\s+|alam\s+mo\s+ba\s+(?:si\s+)?|ikuwento\s+(?:mo\s+)?(?:si\s+)?|kwento\s+(?:mo\s+)?(?:si\s+)?|tungkol\s+(?:kay|kay\s+si)\s+|pakisearch\s+(?:si\s+|ng\s+)?)/i;
 const extractLooseName = (msg) => extractNameWith(LOOSE_PREFIX_RX, msg);
 
-// Mga karaniwang salita na hindi pangalan (para hindi na kailangang tanungin ang AI)
 const COMMON_WORDS = new Set([
   'hello', 'hi', 'hey', 'helo', 'hola', 'thanks', 'thank', 'thankyou', 'salamat', 'okay', 'ok', 'yes', 'bye',
   'goodbye', 'help', 'test', 'testing', 'menu', 'start', 'stop', 'again', 'more', 'next', 'continue', 'sige',
@@ -347,7 +321,6 @@ const COMMON_WORDS = new Set([
   'larawan', 'music', 'game', 'games', 'python', 'javascript', 'html', 'css', 'java', 'code', 'download', 'upload'
 ]);
 
-// Pangalan lang ang tinype (1 hanggang 4 na salita, puro letra): hal. "elizabeth gemina cambio"
 function bareNameCandidate(msg) {
   const text = String(msg || '').trim().replace(/[.,!]+$/g, '');
   if (!text || text.length > 60) return null;
@@ -364,7 +337,6 @@ function bareNameCandidate(msg) {
   return text;
 }
 
-// Mga tanong na nagbabago sa paglipas ng panahon (batas, requirements, presyo, deadline...)
 const TIME_SENSITIVE_RX = /\b(civil service|csc|law|batas|policy|patakaran|requirement|requirements|resolution|guideline|guidelines|eligib\w*|price|presyo|salary|sahod|tax|fee|deadline|latest|ngayon|bago|update|updated|how much|magkano|legit|2025|2026|sss|philhealth|pag-?ibig|bir|dole|deped|prc|lto|passport|visa|election|eleksyon|minimum wage)\b/i;
 
 const CODING_RX = /\b(code|coding|html|css|javascript|js|python|java|php|sql|react|node|website|script|function|api|bug|error|program|app|component|regex|json)\b/i;
@@ -383,10 +355,6 @@ async function fetchWithTimeout(resource, options = {}) {
   }
 }
 
-// ==========================================
-// SMART SEARCH LAYER
-// Serper: web search + news, kasama ang answer box, sports box, top stories at knowledge panel
-// ==========================================
 async function serperRaw(endpoint, query, extra = {}, timeout = 6500) {
   if (!process.env.SERPER_API_KEY) return {};
   try {
@@ -410,7 +378,7 @@ async function serperSearch(query, extra = {}) {
 }
 
 // ==========================================
-// INTENT DETECTION (para pumili ng tamang paraan ng pag-sagot)
+// INTENT DETECTION
 // ==========================================
 const STRONG_NEWS_RX = /\b(news|balita|chika|chismis|showbiz|breaking|headlines?|trending|viral|current events)\b/i;
 const NEWS_RX = /\b(news|balita|chika|chismis|latest|breaking|headlines?|showbiz|trending|viral|pinaka\s?bago|pinakabago|bagong balita|updates? on|current events|kaganapan|nangyari|nangyayari|happening|what happened|ano ang nangyari)\b/i;
@@ -424,7 +392,6 @@ const GRAMMAR_RX = /\b(grammar|grammatical|proofread|spell\s?check|spelling|corr
 const RESEARCH_RX = /\b(research|study|studies|compare|comparison|versus|vs|pros and cons|statistics|stats|analysis|analyze|explain in detail|in depth|deep dive|history of|sources|citations?|reference|thesis|literature|ihambing|pag-?aralan|pananaliksik|detalyado)\b/i;
 const CODE_SEARCH_RX = /\b(latest|newest|version|deprecated|release|changelog|breaking change|install|npm|pip|docs|documentation|2025|2026|error:|exception|traceback|not working|doesn't work)\b/i;
 
-// returns: 'sports' | 'news' | 'coding' | 'math' | 'grammar' | 'research' | 'general'
 function detectIntent(msg) {
   const t = String(msg || '');
   if (SPORT_LEAGUE_RX.test(t) && (SPORT_Q_RX.test(t) || NEWS_RX.test(t))) return 'sports';
@@ -457,7 +424,7 @@ function intentGuide(intent, phTime) {
 }
 
 // ==========================================
-// CALCULATOR (ligtas, walang eval)
+// CALCULATOR
 // ==========================================
 function safeCalc(src) {
   const str = String(src || '');
@@ -547,7 +514,7 @@ function computeCalcNote(msg) {
 }
 
 // ==========================================
-// SPORTS SCOREBOARD (ESPN public API; kapag pumalya, web search ang gagamitin)
+// SPORTS SCOREBOARD
 // ==========================================
 const ESPN_LEAGUES = [
   [/\bnba\b/i, 'basketball/nba', 'NBA'],
@@ -603,7 +570,7 @@ async function espnScores(msg) {
 }
 
 // ==========================================
-// PAGE READER (kinukuha ang laman ng mga top na artikulo)
+// PAGE READER
 // ==========================================
 const SOCIAL_HOST_RX = /(^|\.)(facebook|instagram|tiktok|youtube|youtu|twitter|x|reddit|threads|linkedin|pinterest)\.(com|be|net)$/i;
 
@@ -641,7 +608,7 @@ async function fetchPageText(url, max = 3500) {
 }
 
 // ==========================================
-// FRESH CONTEXT BUILDER (balita, social media, research, coding docs, general)
+// FRESH CONTEXT BUILDER
 // ==========================================
 const PLATFORMS = [
   [/tiktok/i, 'tiktok.com'],
@@ -789,14 +756,9 @@ function buildPersonTail(name, profiles, lang, meaning = '') {
 }
 
 // ==========================================
-// IMAGE UNDERSTANDING  (maraming AI na pinagsama)
-// 1) Vision AIs (Gemini, Mistral, OpenRouter): basa ng larawan, OCR, code
-// 2) Gemini + Google Search: sariling paliwanag na may web grounding
-// 3) Serper (Google): hanap ng konteksto gamit ang text/headline sa larawan
-// 4) DeepSeek / Mistral / OpenRouter: pinal na paliwanag
+// IMAGE UNDERSTANDING
 // ==========================================
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-// Ang thinkingBudget:0 ay para lang sa Gemini 2.5; sa mga bagong model, hayaan ang default
 const thinkCfg = (m) => (/2\.5/.test(String(m)) ? { thinkingConfig: { thinkingBudget: 0 } } : {});
 const DEFAULT_IMAGE_QUESTION = 'Explain this image: what it shows, and the context, meaning, and reasons behind it.';
 
@@ -870,7 +832,6 @@ function visionAttempts(promptText, base64Data, mimeType, { maxTokens = 2048, ti
   return attempts;
 }
 
-// Isang larawan: sabay-sabay ang lahat ng vision AI, ang pinakamabilis ang gagamitin
 async function runVision(promptText, base64Data, mimeType, opts = {}) {
   const attempts = visionAttempts(promptText, base64Data, mimeType, opts);
   if (!attempts.length) throw new Error('No vision API keys are set.');
@@ -883,7 +844,6 @@ async function runVision(promptText, base64Data, mimeType, opts = {}) {
   }
 }
 
-// Maraming larawan: isa-isang provider kada larawan (para hindi ma-rate limit), lipat sa susunod kapag pumalya
 async function runVisionSequential(promptText, base64Data, mimeType, opts = {}) {
   const attempts = visionAttempts(promptText, base64Data, mimeType, opts);
   if (!attempts.length) throw new Error('No vision API keys are set.');
@@ -985,7 +945,6 @@ async function explainImage({ res, images, userMessage }) {
   const phTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila', dateStyle: 'full', timeStyle: 'long' });
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
 
-  // Phase 1 (sabay): basa ng bawat larawan + Gemini (lahat ng larawan) na may Google Search
   const readOne = (img, i) => {
     const prompt = extractionPrompt(question, i + 1, total);
     const job = total === 1
@@ -1009,7 +968,6 @@ async function explainImage({ res, images, userMessage }) {
   }
   if (!readable.length) return res.status(200).send(geminiDraft);
 
-  // Phase 2: Google search (hanggang 3 magkaibang query)
   const queries = [];
   infos.forEach((info) => {
     if (info && info.search_query && info.type !== 'code' && !queries.includes(info.search_query)) queries.push(info.search_query);
@@ -1024,7 +982,6 @@ async function explainImage({ res, images, userMessage }) {
     })
     .filter(Boolean);
 
-  // Phase 3: pinal na paliwanag
   const analysisBlocks = infos
     .map((info, i) => {
       const label = total > 1 ? `IMAGE ${i + 1} OF ${total}` : 'IMAGE';
@@ -1061,18 +1018,16 @@ ${analysisBlocks}
   const ok = await streamFromProviders(messages, res);
   if (ok) return;
 
-  // Kung pumalya ang lahat ng writer AI
   if (geminiDraft) return res.status(200).send(geminiDraft);
   const fallback = readable.map((info, i) => `**${total > 1 ? `Image ${i + 1}: ` : ''}What's in the image**\n${info.description}${info.visible_text ? `\n\n**Text in the image**\n${info.visible_text}` : ''}`).join('\n\n');
   return res.status(200).send(fallback);
 }
 
 // ==========================================
-// AI ENGINES (all free tiers: Groq, Mistral, Cloudflare, OpenRouter, Gemini)
+// AI ENGINES
 // ==========================================
-// Mga provider na maliit ang limit o context: hindi gagamitin sa napakahabang dokumento
 const LOW_CONTEXT = ['OpenRouter', 'Groq', 'Cloudflare'];
-const deadUntil = {}; // provider na may 401/402/404: lalaktawan ng 10 minuto
+const deadUntil = {};
 const OPENAI_PROVIDERS = [
   { name: 'Groq', key: 'GROQ_API_KEY', url: 'https://api.groq.com/openai/v1/chat/completions', model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b', extra: { temperature: 0.4, max_tokens: 4096 } },
   { name: 'Mistral', key: 'MISTRAL_API_KEY', url: 'https://api.mistral.ai/v1/chat/completions', model: 'mistral-small-latest', extra: { temperature: 0.4, max_tokens: 4096 } },
@@ -1080,7 +1035,6 @@ const OPENAI_PROVIDERS = [
   { name: 'OpenRouter', key: 'OPENROUTER_API_KEY', url: 'https://openrouter.ai/api/v1/chat/completions', model: process.env.OPENROUTER_MODEL || 'openrouter/free', extra: { temperature: 0.4, max_tokens: 2048 } }
 ];
 
-// Non-streaming call (para sa drafts at fallback)
 async function callOpenAICompat(p, apiMessages, timeout = 12000) {
   const r = await fetchWithTimeout(p.url, {
     method: 'POST',
@@ -1135,7 +1089,7 @@ async function callGemini(apiMessages, { grounded = false } = {}) {
 }
 
 // ==========================================
-// NAME MEANING (positibo lang, para ngumiti ang taong hinahanap)
+// NAME MEANING
 // ==========================================
 function nameMeaningPrompt(languageLabel) {
   return `You write a short, warm "name meaning" note for a friendly community chat app. A user searched for a person's name. Explain the meaning and origin of the GIVEN NAME (the first name) in that full name, in a positive and uplifting way, so the person smiles when they read it.
@@ -1183,7 +1137,6 @@ async function getNameMeaning(fullName, lang) {
   return text.slice(0, 700);
 }
 
-// Kuha ng drafts mula sa LAHAT ng available na API nang sabay-sabay
 async function gatherDrafts(apiMessages) {
   const jobs = [];
   for (const p of OPENAI_PROVIDERS) {
@@ -1197,8 +1150,6 @@ async function gatherDrafts(apiMessages) {
   return settled.filter((s) => s.status === 'fulfilled' && s.value.text).map((s) => s.value);
 }
 
-// Streaming sa unang provider na gumagana; Gemini ang huling fallback
-// opts: { skip: LOW_CONTEXT, noGemini: true, timeout: 20000 }
 async function streamFromProviders(apiMessages, res, head = '', tail = '', opts = {}) {
   const { skip = [], noGemini = false, timeout = 20000, reasoner = false } = opts;
   const store = ownKeys.getStore();
@@ -1250,11 +1201,11 @@ async function streamFromProviders(apiMessages, res, head = '', tail = '', opts 
 const SYNTHESIS_ON = () => /^(1|true|yes|on)$/i.test(String(process.env.ENABLE_MULTI_AI_SYNTHESIS || '').trim());
 
 // ==========================================
-// MGA MAHABANG DOKUMENTO (hanggang isang libro)
+// MGA MAHABANG DOKUMENTO
 // ==========================================
-const DOC_INLINE_MAX = 30000;      // hanggang dito, buong isasama sa prompt
-const DOC_DEEPSEEK_MAX = 150000;   // hanggang dito, subukan muna nang buo ang DeepSeek/Mistral
-const DOC_MAX_TOTAL = 3200000;     // pinakamalaking kabuuan kada mensahe
+const DOC_INLINE_MAX = 30000;
+const DOC_DEEPSEEK_MAX = 150000;
+const DOC_MAX_TOTAL = 3200000;
 const PROMPT_MODE_INSTRUCTION = 'Follow the request written in the message. If there is no clear request, summarize the message.';
 const DEFAULT_DOC_INSTRUCTION = 'Summarize this document: the main idea, the key points in order, and the important details.';
 
@@ -1274,7 +1225,6 @@ function sanitizeDocs(raw) {
   return out;
 }
 
-// Mga "status" na lumalabas habang binabasa (inaalis ito ng website sa pinal na sagot)
 const emitStatus = (res, msg) => { try { res.write(`\u0001${msg}\u0002`); } catch (e) {} };
 
 function docSystemPrompt(lang, phTime, memoryFacts, note = '', promptMode = false) {
@@ -1307,7 +1257,6 @@ LANGUAGE RULES:
   return sys;
 }
 
-// Hatiin ang mahabang text sa mga bahagi (sa dulo ng talata kung maaari)
 function splitIntoChunks(text, size) {
   const chunks = [];
   let i = 0;
@@ -1328,7 +1277,6 @@ function splitIntoChunks(text, size) {
   return chunks;
 }
 
-// Mga tala mula sa isang bahagi ng dokumento (DeepSeek, tapos Mistral)
 async function noteChunk(chunk, idx, total, instruction) {
   const messages = [
     {
@@ -1338,7 +1286,7 @@ async function noteChunk(chunk, idx, total, instruction) {
     { role: 'user', content: chunk }
   ];
   for (const p of OPENAI_PROVIDERS) {
-    if (LOW_CONTEXT.includes(p.name) || !process.env[p.key]) continue; // maliit ang context o limit
+    if (LOW_CONTEXT.includes(p.name) || !process.env[p.key]) continue;
     try {
       return await callOpenAICompat({ ...p, extra: { temperature: 0.2, max_tokens: 700 } }, messages, 22000);
     } catch (e) {
@@ -1348,7 +1296,6 @@ async function noteChunk(chunk, idx, total, instruction) {
   return null;
 }
 
-// Gemini long-context (hanggang ~1M tokens): isang tawag, may streaming
 async function streamGeminiLong(res, system, userText) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`;
   const r = await fetchWithTimeout(url, {
@@ -1388,7 +1335,6 @@ async function streamGeminiLong(res, system, userText) {
 
 async function answerDocuments({ res, docs, instruction, memory, promptMode = false }) {
   const started = Date.now();
-  // promptMode = ang buong mahabang mensahe ng user (hanggang isang libro) ang ipinadala bilang isang text
   const rawText = promptMode ? docs.map((d) => d.text).join('\n\n') : '';
   const bigPrompt = promptMode && rawText.length > DOC_INLINE_MAX;
   const question = promptMode
@@ -1414,7 +1360,6 @@ async function answerDocuments({ res, docs, instruction, memory, promptMode = fa
     : `Instruction: ${question}\n\n--- DOCUMENT START ---\n${docsText}\n--- DOCUMENT END ---`;
   const directMessages = [{ role: 'system', content: system }, { role: 'user', content: userContent }];
 
-  // 1. Maikli: buong isasama sa prompt
   if (total <= DOC_INLINE_MAX) {
     if (await streamFromProviders(directMessages, res)) return;
     res.write('⚠️ I cannot answer right now. Please try again in a moment.');
@@ -1423,12 +1368,10 @@ async function answerDocuments({ res, docs, instruction, memory, promptMode = fa
 
   emitStatus(res, `📖 Reading ${total.toLocaleString('en-US')} characters...`);
 
-  // 2. Katamtaman: DeepSeek / Mistral nang buo
   if (total <= DOC_DEEPSEEK_MAX) {
     if (await streamFromProviders(directMessages, res, '', '', { skip: LOW_CONTEXT, noGemini: true, timeout: 25000 })) return;
   }
 
-  // 3. Mahaba: Gemini long-context
   if (process.env.GEMINI_API_KEY) {
     try {
       emitStatus(res, '📚 Reading the whole document with long-context AI...');
@@ -1438,7 +1381,6 @@ async function answerDocuments({ res, docs, instruction, memory, promptMode = fa
     }
   }
 
-  // 4. Huling paraan: hatiin sa mga bahagi, tala bawat bahagi, tapos pinal na sagot
   const chunkSize = Math.min(60000, Math.max(12000, Math.ceil(total / 24)));
   const chunks = splitIntoChunks(docsText, chunkSize);
   const notes = new Array(chunks.length).fill(null);
@@ -1489,13 +1431,10 @@ async function answerDocuments({ res, docs, instruction, memory, promptMode = fa
 }
 
 // ==========================================
-// MAIN HANDLER
-// ==========================================
-// ==========================================
-// RATE LIMIT KADA IP + CACHE (gumagamit ng Redis; kapag walang Redis, hindi gagana ang dalawa)
+// RATE LIMIT
 // ==========================================
 const RATE_LIMIT_PER_MIN = Math.max(1, parseInt(process.env.RATE_LIMIT_PER_MIN, 10) || 20);
-const CACHE_TTL = { news: 300, sports: 120, research: 3600 }; // segundo
+const CACHE_TTL = { news: 300, sports: 120, research: 3600 };
 const CACHEABLE_INTENTS = new Set(Object.keys(CACHE_TTL));
 
 async function isRateLimited(req) {
@@ -1508,7 +1447,7 @@ async function isRateLimited(req) {
     if (n === 1) await redis(['EXPIRE', key, 90]);
     return Number(n) > RATE_LIMIT_PER_MIN;
   } catch (e) {
-    return false; // kapag may problema ang Redis, huwag harangan ang user
+    return false;
   }
 }
 
@@ -1533,7 +1472,6 @@ async function handlerImpl(req, res) {
   const messages = body?.messages || [];
   const lastMessage = messages[messages.length - 1];
 
-  // Ang tinype ng user (body.message) ang uunahin, para hindi mapalitan ng text ng PDF
   let userMessage = body?.message || '';
   const rawImages = [];
 
@@ -1548,7 +1486,6 @@ async function handlerImpl(req, res) {
   const docs = sanitizeDocs(body && body.documents);
   if (!userMessage && !hasImage && !docs.length) return res.status(400).json({ error: 'No message provided' });
 
-  // ---------- IMAGE LOGIC ----------
   if (hasImage) {
     try {
       const images = rawImages
@@ -1574,7 +1511,6 @@ async function handlerImpl(req, res) {
     }
   }
 
-  // ---------- DOCUMENTS (mahabang text, PDF, atbp.) ----------
   if (docs.length) {
     try {
       await answerDocuments({ res, docs, instruction: userMessage, memory: body && body.memory, promptMode: !!(body && body.promptMode === true) });
@@ -1589,9 +1525,6 @@ async function handlerImpl(req, res) {
     }
   }
 
-  // ==========================================
-  // TEXT LOGIC
-  // ==========================================
   const shortMsg = userMessage.slice(0, 300);
   const lowerUserMessage = shortMsg.toLowerCase();
   let lang = detectLang(shortMsg);
@@ -1603,14 +1536,12 @@ async function handlerImpl(req, res) {
     return res.status(200).send(text);
   };
 
-  // ---------- 1. CREATOR / FOUNDER ----------
   const creatorIntent = detectCreatorIntent(shortMsg);
   if (creatorIntent) {
     const founderMode = creatorIntent === 'founder';
     if (lang === 'tl') return sendPlain(storyFilipino(phTime, founderMode));
     if (lang === 'en') return sendPlain(storyEnglish(phTime, founderMode));
 
-    // Ibang language (Bisaya, Spanish, atbp.): ipapa-translate sa AI, English kapag pumalya
     const english = storyEnglish(phTime, founderMode);
     const translateMessages = [
       {
@@ -1624,7 +1555,6 @@ async function handlerImpl(req, res) {
     return sendPlain(english);
   }
 
-  // ---------- 2. RPR ADMINS / MEMBER COUNT ----------
   const mentionsRpr = /(rpr|reaper)/i.test(shortMsg);
   if (mentionsRpr && RPR_DATA.length) {
     const asksList = /(who|sino|list|lahat|ano|sinu|kinsa|ilan|pila|how many|total|show)/i.test(shortMsg);
@@ -1653,10 +1583,8 @@ async function handlerImpl(req, res) {
 
   const intent = detectIntent(shortMsg);
 
-  // Cache: parehong tanong ng maraming tao = isang tawag lang sa AI at search
   let msgUrls = extractUrls(userMessage);
   const sid = oauthReady() && SID_RX.test(String(body && body.sid || '')) ? String(body.sid) : '';
-  // Plugins: alin ang naka-on para sa user na ito (ang uninstalled o naka-off ay hindi gagamitin)
   let act = null;
   let pluginNote = '';
   if (sid) {
@@ -1674,7 +1602,6 @@ async function handlerImpl(req, res) {
     if (hit) return sendPlain(String(hit));
   }
 
-  // ---------- 3. DATABASE LOOKUP + PERSON SEARCH ----------
   const extras = await getExtraEntries().catch(() => []);
   const memoryFacts = Array.isArray(body && body.memory)
     ? body.memory.map((x) => String(x || '').replace(/\s+/g, ' ').trim().slice(0, 200)).filter(Boolean).slice(0, 30)
@@ -1682,7 +1609,6 @@ async function handlerImpl(req, res) {
   let personName = extractPersonName(shortMsg);
   let prefetchedMeaning = null;
 
-  // Pangalan lang ang tinype (o "tell me about ..."): tatanungin muna ang AI kung pangalan ng tao ito
   if (!personName && intent === 'general') {
     const candidate = extractLooseName(shortMsg) || bareNameCandidate(shortMsg);
     if (candidate) {
@@ -1727,11 +1653,9 @@ async function handlerImpl(req, res) {
     personContext = webLines.join('\n\n');
     if (foundLocal) dbHead = buildDbCard(local, lang);
 
-    // May database match pero walang web results: hindi na kailangan ng AI
     if (foundLocal && !personContext) return sendPlain(dbHead + personTail);
   }
 
-  // ---------- 4. SMART WEB SEARCH (balita, social media, sports, research, docs) ----------
   let searchResults = '';
   let sportsData = '';
   const isCodingQuestion = intent === 'coding';
@@ -1775,7 +1699,6 @@ async function handlerImpl(req, res) {
     });
   }
 
-  // ---------- SYSTEM PROMPT ----------
   const hospitalHint = /(hospital|ospital|staff|nurse|doctor|doktor|physician|midwife|pharmac|dentist|clerk|utility|security|medtech|medical|chief|empleyado|employee)/i.test(shortMsg);
   const rprHint = mentionsRpr || /(clan|codm|scrim|tourna|bakatan|esmeringhoy)/i.test(shortMsg);
 
@@ -1863,7 +1786,6 @@ Your job: in at most 2 short sentences, add only facts from the WEB RESULTS that
     })
     .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.content && m.content.trim());
 
-  // Limitahan ang history (pinakabago ang buo) para hindi lumampas sa context ng AI
   let histBudget = 90000;
   const sanitizedMessages = [];
   for (let i = sanitizedAll.length - 1; i >= 0 && histBudget > 0; i--) {
@@ -1873,115 +1795,89 @@ Your job: in at most 2 short sentences, add only facts from the WEB RESULTS that
     sanitizedMessages.unshift({ role: sanitizedAll[i].role, content: c });
   }
   let apiMessages = [{ role: 'system', content: systemContent }, ...sanitizedMessages];
-  const headWithGap = dbHead ? dbHead + '\n\n' : '';
 
-  // ---------- MULTI-AI SYNTHESIS (kapag ON ang ENABLE_MULTI_AI_SYNTHESIS) ----------
-  if (SYNTHESIS_ON() && !lookupName && !isCodingQuestion && shortMsg.length > 15) {
-    const drafts = await gatherDrafts(apiMessages);
-
-    if (drafts.length === 1) {
-      return sendPlain(drafts[0].text);
+  // Send to AI
+  const ok = await streamFromProviders(apiMessages, res);
+  
+  if (!ok) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'All AI providers failed. Please try again.' });
+    } else {
+      res.end();
     }
-
-    if (drafts.length >= 2) {
-      const draftBlock = drafts
-        .map((d, i) => `[Draft ${i + 1}]\n${d.text.slice(0, 6000)}`)
-        .join('\n\n');
-
-      const synthSystem = `${systemContent}
-
-=== DRAFT ANSWERS FROM OTHER EXPERTS ===
-${draftBlock}
-
-=== FINAL TASK ===
-Write ONE final answer for the user. Keep the parts that are correct and agree with the DATABASE and WEB RESULTS, and remove anything doubtful, contradicted, or repeated. If the drafts disagree and you cannot verify which is right, say what is uncertain in one short sentence. Be direct and to the point, in the user's language, with perfect grammar. Never mention drafts, experts, or other AIs.`;
-
-      const synthMessages = [{ role: 'system', content: synthSystem }, ...sanitizedMessages];
-      const ok = await streamFromProviders(synthMessages, res);
-      if (ok) return;
-      return sendPlain(drafts[0].text); // kung pumalya ang synthesis, ibigay ang unang draft
-    }
-    // 0 drafts: subukan ang normal na streaming sa ibaba
   }
-
-  // ---------- NORMAL STREAMING ----------
-  // Kapag walang Serper pero may Gemini: Gemini + Google Search para sa balita, sports, at research
-  if (!process.env.SERPER_API_KEY && process.env.GEMINI_API_KEY && !lookupName && ['news', 'sports', 'research'].includes(intent)) {
-    try { return sendPlain(await callGemini(apiMessages, { grounded: true })); } catch (e) { console.error('Gemini grounded failed:', e.message); }
-  }
-
-  const useReasoner = intent === 'math' && /^(1|true|yes|on)$/i.test(String(process.env.ENABLE_REASONER || '').trim());
-  let captured = '';
-  if (cacheable) {
-    const origWrite = res.write.bind(res);
-    const origSend = res.send.bind(res);
-    res.write = (chunk, ...a) => { try { captured += typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'); } catch (e) {} return origWrite(chunk, ...a); };
-    res.send = (b) => { if (typeof b === 'string') captured += b; return origSend(b); };
-  }
-  const ok = await streamFromProviders(apiMessages, res, headWithGap, personTail, { reasoner: useReasoner });
-  if (ok) {
-    if (cacheable && captured.trim().length > 40) await redis(['SET', cacheKey, captured, 'EX', CACHE_TTL[intent]]).catch(() => {});
-    return;
-  }
-
-  // ---------- FALLBACK: kahit walang AI, ibigay pa rin ang database at links ----------
-  if (lookupName) {
-    const body = foundLocal
-      ? dbHead
-      : T(lang, `I could not find any information about "${titleCase(lookupName)}".`, `Wala akong nakitang impormasyon tungkol kay "${titleCase(lookupName)}".`);
-    return sendPlain(body + personTail);
-  }
-
-  return res.status(503).json({ error: 'Imachui Gen AI is being updated right now. Please be patient and try again in a few minutes. Thank you!' });
 }
 
 // ==========================================
-// STREAMING (may buffer; may "head" at "tail")
+// CLOUDFLARE ADAPTER (Para gumana ang Vercel code)
 // ==========================================
-async function streamResponse(response, res, head = '', tail = '') {
-  if (!res.headersSent) res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  if (head) res.write(head);
+export async function onRequest(context) {
+  const { request, env } = context;
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
+  // Ipasok ang env variables para mabasa ng lumang code
+  if (typeof globalThis.process === 'undefined') globalThis.process = { env: {} };
+  Object.assign(globalThis.process.env, env);
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  // Gumawa ng pekeng Vercel req
+  const req = {
+    method: request.method,
+    headers: Object.fromEntries(request.headers),
+    body: request.method === 'POST' ? await request.json().catch(() => ({})) : null,
+    socket: { remoteAddress: request.headers.get('CF-Connecting-IP') || 'unknown' }
+  };
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop();
+  // Gumawa ng pekeng Vercel res na sumusuporta sa streaming
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const encoder = new TextEncoder();
+  let headersSent = false;
+  
+  const responseHeaders = new Headers({
+    'Access-Control-Allow-Origin': '*',
+    'Content-Type': 'text/plain; charset=utf-8'
+  });
 
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('data: ') && trimmed !== 'data: [DONE]') {
-        try {
-          const json = JSON.parse(trimmed.slice(6));
-          const content = json.choices?.[0]?.delta?.content || '';
-          if (content) res.write(content);
-        } catch (e) {}
-      }
+  const res = {
+    get headersSent() { return headersSent; },
+    setHeader(k, v) { responseHeaders.set(k, v); },
+    status(code) { this.statusCode = code; return this; },
+    json(obj) {
+      responseHeaders.set('Content-Type', 'application/json');
+      writer.write(encoder.encode(JSON.stringify(obj)));
+      writer.close();
+      headersSent = true;
+      return this;
+    },
+    send(text) {
+      writer.write(encoder.encode(text));
+      writer.close();
+      headersSent = true;
+      return this;
+    },
+    write(chunk) {
+      writer.write(encoder.encode(chunk));
+      headersSent = true;
+    },
+    end(text) {
+      if (text) writer.write(encoder.encode(text));
+      writer.close();
+      headersSent = true;
     }
-  }
+  };
 
-  if (tail) res.write(tail);
-  res.end();
-}
-
-// Kinukuha muna ang sariling AI keys ng user (kung meron), saka patatakbuhin ang chat
-export default async function handler(req, res) {
-  let userProviders = [];
-  try {
-    let b = req.body;
-    if (typeof b === 'string') b = JSON.parse(b);
-    const sid = String((b && b.sid) || '');
-    if (oauthReady() && SID_RX.test(sid)) {
-      userProviders = await getUserProviders(sid);
-      const off = await disabledAi(sid);
-      if (off.size) userProviders = userProviders.filter((p) => !off.has(p.base));
+  // Patakbuhin ang lumang logic mo
+  handlerImpl(req, res).catch(e => {
+    console.error('Chat Error:', e);
+    if (!headersSent) {
+      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      res.end();
     }
-  } catch (e) { /* walang sariling key */ }
-  return ownKeys.run({ userProviders }, () => handlerImpl(req, res));
+  });
+
+  // I-return ang stream
+  return new Response(readable, {
+    status: 200,
+    headers: responseHeaders
+  });
 }
